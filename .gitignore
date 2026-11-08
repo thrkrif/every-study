@@ -1,0 +1,77 @@
+# ── OS / 에디터 ─────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.swp
+
+# ── 에이전트 도구 로컬 상태 ─────────────────
+.omc/
+.claude/settings.local.json
+.claude/hooks.log
+.claude/hooks.prev/
+.claude/hooks.bad/
+.claude/settings.json.prev
+.claude/.stage.*
+.claude/.settings.*
+
+# ── 시크릿 (절대 커밋 금지) ─────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+secrets/
+application-secret*.yml
+application-secret*.properties
+
+# ── Backend (Spring Boot / JVM) ─────────────
+backend/build/
+backend/out/
+backend/target/
+backend/.gradle/
+backend/bin/
+*.class
+*.log
+hs_err_pid*
+!backend/gradle/wrapper/gradle-wrapper.jar
+
+# ── Frontend (Next.js / Node) ───────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ── 위치와 무관하게 막는 빌드 산출물 (디렉터리 구조가 바뀌어도 안전망) ──
+node_modules/
+.next/
+.turbo/
+.vercel/
+.gradle/
+.kotlin/
+build/
+out/
+target/
+*.hprof
+*.pid
+
+# ── 로컬 DB / 덤프 / 업로드 (실데이터 유출 방지) ─────
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+uploads/
+
+# ── 기타 ────────────────────────────────────
+coverage/
+tmp/
+*.tmp
