@@ -239,6 +239,18 @@ mkdir -p "$T/many"; for i in 1 2 3 4 5 6; do : > "$T/many/f$i"; done
 MANYJ="$(jq -nc --arg d "$T/many" '{tool_name:"Bash",cwd:$d,tool_input:{command:"rg x ."}}')"
 guard "$HOOKS_DIR" guard-bash "$MANYJ"; expect 0 "탐색 한도 미만이면 허용"
 DIR_SCAN_MAX=3 guard "$HOOKS_DIR" guard-bash "$MANYJ"; expect 2 "탐색 한도 초과(확인 불가) 시 차단"
+# ── /dev/null · fd 복제 리다이렉션 오탐 ──
+b 0 $M 'ls -A .claude 2>/dev/null'
+b 0 $M 'cat .claude/settings.json >/dev/null 2>&1'
+b 0 $M 'ls .claude 2>&1 | head'
+b 0 $M 'cat .claude/settings.json &>/dev/null'
+b 0 $M 'ls .claude > /dev/null'
+b 2 $M 'echo x > .claude/settings.json 2>/dev/null'
+b 2 $M 'echo x >> .claude/hooks/_lib.sh 2>&1'
+b 2 $M 'echo x 2>&1 > .claude/settings.json'
+b 2 $M 'cat a > .claude/hooks/x.sh; ls 2>/dev/null'
+b 2 $M 'echo x > /dev/null; echo y > .claude/settings.json'
+
 echo "== ② 고장 주입 테스트 (훅이 망가져도 반드시 차단 + 복구 안내)"
 H="$T/h"
 fresh() { rm -rf "$H"; cp -R "$HOOKS_DIR" "$H"; }

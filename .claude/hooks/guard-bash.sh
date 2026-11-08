@@ -237,6 +237,6 @@ while IFS= read -r seg; do
       [ "$g1" = "pr" ] && [ "$g2" = "merge" ] && deny "gh pr merge 차단" "병합은 사용자가 직접 수행합니다."
       [ "$g1" = "repo" ] && [ "$g2" = "delete" ] && deny "gh repo delete 차단" ;;
   esac
-done < <(printf '%s\n' "$cmd" | tr ';&|' '\n\n\n')   # 끝의 개행 필수: 없으면 마지막 줄을 읽고도 루프가 돌지 않음
+done < <(printf '%s\n' "$cmd" | sed -E 's#[0-9]*>&[0-9-]+##g; s#&?[0-9]*>{1,2}[[:space:]]*/dev/null##g' | tr ';&|' '\n\n\n')   # /dev/null·fd 복제(2>&1) 리다이렉션은 쓰기가 아니므로 제거 후 분할. 끝의 개행 필수: 없으면 마지막 줄을 읽고도 루프가 돌지 않음
 
 exit 0
