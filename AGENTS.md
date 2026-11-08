@@ -9,12 +9,12 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 
 | 영역 | 경로 | 기술 (PRD 기준) |
 |---|---|---|
-| 백엔드 | `backend/` | Spring Boot REST API |
-| 프론트엔드 | `frontend/` | Next.js (React), 모바일 웹 우선 |
+| 백엔드 | `backend/` | Java, Spring Boot REST API, Gradle(Groovy), MySQL, Flyway, JWT(httpOnly 쿠키) |
+| 프론트엔드 | `frontend/` | Next.js (React), TypeScript, 모바일 웹 우선 |
 | 문서 | `docs/` | PRD → ARCHITECTURE(+ADR) → API·데이터 명세 → PLAN |
 | 보안 훅 | `.claude/`, `tools/` | 아래 §4 |
 
-세부 기술 스택·빌드 도구·패키지 구조는 `docs/ARCHITECTURE.md` 확정 후 이 파일에 추가한다. **확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.**
+기술 스택 결정과 근거는 [`docs/adr/0001-tech-stack.md`](docs/adr/0001-tech-stack.md) 를 따른다 ("제안" 항목은 확정 전). 패키지 구조 등 세부는 `docs/ARCHITECTURE.md` 확정 후 이 파일에 추가한다. **확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.**
 
 ## 2. 작업 순서
 
@@ -85,3 +85,14 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 ## 6. 코드 컨벤션
 
 `docs/ARCHITECTURE.md` 확정 후 작성한다 (패키지 구조, 네이밍, 테스트 전략, 린트/포맷터). 그 전에는 `.editorconfig` 를 따른다.
+
+확정된 규칙만 먼저 적는다.
+
+### DB 마이그레이션 (Flyway)
+- 위치 `backend/src/main/resources/db/migration/`, 파일명 `V<번호>__<설명>.sql`.
+- **병합된 마이그레이션은 수정하지 않는다.** 변경은 새 버전 파일로 추가한다.
+- JPA 는 `ddl-auto=validate`. 스키마 생성·변경은 Flyway 로만 한다.
+- MySQL 은 `utf8mb4` 를 명시한다.
+
+### 인증 (JWT)
+- 토큰은 `localStorage` 에 두지 않고 **httpOnly 쿠키**로 다룬다. CSRF·CORS 대응을 함께 설계한다.
