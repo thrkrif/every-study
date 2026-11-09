@@ -251,6 +251,18 @@ b 2 $M 'echo x 2>&1 > .claude/settings.json'
 b 2 $M 'cat a > .claude/hooks/x.sh; ls 2>/dev/null'
 b 2 $M 'echo x > /dev/null; echo y > .claude/settings.json'
 
+# ── 문장부호가 붙은 인자 / ':' ',' 로 결합된 인자 ──
+b 0 $M 'echo see .env.example: keys only'
+b 0 $M 'echo "files: .env.example, README.md"'
+b 0 $M 'cat .env.example,'
+b 2 $M 'docker run -v .env:/app/.env x'
+b 2 $M 'scp host:.env .'
+b 2 $M 'echo a,.env,b'
+b 2 $M 'cat .env:'
+b 2 $M 'rsync -a .env.example:server.pem /tmp'
+b 2 $M 'docker run -v ./.claude/hooks:/x -w /x y rm a'
+b 0 $M 'docker run -v ./src:/app/src x'
+
 echo "== ② 고장 주입 테스트 (훅이 망가져도 반드시 차단 + 복구 안내)"
 H="$T/h"
 fresh() { rm -rf "$H"; cp -R "$HOOKS_DIR" "$H"; }
