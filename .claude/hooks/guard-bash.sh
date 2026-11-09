@@ -59,10 +59,18 @@ while IFS= read -r seg; do
         is_secret_path "$tc" && deny "시크릿/자격증명 파일 접근 차단: $a (cd $cdir 이후)"
         is_protected_path "$tc" && prot="$a" ;; esac
     fi
-    if is_secret_path "$t" || is_secret_path "$v"; then
-      deny "시크릿/자격증명 파일 접근 차단: $a" "설정값이 필요하면 .env.example 에 키 이름만 적으세요."
-    fi
-    if is_protected_path "$t" || is_protected_path "$v"; then prot="$a"; fi
+    # 토큰 전체, '=' 뒤, 그리고 ':' ',' 로 쪼갠 조각을 모두 검사한다.
+    #   (문장부호가 붙은 예시 파일명 오탐 방지 + docker -v 호스트:컨테이너 같은 결합 인자 대응)
+    while [[ "$t" == *[:,] ]]; do t="${t%?}"; done   # 끝에 붙은 문장부호 제거
+    while [[ "$v" == *[:,] ]]; do v="${v%?}"; done
+    IFS=':,' read -ra pieces <<< "$t"
+    IFS=':,' read -ra vpieces <<< "$v"
+    for x in "$t" "$v" "${pieces[@]}" "${vpieces[@]}"; do
+      if is_secret_path "$x"; then
+        deny "시크릿/자격증명 파일 접근 차단: $a" "설정값이 필요하면 .env.example 에 키 이름만 적으세요."
+      fi
+      if is_protected_path "$x"; then prot="$a"; fi
+    done
   done
   if [ -n "$prot" ]; then
     if [[ "$seg" == *">"* ]] || ! ro_cmd "$c0" "${args[0]:-}" "$seg"; then
