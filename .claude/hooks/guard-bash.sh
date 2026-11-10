@@ -22,12 +22,255 @@ current_branch() { git -C "${1:-.}" symbolic-ref --short -q HEAD 2>/dev/null; }
 JUNK=$'"\'`(){}<>'
 clean_tok() { local t="${1//[$JUNK]/}"; printf '%s' "$t"; }
 
+# ── 인자 역할 구분 ────────────────────────────────────────
+# 같은 단어라도 경로(cat secrets/x)일 때와 글자(커밋 메시지, 검색어, 출력 문구)일 때가 다르다.
+# 글자 자리의 값만 TEXT 로 바꾼 사본을 만들어 아래 경로 검사에 쓴다.
+#   · 치환 대상은 확실한 자리뿐: echo/printf 인자, git commit/tag/merge/stash/notes 의 -m 값,
+#     gh pr|issue|release 의 --title/--body/--notes 값, grep 계열의 검색 패턴(-e 값),
+#     cat/tee/git commit|tag/gh 로 흘러가는 heredoc 본문
+#   · 파일 경로를 받는 자리(-F, --body-file, -f, 리다이렉션 대상, 일반 인자)는 절대 치환하지 않는다
+#   · 명령 치환 $(..), 백틱, 리다이렉션, 서브셸, 파이프로 이어지는 heredoc 은 치환하지 않는다 (실행될 수 있으므로)
+MT_Q=$'"\'\\'
+MT_NEUTRAL_RE='^([0-9]*>&[0-9-]+|&?[0-9]*>>?/dev/null)$'
+MT_REDIR_RE='^[0-9&]*>>?$'
+HD_OPEN_RE=$'<<(-?)[[:space:]]*([\'"]?)([A-Za-z_][A-Za-z0-9_]*)([\'"]?)([[:space:];&|()<>]|$)'
+MT_HEREDOC_RE=$'^<<-?[\'"]?[A-Za-z_][A-Za-z0-9_]*[\'"]?$|^<<-?$'   #<<'EOF', <<-EOF, << (heredoc 표시는 실행 효과가 없음)
+mt_plain() { local t="${1//[$MT_Q]/}"; printf '%s' "$t"; }
+
+# heredoc 소비 명령이 "데이터로만 쓰는" 경우인가
+hd_consumer_ok() {
+  local -a ws; read -ra ws <<< "$1"; local k=0 c sub
+  while [ "$k" -lt "${#ws[@]}" ]; do
+    case "${ws[$k]}" in sudo|command|env|nohup|time|exec|[A-Za-z_]*=*) k=$((k+1)) ;; *) break ;; esac
+  done
+  c="${ws[$k]:-}"; c="${c##*/}"; sub="${ws[$((k+1))]:-}"
+  case "$c" in
+    cat|tee) return 0 ;;
+    git) case "$sub" in commit|tag) return 0 ;; esac ;;
+    gh)  case "$sub" in pr|issue|release) return 0 ;; esac ;;
+  esac
+  return 1
+}
+
+# '<<' 앞부분($1)이 따옴표/주석/백틱 안이 아닌가. 아니면 heredoc 이 아니므로 본문을 숨기면 안 된다.
+#   (예: cat x "<<EOF" 다음 줄의 실제 명령을 본문으로 착각해 숨기는 우회 방지)
+#   "$(cat <<'EOF'" 처럼 명령 치환 안의 heredoc 은 정상으로 본다.
+hd_unquoted() {
+  local s="$1" stack="C" i=0 n=${#1} ch top prev=" "
+  HD_START=0   # heredoc 을 소비하는 "마지막 명령"이 시작되는 위치 (따옴표 밖의 ; & | ( 기준)
+  while [ "$i" -lt "$n" ]; do
+    ch="${s:$i:1}"; top="${stack: -1}"
+    case "$top" in
+      S) [ "$ch" = "'" ] && stack="${stack%?}" ;;
+      D) case "$ch" in
+           '\') i=$((i+1)) ;;
+           '"') stack="${stack%?}" ;;
+           '`') return 1 ;;
+           '$') if [ "${s:$((i+1)):1}" = "(" ]; then stack+="C"; i=$((i+1)); HD_START=$((i+1)); fi ;;
+         esac ;;
+      *) case "$ch" in
+           "'") stack+="S" ;;
+           '"') stack+="D" ;;
+           '\') i=$((i+1)) ;;
+           '`') return 1 ;;
+           '#') [[ "$prev" == [[:space:]] ]] && return 1 ;;
+           '(') stack+="C"; HD_START=$((i+1)) ;;
+           ')') [ "${#stack}" -gt 1 ] && stack="${stack%?}" ;;
+           ';'|'|') HD_START=$((i+1)) ;;
+           '&') if [ "$prev" != ">" ] && [ "${s:$((i+1)):1}" != ">" ]; then HD_START=$((i+1)); fi ;;   # 2>&1, &> 는 구분자가 아님
+         esac ;;
+    esac
+    prev="$ch"; i=$((i+1))
+  done
+  top="${stack: -1}"
+  [ "$top" = "C" ]
+}
+
+strip_heredocs() {
+  local line t tag="" dash="" pre full_pre post body="" mask=0 in_hd=0 out="" TAB=$'\t' hd_tmp hd_cnt hd_bs
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [ "$in_hd" -eq 1 ]; then
+      t="$line"
+      [ "$dash" = "-" ] && t="${t#"${t%%[!$TAB]*}"}"
+      t="${t%"${t##*[![:space:]]}"}"
+      if [ "$t" = "$tag" ]; then
+        in_hd=0
+        if [ "$mask" -eq 1 ] && ! [[ "$body" == *'$('* || "$body" == *'`'* ]]; then out+="$line"$'\n'; else out+="$body$line"$'\n'; fi
+      else
+        body+="$line"$'\n'
+      fi
+      continue
+    fi
+    out+="$line"$'\n'
+    # heredoc 으로 인정하는 형식만 처리한다. 애매하면 heredoc 모드에 들어가지 않아
+    # 이후 줄이 일반 명령으로 검사된다 (= 안전한 쪽으로만 틀림).
+    #   · 종료자(구분 단어) 전체가 [A-Za-z0-9_]+ 이고 그 뒤가 공백/메타문자/줄끝일 것 (EOF-X 같은 형식은 제외)
+    #   · 여는 따옴표와 닫는 따옴표가 같을 것
+    #   · 한 줄에 '<<' 가 정확히 하나일 것, '<<<' 는 제외
+    #   · '<<' 앞에 홀수 개의 백슬래시가 없을 것 (\<<EOF 는 heredoc 이 아님)
+    if [[ "$line" != *"<<<"* && "$line" =~ $HD_OPEN_RE && "${BASH_REMATCH[2]}" == "${BASH_REMATCH[4]}" ]]; then
+      dash="${BASH_REMATCH[1]}"; tag="${BASH_REMATCH[3]}"
+      full_pre="${line%%<<*}"
+      post="${line#*<<}"
+      hd_tmp="${line//<</}"; hd_cnt=$(( (${#line} - ${#hd_tmp}) / 2 ))
+      hd_bs="${full_pre##*[!\\]}"
+      if [ "$hd_cnt" -ne 1 ] || [ $(( ${#hd_bs} % 2 )) -eq 1 ]; then continue; fi
+      mask=0
+      if hd_unquoted "$full_pre"; then
+        pre="${full_pre:$HD_START}"
+        if hd_consumer_ok "$pre" && [[ "$post" != *"|"* ]]; then mask=1; fi
+      fi
+      in_hd=1; body=""
+    fi
+  done <<< "$1"
+  [ "$in_hd" -eq 1 ] && out+="$body"    # 끝나지 않은 heredoc 은 그대로 둔다
+  printf '%s' "$out"
+  return 0
+}
+
+mt_flush_tok() { if [ "$have" -eq 1 ]; then mt_toks+=("$buf"); mt_uns+=("$unsafe"); fi; buf=""; unsafe=0; have=0; }
+mt_flush_cmd() { out+="$(mask_one_cmd)"; mt_toks=(); mt_uns=(); }
+
+mask_git() {
+  local j=$((idx0+1)) p sub="" nxt=0
+  while [ "$j" -lt "$n" ]; do
+    p="$(mt_plain "${mt_toks[$j]}")"
+    case "$p" in
+      -C|-c|--git-dir|--work-tree|--namespace) j=$((j+2)) ;;
+      -*) j=$((j+1)) ;;
+      *) sub="$p"; break ;;
+    esac
+  done
+  case "$sub" in commit|tag|merge|stash|notes) ;; *) return 0 ;; esac
+  for ((j=j+1; j<n; j++)); do
+    p="$(mt_plain "${mt_toks[$j]}")"
+    if [ "$nxt" -eq 1 ]; then mt_toks[$j]=TEXT; nxt=0; continue; fi
+    case "$p" in
+      --message) nxt=1 ;;
+      --message=*) mt_toks[$j]="--message=TEXT" ;;
+      --*) ;;
+      -m|-[a-zA-Z]*m) nxt=1 ;;   # -m 단독과 -am 같은 묶음 (패턴의 [a-zA-Z] 는 문자 1개를 요구하므로 -m 은 따로)
+    esac
+  done
+}
+
+mask_gh() {
+  local j p g1="" nxt=0
+  for ((j=idx0+1; j<n; j++)); do
+    p="$(mt_plain "${mt_toks[$j]}")"
+    if [[ "$p" != -* ]]; then g1="$p"; break; fi
+  done
+  case "$g1" in pr|issue|release) ;; *) return 0 ;; esac
+  for ((j=j+1; j<n; j++)); do
+    p="$(mt_plain "${mt_toks[$j]}")"
+    if [ "$nxt" -eq 1 ]; then mt_toks[$j]=TEXT; nxt=0; continue; fi
+    case "$p" in
+      --title|-t|--body|-b|--notes) nxt=1 ;;
+      --title=*) mt_toks[$j]="--title=TEXT" ;;
+      --body=*)  mt_toks[$j]="--body=TEXT" ;;
+      --notes=*) mt_toks[$j]="--notes=TEXT" ;;
+    esac
+  done
+}
+
+mask_grep() {
+  local j p nxt=0 skip=0 haspat=0 donepat=0
+  for ((j=idx0+1; j<n; j++)); do
+    p="$(mt_plain "${mt_toks[$j]}")"
+    case "$p" in -e|--regexp|-f|--file|--regexp=*|--file=*) haspat=1 ;; --*) ;; -[a-zA-Z]*[ef]) haspat=1 ;; esac
+  done
+  for ((j=idx0+1; j<n; j++)); do
+    p="$(mt_plain "${mt_toks[$j]}")"
+    if [ "$nxt" -eq 1 ]; then mt_toks[$j]=TEXT; nxt=0; continue; fi
+    if [ "$skip" -eq 1 ]; then skip=0; continue; fi
+    case "$p" in
+      -e|--regexp) nxt=1 ;;
+      --regexp=*) mt_toks[$j]="--regexp=TEXT" ;;
+      -f|--file) skip=1 ;;                                  # 패턴 "파일" 경로: 치환하지 않음
+      -A|-B|-C|-m|-g|-t|-T|-d|-D|-j|-M|--include|--exclude|--exclude-dir|--glob|--type|--max-count|--context|--after-context|--before-context|--max-depth|--max-columns) skip=1 ;;
+      --*) ;;
+      -[a-zA-Z]*e) nxt=1 ;;
+      -*) ;;
+      *) if [ "$haspat" -eq 0 ] && [ "$donepat" -eq 0 ]; then mt_toks[$j]=TEXT; donepat=1; fi ;;
+    esac
+  done
+}
+
+mask_one_cmd() {
+  local n=${#mt_toks[@]} j p c0="" idx0=-1 cmdunsafe=0
+  [ "$n" -eq 0 ] && return 0
+  for ((j=0; j<n; j++)); do
+    [ "${mt_uns[$j]}" = 1 ] || continue
+    p="${mt_toks[$j]}"
+    if [[ "$p" =~ $MT_NEUTRAL_RE ]]; then continue; fi                                         # 2>&1, >/dev/null, &>/dev/null
+    if [[ "$p" =~ $MT_HEREDOC_RE ]]; then continue; fi                                         # <<'EOF'
+    if [[ "$p" =~ $MT_REDIR_RE && "${mt_toks[$((j+1))]:-}" = "/dev/null" ]]; then continue; fi  # > /dev/null
+    cmdunsafe=1
+  done
+  if [ "$cmdunsafe" -eq 0 ]; then
+    for ((j=0; j<n; j++)); do
+      p="$(mt_plain "${mt_toks[$j]}")"
+      case "$p" in
+        sudo|command|env|nohup|time|exec|[A-Za-z_]*=*) ;;
+        *) idx0=$j; c0="${p##*/}"; break ;;
+      esac
+    done
+    if [ "$idx0" -ge 0 ]; then
+      case "$c0" in
+        echo|printf) for ((j=idx0+1; j<n; j++)); do mt_toks[$j]=TEXT; done ;;
+        git) mask_git ;;
+        gh)  mask_gh ;;
+        grep|egrep|fgrep|rg|ag|ack) mask_grep ;;
+      esac
+    fi
+  fi
+  printf '%s' "${mt_toks[*]}"
+}
+
+mask_text_args() {
+  local LC_ALL=C
+  local s="$1" n=${#1} i=0 ch buf="" inS=0 inD=0 unsafe=0 have=0 out=""
+  mt_toks=(); mt_uns=()
+  while [ "$i" -lt "$n" ]; do
+    ch="${s:$i:1}"
+    if [ "$inS" -eq 1 ]; then buf+="$ch"; [ "$ch" = "'" ] && inS=0; i=$((i+1)); continue; fi
+    if [ "$inD" -eq 1 ]; then
+      case "$ch" in
+        '\') buf+="${s:$i:2}"; i=$((i+2)); continue ;;
+        '"') inD=0 ;;
+        '`') unsafe=1 ;;
+        '$') [ "${s:$((i+1)):1}" = "(" ] && unsafe=1 ;;
+      esac
+      buf+="$ch"; i=$((i+1)); continue
+    fi
+    case "$ch" in
+      "'") inS=1; have=1; buf+="$ch" ;;
+      '"') inD=1; have=1; buf+="$ch" ;;
+      '\') buf+="${s:$i:2}"; have=1; i=$((i+1)) ;;
+      '`'|'<'|'>'|'('|')') unsafe=1; have=1; buf+="$ch" ;;
+      '$') [ "${s:$((i+1)):1}" = "(" ] && unsafe=1; have=1; buf+="$ch" ;;
+      '&') if [[ "$buf" == *'>' || "${s:$((i+1)):1}" == '>' ]]; then unsafe=1; have=1; buf+="$ch"; else mt_flush_tok; mt_flush_cmd; out+="$ch"; fi ;;
+      ' '|$'\t') mt_flush_tok ;;
+      ';'|'|'|$'\n') mt_flush_tok; mt_flush_cmd; out+="$ch" ;;
+      *) have=1; buf+="$ch" ;;
+    esac
+    i=$((i+1))
+  done
+  mt_flush_tok; mt_flush_cmd
+  printf '%s' "$out"
+  return 0
+}
+
 # ── 0. 문자열 전체 검사 ───────────────────────────────────
 shopt -s nocasematch
 if [[ "$cmd" =~ drop[[:space:]]+(database|schema|table) ]]; then
   deny "DROP DATABASE/SCHEMA/TABLE 차단" "DB 파괴 작업은 사용자가 직접 실행하세요."
 fi
 shopt -u nocasematch
+
+# 이후 검사는 "글자 자리"를 치환한 사본으로 한다 (DROP 검사는 위에서 원문으로 끝냄)
+cmd_scan="$(strip_heredocs "$cmd")" || internal "heredoc 처리 실패"
+cmd_scan="$(mask_text_args "$cmd_scan")" || internal "인자 역할 처리 실패"
 
 # ── 1. 세그먼트(; & | 개행 기준)별 검사 ───────────────────
 while IFS= read -r seg; do
@@ -268,6 +511,6 @@ while IFS= read -r seg; do
       [ "$g1" = "pr" ] && [ "$g2" = "merge" ] && deny "gh pr merge 차단" "병합은 사용자가 직접 수행합니다."
       [ "$g1" = "repo" ] && [ "$g2" = "delete" ] && deny "gh repo delete 차단" ;;
   esac
-done < <(printf '%s\n' "$cmd" | sed -E 's#[0-9]*>&[0-9-]+##g; s#&?[0-9]*>{1,2}[[:space:]]*/dev/null##g' | tr ';&|' '\n\n\n')   # /dev/null·fd 복제(2>&1) 리다이렉션은 쓰기가 아니므로 제거 후 분할. 끝의 개행 필수: 없으면 마지막 줄을 읽고도 루프가 돌지 않음
+done < <(printf '%s\n' "$cmd_scan" | sed -E 's#[0-9]*>&[0-9-]+##g; s#&?[0-9]*>{1,2}[[:space:]]*/dev/null##g' | tr ';&|' '\n\n\n')   # /dev/null·fd 복제(2>&1) 리다이렉션은 쓰기가 아니므로 제거 후 분할. 끝의 개행 필수: 없으면 마지막 줄을 읽고도 루프가 돌지 않음
 
 exit 0

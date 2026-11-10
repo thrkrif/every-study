@@ -257,7 +257,8 @@ b 0 $M 'echo "files: .env.example, README.md"'
 b 0 $M 'cat .env.example,'
 b 2 $M 'docker run -v .env:/app/.env x'
 b 2 $M 'scp host:.env .'
-b 2 $M 'echo a,.env,b'
+b 2 $M 'cat a,.env,b'
+b 0 $M 'echo a,.env,b'   # echo 는 출력만 하는 글자 자리
 b 2 $M 'cat .env:'
 b 2 $M 'rsync -a .env.example:server.pem /tmp'
 b 2 $M 'docker run -v ./.claude/hooks:/x -w /x y rm a'
@@ -279,6 +280,180 @@ b 0 $F 'git commit -m "feat: x"'
 b 0 $F 'git commit -m "feat: use -n flag in docs"'
 b 0 $F 'git commit -am "feat: x"'
 b 0 $F 'git push -n origin feature/x'
+
+# ── 인자 역할 구분: 글자 자리는 허용, 경로 자리는 계속 차단 ──
+# 허용: 메시지·제목·본문·검색어·출력 문구
+b 0 $F 'git commit -m "docs: secrets: gitleaks 설명"'
+b 0 $F 'git commit -m "docs: update .env.example and credentials notes"'
+b 0 $F 'git commit -am "fix: secrets 처리"'
+b 0 $F 'git commit --message="feat: .env 안내"'
+b 0 $F 'git tag -a v1 -m "release secrets: none"'
+b 0 $M 'echo secrets'
+b 0 $M 'echo "secrets: credentials .env id_rsa"'
+b 0 $M 'printf "%s\n" "secrets: x"'
+b 0 $M 'grep secrets README.md'
+b 0 $M 'grep -n credentials docs/PRD.md'
+b 0 $M 'grep -e secrets -e .env README.md'
+b 0 $M 'grep -A 3 secrets README.md'
+b 0 $M 'rg -g "*.md" secrets docs'
+b 0 $F 'gh pr create --base develop --title "docs: secrets: x" --body "secrets: gitleaks"'
+b 0 $F 'gh pr create --base develop --title x --body-file - <<'"'"'EOF'"'"'
+- secrets: gitleaks
+- .env.example: 키 이름
+- cat credentials
+EOF'
+b 0 $F 'git commit -q -F - <<'"'"'EOF'"'"'
+feat: x
+
+secrets: 설명, .env 와 credentials 언급
+EOF'
+b 0 $F 'git commit -m "$(cat <<'"'"'EOF'"'"'
+fix: y
+
+secrets: 본문에 단어만 있음
+EOF
+)"'
+b 0 $M 'cat <<'"'"'EOF'"'"' > notes.txt
+secrets: 메모, .env 언급
+EOF'
+# 차단: 경로로 쓰이는 경우
+b 2 $M 'cat secrets/db.txt'
+b 2 $M 'cat secrets'
+b 2 $M 'cat credentials'
+b 2 $M 'cat .env'
+b 2 $M 'mv secrets /tmp/x'
+b 2 $M 'cp -r secrets /tmp/x'
+b 2 $M 'tar czf a.tgz secrets'
+b 2 $M 'cat server.pem'
+b 2 $F 'git commit -F .env'
+b 2 $F 'git commit -m "ok" -F credentials'
+b 2 $F 'gh pr create --base develop --title x --body-file .env'
+b 2 $M 'grep -f .env README.md'
+b 2 $M 'grep password .env'
+b 2 $M 'grep -e password .env'
+b 2 $M 'grep -A 3 password .env'
+b 2 $M 'echo hi > .env'
+b 2 $M 'echo hi >.env'
+b 2 $M 'echo hi>.env'
+b 2 $M 'echo "x" >> secrets/a.txt'
+b 2 $M 'echo $(cat .env)'
+b 2 $M 'echo `cat .env`'
+b 2 $M 'echo "$(cat .env)"'
+b 2 $M 'git commit -m "$(cat .env)"'
+b 2 $M 'echo <(cat .env)'
+b 2 $M 'echo ok; cat .env'
+b 2 $M 'echo ok && cat .env'
+b 2 $M 'echo ok | cat .env'
+# heredoc: 해석기로 실행되는 본문과 파이프로 이어지는 본문은 검사 대상
+b 2 $M 'bash <<'"'"'EOF'"'"'
+cat .env
+EOF'
+b 2 $M 'sh <<EOF
+rm -rf x
+EOF'
+b 2 $M 'cat <<'"'"'EOF'"'"' | bash
+rm -rf x
+EOF'
+b 2 $M 'cat <<'"'"'EOF'"'"' > .claude/settings.json
+{}
+EOF'
+b 2 $M 'git apply <<'"'"'EOF'"'"'
++++ b/.claude/settings.json
+EOF'
+b 2 $F 'git commit -m "$(cat <<'"'"'EOF'"'"'
+x
+$(cat .env)
+EOF
+)"'
+# heredoc 위장: 따옴표·주석 안의 '<<' 는 heredoc 이 아니므로 다음 줄의 실제 명령을 숨기면 안 된다
+b 2 $M 'cat x "<<EOF"
+cat .env
+EOF'
+b 2 $M "cat x '<<EOF'
+cat .env
+EOF"
+b 2 $M 'cat x # <<EOF
+cat .env
+EOF'
+b 2 $M 'cat x `echo <<EOF`
+cat .env
+EOF'
+b 2 $M 'cat <<<"x" <<EOF
+cat .env
+EOF'
+b 2 $M 'cat <<'"'"'EOF'"'"'
+ok
+EOF
+cat .env'
+b 0 $M 'cat <<'"'"'EOF'"'"'
+secrets: 본문
+EOF'
+# 제목·메시지 안의 괄호/세미콜론/파이프가 heredoc 소비 명령 판정을 흐리지 않아야 한다
+b 0 $F 'git push -u origin feature/x 2>&1 | tail -2 && gh pr create --base develop --title "fix(tools): secrets: x" --body-file - <<'"'"'EOF'"'"'
+- secrets: gitleaks
+- cat credentials
+EOF'
+b 0 $F 'gh pr create --base develop --title "feat(a); b | c" --body-file - <<'"'"'EOF'"'"'
+secrets: 본문
+EOF'
+b 0 $F 'git commit -q -F - <<'"'"'EOF'"'"'
+fix(tools): secrets: x
+EOF'
+b 2 $M 'echo "a(b" && bash <<'"'"'EOF'"'"'
+rm -rf x
+EOF'
+b 2 $M 'echo "x; y" | bash <<'"'"'EOF'"'"'
+cat .env
+EOF'
+b 2 $M 'gh pr create --title "fix(x): y" && sh <<'"'"'EOF'"'"'
+cat .env
+EOF'
+# heredoc 형식 검증: 이스케이프된 표시, 종료자 일부만 일치, 여러 개의 표시
+b 2 $F 'cat x \<<EOF
+git push origin main
+EOF'
+b 2 $F 'cat x \\\<<EOF
+git push origin main
+EOF'
+b 0 $F 'cat x \\<<EOF
+git push origin main
+EOF'    # 백슬래시 2개는 이스케이프된 백슬래시 → 실제 heredoc, 본문은 데이터
+b 2 $F 'cat <<EOF-X
+EOF-X
+git push origin main
+EOF'
+b 2 $F 'cat <<EOF.x
+EOF.x
+git push origin main
+EOF'
+b 2 $F "cat <<'EOF-X'
+msg
+EOF-X
+git push origin main"
+b 2 $F 'cat <<EOF-X <<OK
+a
+EOF-X
+b
+OK
+git push origin main'
+b 2 $F 'cat <<EOF <<OK
+a
+EOF
+git push origin main
+OK'
+b 0 $F "cat <<'EOF'
+git push origin main
+EOF"    # 정상 heredoc 본문은 데이터
+b 0 $F 'cat <<-EOF
+	git push origin main
+	EOF'
+b 0 $F 'cat <<EOF > notes.txt
+git push origin main
+EOF'
+# 따옴표 안의 구분자가 있어도 /dev/null 리다이렉션 처리는 유지
+b 0 $F 'git commit -m "docs: a" 2>&1'
+b 0 $M 'echo "secrets: x" 2>/dev/null'
+b 2 $M 'echo "secrets: x"; cat .env 2>/dev/null'
 
 echo "== ② 고장 주입 테스트 (훅이 망가져도 반드시 차단 + 복구 안내)"
 H="$T/h"
