@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# pre-commit: main 직접 커밋 / 브랜치 이름 / 시크릿 파일 / 시크릿 내용 검사
+# 규칙 출처: tools/git-policy.sh   (우회: git commit --no-verify 는 CI 가 다시 막는다)
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/../tools/git-policy.sh" || { echo "✖ tools/git-policy.sh 를 불러오지 못함 — 커밋 차단" >&2; exit 1; }
+
+fail=0
+
+# ── 브랜치 ──
+branch="$(git symbolic-ref --short -q HEAD)"   # detached HEAD(rebase 등)면 비어 있음
+if [ -n "$branch" ]; then
+  if [[ "$branch" =~ $PROTECTED_BRANCH_RE ]]; then
+    gp_err "$branch 브랜치에는 직접 커밋할 수 없음" "feature/* 브랜치를 만들어 작업하고 develop 대상 PR 로 병합하세요." || fail=1
+  else
+    check_branch_name "$branch" || fail=1
+  fi
+fi
+
+# ── 시크릿 파일명 ──
+git diff --cached --name-only --diff-filter=ACMR | check_no_secret_files || fail=1
+
+# ── 시크릿 내용 (gitleaks 가 설치된 경우) ──
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! git diff --cached -U0 | gitleaks stdin --redact --no-banner >/dev/null 2>&1; then
+    gp_err "스테이징된 변경에서 시크릿으로 의심되는 값이 발견됨 (gitleaks)" \
+           "확인: git diff --cached -U0 | gitleaks stdin --redact -v   (오탐이면 줄 끝에 gitleaks:allow 주석)" || fail=1
+  fi
+else
+  echo "ℹ gitleaks 미설치 — 시크릿 내용 검사는 CI 에서만 수행됩니다. (brew install gitleaks)" >&2
+fi
+
+exit "$fail"

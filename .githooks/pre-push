@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# pre-push: main/master 직접 push, 보호 브랜치 삭제, 보호 브랜치 force push 차단
+# 규칙 출처: tools/git-policy.sh   (우회: --no-verify 는 GitHub Branch Protection 이 다시 막는다)
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/../tools/git-policy.sh" || { echo "✖ tools/git-policy.sh 를 불러오지 못함 — push 차단" >&2; exit 1; }
+
+zero='0000000000000000000000000000000000000000'
+fail=0
+
+# stdin 한 줄: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ -z "$remote_ref" ] && continue
+  rname="${remote_ref#refs/heads/}"
+
+  # 삭제 push (local sha 가 전부 0)
+  if [[ "$local_sha" =~ ^0+$ ]]; then
+    if [[ "$rname" =~ $REMOTE_PROTECTED_RE ]]; then
+      gp_err "보호 브랜치 삭제 차단: $rname" || fail=1
+    fi
+    continue
+  fi
+
+  # main/master 로의 직접 push
+  if [[ "$rname" =~ $PROTECTED_BRANCH_RE ]]; then
+    gp_err "$rname 브랜치로 직접 push 할 수 없음" "feature/* 브랜치에서 develop 대상 PR 로 진행하세요." || fail=1
+    continue
+  fi
+
+  # develop 의 비-fast-forward(force push)
+  if [[ "$rname" =~ $REMOTE_PROTECTED_RE ]] && ! [[ "$remote_sha" =~ ^0+$ ]]; then
+    if git cat-file -e "$remote_sha^{commit}" 2>/dev/null; then
+      git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null \
+        || gp_err "$rname 에 force push(비-fast-forward) 차단" || fail=1
+    else
+      gp_err "$rname 의 원격 커밋을 로컬에서 확인할 수 없음 — 먼저 git fetch 하세요" || fail=1
+    fi
+  fi
+done
+
+exit "$fail"
