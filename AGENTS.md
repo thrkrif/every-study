@@ -90,6 +90,8 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 | `! bash tools/hooks-ctl.sh fix` | 진단 → 재설치 → 안 되면 이전 버전 롤백 |
 | `! bash tools/hooks-ctl.sh rollback` | 직전 버전으로 즉시 복원 |
 
+인자 역할: 같은 단어라도 경로(`cat secrets/x`)와 글자(커밋 메시지, 검색어, 출력 문구)를 구분한다. 글자 자리는 `echo`/`printf` 인자, `git commit|tag` 의 `-m` 값, `gh pr|issue|release` 의 `--title`/`--body`, `grep` 계열의 검색 패턴, `cat`·`tee`·`git commit`·`gh` 로 가는 heredoc 본문뿐이다. `-F`, `--body-file`, 리다이렉션 대상 같은 경로 자리와, `$(..)`·백틱·파이프가 섞인 명령은 치환하지 않고 그대로 검사한다.
+
 한계: 훅은 셸 문자열을 단순 분석하므로 `bash -c`, 변수 치환, 스크립트 내부 명령 같은 우회까지는 막지 못한다. 보조 방어선일 뿐이다.
 
 ## 6. 시크릿
