@@ -388,6 +388,26 @@ cat .env'
 b 0 $M 'cat <<'"'"'EOF'"'"'
 secrets: 본문
 EOF'
+# 제목·메시지 안의 괄호/세미콜론/파이프가 heredoc 소비 명령 판정을 흐리지 않아야 한다
+b 0 $F 'git push -u origin feature/x 2>&1 | tail -2 && gh pr create --base develop --title "fix(tools): secrets: x" --body-file - <<'"'"'EOF'"'"'
+- secrets: gitleaks
+- cat credentials
+EOF'
+b 0 $F 'gh pr create --base develop --title "feat(a); b | c" --body-file - <<'"'"'EOF'"'"'
+secrets: 본문
+EOF'
+b 0 $F 'git commit -q -F - <<'"'"'EOF'"'"'
+fix(tools): secrets: x
+EOF'
+b 2 $M 'echo "a(b" && bash <<'"'"'EOF'"'"'
+rm -rf x
+EOF'
+b 2 $M 'echo "x; y" | bash <<'"'"'EOF'"'"'
+cat .env
+EOF'
+b 2 $M 'gh pr create --title "fix(x): y" && sh <<'"'"'EOF'"'"'
+cat .env
+EOF'
 # 따옴표 안의 구분자가 있어도 /dev/null 리다이렉션 처리는 유지
 b 0 $F 'git commit -m "docs: a" 2>&1'
 b 0 $M 'echo "secrets: x" 2>/dev/null'

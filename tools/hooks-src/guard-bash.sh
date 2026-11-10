@@ -33,6 +33,7 @@ clean_tok() { local t="${1//[$JUNK]/}"; printf '%s' "$t"; }
 MT_Q=$'"\'\\'
 MT_NEUTRAL_RE='^([0-9]*>&[0-9-]+|&?[0-9]*>>?/dev/null)$'
 MT_REDIR_RE='^[0-9&]*>>?$'
+MT_HEREDOC_RE=$'^<<-?[\'"]?[A-Za-z_][A-Za-z0-9_]*[\'"]?$|^<<-?$'   #<<'EOF', <<-EOF, << (heredoc 표시는 실행 효과가 없음)
 mt_plain() { local t="${1//[$MT_Q]/}"; printf '%s' "$t"; }
 
 # heredoc 소비 명령이 "데이터로만 쓰는" 경우인가
@@ -55,6 +56,7 @@ hd_consumer_ok() {
 #   "$(cat <<'EOF'" 처럼 명령 치환 안의 heredoc 은 정상으로 본다.
 hd_unquoted() {
   local s="$1" stack="C" i=0 n=${#1} ch top prev=" "
+  HD_START=0   # heredoc 을 소비하는 "마지막 명령"이 시작되는 위치 (따옴표 밖의 ; & | ( 기준)
   while [ "$i" -lt "$n" ]; do
     ch="${s:$i:1}"; top="${stack: -1}"
     case "$top" in
@@ -63,7 +65,7 @@ hd_unquoted() {
            '\') i=$((i+1)) ;;
            '"') stack="${stack%?}" ;;
            '`') return 1 ;;
-           '$') if [ "${s:$((i+1)):1}" = "(" ]; then stack+="C"; i=$((i+1)); fi ;;
+           '$') if [ "${s:$((i+1)):1}" = "(" ]; then stack+="C"; i=$((i+1)); HD_START=$((i+1)); fi ;;
          esac ;;
       *) case "$ch" in
            "'") stack+="S" ;;
@@ -71,8 +73,10 @@ hd_unquoted() {
            '\') i=$((i+1)) ;;
            '`') return 1 ;;
            '#') [[ "$prev" == [[:space:]] ]] && return 1 ;;
-           '(') stack+="C" ;;
+           '(') stack+="C"; HD_START=$((i+1)) ;;
            ')') [ "${#stack}" -gt 1 ] && stack="${stack%?}" ;;
+           ';'|'|') HD_START=$((i+1)) ;;
+           '&') if [ "$prev" != ">" ] && [ "${s:$((i+1)):1}" != ">" ]; then HD_START=$((i+1)); fi ;;   # 2>&1, &> 는 구분자가 아님
          esac ;;
     esac
     prev="$ch"; i=$((i+1))
@@ -100,10 +104,12 @@ strip_heredocs() {
     if [[ "$line" != *"<<<"* && "$line" =~ \<\<(-?)[[:space:]]*[\'\"]?([A-Za-z_][A-Za-z0-9_]*)[\'\"]? ]]; then
       dash="${BASH_REMATCH[1]}"; tag="${BASH_REMATCH[2]}"
       full_pre="${line%%<<*}"
-      pre="${full_pre##*[(;&|\`]}"
       post="${line#*<<}"
       mask=0
-      if hd_unquoted "$full_pre" && hd_consumer_ok "$pre" && [[ "$post" != *"|"* ]]; then mask=1; fi
+      if hd_unquoted "$full_pre"; then
+        pre="${full_pre:$HD_START}"
+        if hd_consumer_ok "$pre" && [[ "$post" != *"|"* ]]; then mask=1; fi
+      fi
       in_hd=1; body=""
     fi
   done <<< "$1"
@@ -187,6 +193,7 @@ mask_one_cmd() {
     [ "${mt_uns[$j]}" = 1 ] || continue
     p="${mt_toks[$j]}"
     if [[ "$p" =~ $MT_NEUTRAL_RE ]]; then continue; fi                                         # 2>&1, >/dev/null, &>/dev/null
+    if [[ "$p" =~ $MT_HEREDOC_RE ]]; then continue; fi                                         # <<'EOF'
     if [[ "$p" =~ $MT_REDIR_RE && "${mt_toks[$((j+1))]:-}" = "/dev/null" ]]; then continue; fi  # > /dev/null
     cmdunsafe=1
   done
