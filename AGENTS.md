@@ -14,7 +14,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 | 문서 | `docs/` | PRD → ARCHITECTURE(+ADR) → API·데이터 명세 → PLAN |
 | 보안 훅 | `.claude/`, `.githooks/`, `tools/` | 아래 §4, §5 |
 
-기술 스택 결정과 근거는 [`docs/adr/0001-tech-stack.md`](docs/adr/0001-tech-stack.md) 를 따른다 ("제안" 항목은 확정 전). 패키지 구조 등 세부는 `docs/ARCHITECTURE.md` 확정 후 이 파일에 추가한다. **확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.**
+기술 스택 결정과 근거는 [`docs/adr/0001-tech-stack.md`](docs/adr/0001-tech-stack.md) 를 따른다 ("제안" 항목은 확정 전). 구조·설계 원칙은 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)(초안 v0.1)와 `docs/adr/`를 따르며, 확정되면 컨벤션을 이 파일에 추가한다. **확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.**
 
 ## 2. 작업 순서
 
