@@ -1,0 +1,160 @@
+name: CI
+
+# 3겹 방어의 마지막 층. 로컬 훅(--no-verify)이나 에이전트 훅이 우회돼도 여기서 다시 막는다.
+# Branch Protection 의 필수 상태 검사(required status check)로 "CI 통과" 하나만 지정한다.
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. git flow / 커밋 규칙 (PR 에서만) ───────────────────
+  policy:
+    name: policy (git flow, 커밋, 시크릿 파일명)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 브랜치 이름과 PR 대상
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          . tools/git-policy.sh
+          check_branch_name "$HEAD_REF"
+          check_pr_base "$HEAD_REF" "$BASE_REF"
+
+      - name: 커밋 메시지 (Conventional Commits)
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          . tools/git-policy.sh
+          rc=0
+          while IFS= read -r subject; do
+            check_commit_subject "$subject" || rc=1
+          done < <(git log --format=%s "$BASE_SHA..$HEAD_SHA")
+          exit "$rc"
+
+      - name: 시크릿 파일명
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          . tools/git-policy.sh
+          git diff --name-only --diff-filter=ACMR "$BASE_SHA" "$HEAD_SHA" | check_no_secret_files
+
+  # ── 2. 시크릿 내용 스캔 ───────────────────────────────────
+  secrets:
+    name: secrets (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 조직(Organization) 저장소로 옮기면 GITLEAKS_LICENSE 시크릿이 필요하다.
+
+  # ── 3. 보안 훅 / git 훅 자체 검증 ─────────────────────────
+  hooks:
+    name: hooks (자체 테스트, 원본·설치본 일치)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: git 훅 / 공용 규칙 테스트
+        run: bash tools/tests/git-policy.sh
+
+      - name: 에이전트 훅 원본 빌드와 자체 테스트
+        run: bash tools/hooks-ctl.sh verify
+
+      - name: 설치본(.claude/hooks)이 원본과 같은지
+        run: |
+          set -e
+          for f in _lib.sh guard-bash.sh guard-files.sh run-guard.sh; do
+            cmp "tools/hooks-src/$f" ".claude/hooks/$f" \
+              || { echo "::error::설치본이 원본과 다름: $f — 사람이 'bash tools/hooks-ctl.sh install' 후 함께 커밋하세요"; exit 1; }
+          done
+          (cd .claude/hooks && shasum -a 256 -c MANIFEST.sha256)
+          jq -e '[.hooks.PreToolUse[].hooks[] | select(.command | contains("run-guard.sh")) | .onFailure == "block"] | length == 2 and all' .claude/settings.json >/dev/null \
+            || { echo "::error::settings.json 의 가드 훅이 2개가 아니거나 onFailure=block 이 아님"; exit 1; }
+
+      - name: 설치본으로 같은 테스트 실행
+        run: bash tools/hooks-src/tests/run.sh
+
+  # ── 4. 백엔드 (backend/build.gradle 이 생기면 자동으로 켜짐) ──
+  backend:
+    name: backend (build, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 백엔드 프로젝트 감지
+        id: detect
+        run: |
+          if [ -f backend/build.gradle ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; echo "backend/build.gradle 없음 — 건너뜀"; fi
+      - uses: actions/setup-java@v4
+        if: steps.detect.outputs.found == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'   # ADR-0001 제안값. 확정/변경 시 함께 수정
+      - uses: gradle/actions/setup-gradle@v4
+        if: steps.detect.outputs.found == 'true'
+      - name: 빌드와 테스트 (Testcontainers 는 러너의 Docker 사용)
+        if: steps.detect.outputs.found == 'true'
+        working-directory: backend
+        run: ./gradlew build
+
+  # ── 5. 프론트엔드 (frontend/package.json 이 생기면 자동으로 켜짐) ──
+  frontend:
+    name: frontend (lint, test, build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 프론트엔드 프로젝트 감지
+        id: detect
+        run: |
+          if [ -f frontend/package.json ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; echo "frontend/package.json 없음 — 건너뜀"; fi
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.found == 'true'
+        with:
+          node-version: lts/*   # Next.js 16 은 Node 20.9 이상 요구 (ADR-0001)
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # 패키지 매니저가 npm 으로 확정된 경우의 틀. pnpm 으로 정하면 이 블록을 바꾼다.
+      - name: 설치, 린트, 테스트, 빌드
+        if: steps.detect.outputs.found == 'true'
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm test --if-present
+          npm run build
+
+  # ── 6. 필수 상태 검사용 집계 ──────────────────────────────
+  # Branch Protection 에는 이 job("CI 통과") 하나만 필수로 지정하면 된다.
+  # 건너뛴 job(skipped)은 통과로, 실패·취소는 실패로 본다.
+  ci-pass:
+    name: CI 통과
+    if: always()
+    needs: [policy, secrets, hooks, backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: 결과 집계
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          echo "$NEEDS" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          echo "$NEEDS" | jq -e 'all(.[]; .result == "success" or .result == "skipped")' >/dev/null

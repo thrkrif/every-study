@@ -12,7 +12,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 | 백엔드 | `backend/` | Java, Spring Boot REST API, Gradle(Groovy), MySQL, Flyway, JWT(httpOnly 쿠키) |
 | 프론트엔드 | `frontend/` | Next.js (React), TypeScript, 모바일 웹 우선 |
 | 문서 | `docs/` | PRD → ARCHITECTURE(+ADR) → API·데이터 명세 → PLAN |
-| 보안 훅 | `.claude/`, `tools/` | 아래 §4 |
+| 보안 훅 | `.claude/`, `.githooks/`, `tools/` | 아래 §4, §5 |
 
 기술 스택 결정과 근거는 [`docs/adr/0001-tech-stack.md`](docs/adr/0001-tech-stack.md) 를 따른다 ("제안" 항목은 확정 전). 패키지 구조 등 세부는 `docs/ARCHITECTURE.md` 확정 후 이 파일에 추가한다. **확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.**
 
@@ -48,7 +48,23 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 - scope(선택): `backend` `frontend` `docs` `tools`
 - 제목은 한 줄, 마침표 없음. 하나의 커밋 = 하나의 논리적 변경.
 
-## 4. 보안 가드 (훅)
+## 4. 3겹 방어
+
+같은 규칙을 세 층에서 강제한다. 앞 층이 우회돼도 뒤 층이 막는다.
+
+| 층 | 대상 | 수단 | 우회 가능성 |
+|---|---|---|---|
+| ① 에이전트 훅 | Claude Code 의 도구 호출 | `.claude/` 의 PreToolUse 훅 (§5) | 셸 문자열 우회 |
+| ② 로컬 git 훅 | 사람·에이전트 모두의 commit/push | `.githooks/` (commit-msg, pre-commit, pre-push) | `--no-verify` (①이 에이전트의 사용을 차단) |
+| ③ CI + Branch Protection | PR 병합 | `.github/workflows/ci.yml` | 없음 (최종 방어선) |
+
+- 규칙의 단일 출처: `tools/git-policy.sh` (커밋 형식, 브랜치 이름, PR 대상, 시크릿 파일명). ②와 ③이 같은 파일을 쓴다.
+- clone 후 한 번 실행: `bash tools/setup-git-hooks.sh` (상태 확인: `--check`). 권장: `gitleaks` 설치.
+- CI 의 필수 상태 검사로는 **`CI 통과`** 하나만 지정한다 (건너뛴 job 은 통과, 실패는 실패).
+- `backend/`, `frontend/` 의 build·test 는 `backend/build.gradle`, `frontend/package.json` 이 생기면 자동으로 켜진다.
+- 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①).
+
+## 5. 보안 가드 (훅)
 
 `.claude/settings.json` 의 PreToolUse 훅이 아래를 **차단**한다 (원본: `tools/hooks-src/`).
 
@@ -76,13 +92,13 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 
 한계: 훅은 셸 문자열을 단순 분석하므로 `bash -c`, 변수 치환, 스크립트 내부 명령 같은 우회까지는 막지 못한다. 보조 방어선일 뿐이다.
 
-## 5. 시크릿
+## 6. 시크릿
 
 - `.env` 등 시크릿은 커밋하지 않는다. 필요한 키 이름은 `.env.example` 에만 적는다.
 - 실제 값은 사람이 직접 관리한다. 에이전트는 시크릿을 읽지도, 만들어 채워 넣지도 않는다.
 - 로그·에러 메시지·테스트 픽스처에 토큰/개인정보를 남기지 않는다.
 
-## 6. 코드 컨벤션
+## 7. 코드 컨벤션
 
 `docs/ARCHITECTURE.md` 확정 후 작성한다 (패키지 구조, 네이밍, 테스트 전략, 린트/포맷터). 그 전에는 `.editorconfig` 를 따른다.
 
