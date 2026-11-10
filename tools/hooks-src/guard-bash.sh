@@ -135,6 +135,29 @@ while IFS= read -r seg; do
       rest=("${args[@]:$((j+1))}")
       br="${sim_br:-$(current_branch "$gdir")}"
 
+      # 로컬 git 훅 우회 차단: --no-verify, commit -n, core.hooksPath 변경
+      for a in "${args[@]}"; do
+        case "$a" in
+          --no-verify) deny "git 훅 우회(--no-verify) 차단" "훅이 막는 이유를 해결하세요. 정말 필요하면 사용자가 직접 실행합니다." ;;
+          *hooksPath=*|*hookspath=*) deny "core.hooksPath 변경 차단" "로컬 git 훅 설정은 tools/setup-git-hooks.sh 로 사람이 관리합니다." ;;
+        esac
+      done
+      if [ "$sub" = commit ]; then
+        for a in "${rest[@]}"; do
+          if [[ "$a" =~ ^-[a-zA-Z]*n && "$a" != --* ]]; then deny "git commit -n(--no-verify) 차단" "훅을 건너뛰지 말고 원인을 해결하세요."; fi
+          # 메시지 본문(-m 이후)에 든 '-n' 같은 단어는 옵션이 아니므로 여기서 중단
+          if [[ "$a" =~ ^-[a-zA-Z]*[mFC]$ || "$a" == --message* || "$a" == --file* ]]; then break; fi
+        done
+      fi
+      if [ "$sub" = config ]; then
+        cfg_read=0
+        for a in "${rest[@]}"; do case "$a" in --get|--get-all|--get-regexp|--list|-l|--show-origin) cfg_read=1 ;; esac; done
+        [ "$cfg_read" -eq 1 ] && rest=()
+        for a in "${rest[@]}"; do
+          shopt -s nocasematch; [[ "$a" == *hookspath* ]] && { shopt -u nocasematch; deny "core.hooksPath 변경 차단" "로컬 git 훅 설정은 tools/setup-git-hooks.sh 로 사람이 관리합니다."; }; shopt -u nocasematch
+        done
+      fi
+
       case "$sub" in
         push)
           refs=(); delflag=0; remote_seen=0

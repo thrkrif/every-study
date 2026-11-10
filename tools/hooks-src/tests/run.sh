@@ -263,6 +263,23 @@ b 2 $M 'rsync -a .env.example:server.pem /tmp'
 b 2 $M 'docker run -v ./.claude/hooks:/x -w /x y rm a'
 b 0 $M 'docker run -v ./src:/app/src x'
 
+# ── 로컬 git 훅 우회 차단 ──
+b 2 $F 'git commit --no-verify -m "feat: x"'
+b 2 $F 'git commit -n -m "feat: x"'
+b 2 $F 'git commit -nm "feat: x"'
+b 2 $F 'git commit -an -m "feat: x"'
+b 2 $F 'git push --no-verify'
+b 2 $F 'git merge --no-verify develop'
+b 2 $F 'git config core.hooksPath /dev/null'
+b 2 $F 'git config --local core.hookspath x'
+b 2 $F 'git -c core.hooksPath=/dev/null commit -m "feat: x"'
+b 0 $F 'git config user.name x'
+b 0 $F 'git config --get core.hooksPath'
+b 0 $F 'git commit -m "feat: x"'
+b 0 $F 'git commit -m "feat: use -n flag in docs"'
+b 0 $F 'git commit -am "feat: x"'
+b 0 $F 'git push -n origin feature/x'
+
 echo "== ② 고장 주입 테스트 (훅이 망가져도 반드시 차단 + 복구 안내)"
 H="$T/h"
 fresh() { rm -rf "$H"; cp -R "$HOOKS_DIR" "$H"; }

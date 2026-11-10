@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# commit-msg: Conventional Commits 형식 검사 (규칙 출처: tools/git-policy.sh)
+here="$(cd "$(dirname "$0")" && pwd)"
+. "$here/../tools/git-policy.sh" || { echo "✖ tools/git-policy.sh 를 불러오지 못함 — 커밋 차단" >&2; exit 1; }
+
+# git 이 지우는 주석 줄(#)을 제외한 첫 줄
+subject="$(grep -v '^#' "$1" | sed -n '1p')"
+check_commit_subject "$subject" || exit 1
+exit 0
