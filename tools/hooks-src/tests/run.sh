@@ -408,6 +408,48 @@ EOF'
 b 2 $M 'gh pr create --title "fix(x): y" && sh <<'"'"'EOF'"'"'
 cat .env
 EOF'
+# heredoc 형식 검증: 이스케이프된 표시, 종료자 일부만 일치, 여러 개의 표시
+b 2 $F 'cat x \<<EOF
+git push origin main
+EOF'
+b 2 $F 'cat x \\\<<EOF
+git push origin main
+EOF'
+b 0 $F 'cat x \\<<EOF
+git push origin main
+EOF'    # 백슬래시 2개는 이스케이프된 백슬래시 → 실제 heredoc, 본문은 데이터
+b 2 $F 'cat <<EOF-X
+EOF-X
+git push origin main
+EOF'
+b 2 $F 'cat <<EOF.x
+EOF.x
+git push origin main
+EOF'
+b 2 $F "cat <<'EOF-X'
+msg
+EOF-X
+git push origin main"
+b 2 $F 'cat <<EOF-X <<OK
+a
+EOF-X
+b
+OK
+git push origin main'
+b 2 $F 'cat <<EOF <<OK
+a
+EOF
+git push origin main
+OK'
+b 0 $F "cat <<'EOF'
+git push origin main
+EOF"    # 정상 heredoc 본문은 데이터
+b 0 $F 'cat <<-EOF
+	git push origin main
+	EOF'
+b 0 $F 'cat <<EOF > notes.txt
+git push origin main
+EOF'
 # 따옴표 안의 구분자가 있어도 /dev/null 리다이렉션 처리는 유지
 b 0 $F 'git commit -m "docs: a" 2>&1'
 b 0 $M 'echo "secrets: x" 2>/dev/null'

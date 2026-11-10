@@ -33,6 +33,7 @@ clean_tok() { local t="${1//[$JUNK]/}"; printf '%s' "$t"; }
 MT_Q=$'"\'\\'
 MT_NEUTRAL_RE='^([0-9]*>&[0-9-]+|&?[0-9]*>>?/dev/null)$'
 MT_REDIR_RE='^[0-9&]*>>?$'
+HD_OPEN_RE=$'<<(-?)[[:space:]]*([\'"]?)([A-Za-z_][A-Za-z0-9_]*)([\'"]?)([[:space:];&|()<>]|$)'
 MT_HEREDOC_RE=$'^<<-?[\'"]?[A-Za-z_][A-Za-z0-9_]*[\'"]?$|^<<-?$'   #<<'EOF', <<-EOF, << (heredoc 표시는 실행 효과가 없음)
 mt_plain() { local t="${1//[$MT_Q]/}"; printf '%s' "$t"; }
 
@@ -86,7 +87,7 @@ hd_unquoted() {
 }
 
 strip_heredocs() {
-  local line t tag="" dash="" pre full_pre post body="" mask=0 in_hd=0 out="" TAB=$'\t'
+  local line t tag="" dash="" pre full_pre post body="" mask=0 in_hd=0 out="" TAB=$'\t' hd_tmp hd_cnt hd_bs
   while IFS= read -r line || [ -n "$line" ]; do
     if [ "$in_hd" -eq 1 ]; then
       t="$line"
@@ -101,10 +102,19 @@ strip_heredocs() {
       continue
     fi
     out+="$line"$'\n'
-    if [[ "$line" != *"<<<"* && "$line" =~ \<\<(-?)[[:space:]]*[\'\"]?([A-Za-z_][A-Za-z0-9_]*)[\'\"]? ]]; then
-      dash="${BASH_REMATCH[1]}"; tag="${BASH_REMATCH[2]}"
+    # heredoc 으로 인정하는 형식만 처리한다. 애매하면 heredoc 모드에 들어가지 않아
+    # 이후 줄이 일반 명령으로 검사된다 (= 안전한 쪽으로만 틀림).
+    #   · 종료자(구분 단어) 전체가 [A-Za-z0-9_]+ 이고 그 뒤가 공백/메타문자/줄끝일 것 (EOF-X 같은 형식은 제외)
+    #   · 여는 따옴표와 닫는 따옴표가 같을 것
+    #   · 한 줄에 '<<' 가 정확히 하나일 것, '<<<' 는 제외
+    #   · '<<' 앞에 홀수 개의 백슬래시가 없을 것 (\<<EOF 는 heredoc 이 아님)
+    if [[ "$line" != *"<<<"* && "$line" =~ $HD_OPEN_RE && "${BASH_REMATCH[2]}" == "${BASH_REMATCH[4]}" ]]; then
+      dash="${BASH_REMATCH[1]}"; tag="${BASH_REMATCH[3]}"
       full_pre="${line%%<<*}"
       post="${line#*<<}"
+      hd_tmp="${line//<</}"; hd_cnt=$(( (${#line} - ${#hd_tmp}) / 2 ))
+      hd_bs="${full_pre##*[!\\]}"
+      if [ "$hd_cnt" -ne 1 ] || [ $(( ${#hd_bs} % 2 )) -eq 1 ]; then continue; fi
       mask=0
       if hd_unquoted "$full_pre"; then
         pre="${full_pre:$HD_START}"
