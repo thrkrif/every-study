@@ -2,7 +2,7 @@
 
 - 상태: 부분 확정 (아래 "확정"은 결정됨, "제안"은 검토 후 확정)
 - 일자: 2026-11-09
-- 관련: [PRD](../PRD.md) (초안)
+- 관련: [PRD](../PRD.md) (v0.3), [ARCHITECTURE](../ARCHITECTURE.md)
 
 ## 배경
 
@@ -56,6 +56,8 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 - 구체 설계(액세스/리프레시 수명, 갱신 흐름, 폐기)는 ARCHITECTURE.md 와 별도 ADR 에서 정한다.
 
 ## 미결정 (추측해서 넣지 않음)
+
+> 2026-11-11: 아래 항목은 [ARCHITECTURE](../ARCHITECTURE.md)와 ADR-0002~0005에서 **제안**으로 다뤘다 (확정 전). 패키지 매니저 npm, JWT 설계(ADR-0002), 패키지 구조(ADR-0003), Redis는 소규모에서 불필요(ADR-0005), 배포는 VM 1대 + Docker Compose 후보.
 
 - 패키지 매니저 (npm / pnpm)
 - JWT 세부 설계 (수명, 리프레시, 폐기, 쿠키 도메인)
