@@ -66,6 +66,15 @@ git -C "$T/r" rm -q --cached .env; rm -f "$T/r/.env"
 echo K= > "$T/r/.env.example"; git -C "$T/r" add .env.example
 expect 0 "예시 파일 커밋 허용" git -C "$T/r" commit -q -m "chore: add example"
 
+# pre-commit: 문서 머리말 검사는 경고만 하고 커밋은 허용 (막는 것은 CI)
+mkdir -p "$T/r/docs"
+printf -- '---\nstatus: confirmed\nversion: "2"\n---\n# P\n' > "$T/r/docs/P.md"
+printf -- '---\nstatus: draft\nbased_on:\n  - docs/P.md@1\n---\n# C\n' > "$T/r/docs/C.md"
+git -C "$T/r" add docs
+out="$(git -C "$T/r" commit -q -m "docs: 오래된 문서" 2>&1)"; rc=$?
+if [ "$rc" = 0 ]; then ok; else bad "오래된 문서 커밋은 경고만 하고 허용 (rc=$rc)"; fi
+if printf '%s' "$out" | grep -q "오래됨"; then ok; else bad "오래됨 경고가 출력돼야 함: $out"; fi
+
 # pre-push (stdin 직접 입력)
 Z=0000000000000000000000000000000000000000
 A="$(git -C "$T/r" rev-parse HEAD~1)"; B="$(git -C "$T/r" rev-parse HEAD)"

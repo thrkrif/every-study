@@ -29,4 +29,9 @@ else
   echo "ℹ gitleaks 미설치 — 시크릿 내용 검사는 CI 에서만 수행됩니다. (brew install gitleaks)" >&2
 fi
 
+# ── 문서 머리말·링크 (경고만. 막는 것은 CI) ──
+if git diff --cached --name-only --diff-filter=ACMRD | grep -q '^docs/.*\.md$'; then
+  bash "$here/../tools/docs-check.sh" --warn --root "$(git rev-parse --show-toplevel)" >&2 || true
+fi
+
 exit "$fail"
