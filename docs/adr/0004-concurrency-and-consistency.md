@@ -1,3 +1,10 @@
+---
+status: draft
+based_on:
+  - docs/PRD.md@0.3
+  - docs/ARCHITECTURE.md@0.1
+---
+
 # ADR-0004: 정원·승계 동시성과 정합성
 
 - 상태: 제안 (방향은 ADR-0001의 "스터디 행 락"을 구체화)

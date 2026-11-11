@@ -1,25 +1,37 @@
 # AGENTS.md — 모두의 스터디
 
-AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규칙. `CLAUDE.md` 는 이 파일을 참조한다.
+AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규칙의 **입구**. `CLAUDE.md` 는 이 파일을 참조한다.
+세부 내용은 아래 문서 지도를 따라 필요한 문서만 읽는다.
 
 ## 1. 프로젝트
 
 전 직군 취준생이 동네(구 단위)에서 **대면 스터디**를 만들고 참여하는 매칭 서비스. 사람 평가 없이 **출석 기록으로 만든 신뢰 지표(출석률)** 로 노쇼를 억제한다.
-기능 명세: [`docs/PRD.md`](docs/PRD.md) (확정 v0.3 — 수치는 제안값이며 설정으로 분리)
 
-| 영역 | 경로 | 기술 (PRD 기준) |
+| 영역 | 경로 | 기술 |
 |---|---|---|
 | 백엔드 | `backend/` | Java, Spring Boot REST API, Gradle(Groovy), MySQL, Flyway, JWT(httpOnly 쿠키) |
 | 프론트엔드 | `frontend/` | Next.js (React), TypeScript, 모바일 웹 우선 |
-| 문서 | `docs/` | PRD → ARCHITECTURE(+ADR) → API·데이터 명세 → PLAN |
-| 보안 훅 | `.claude/`, `.githooks/`, `tools/` | 아래 §4, §5 |
+| 문서 | `docs/` | 아래 §2 |
+| 보안 훅·CI | `.claude/`, `.githooks/`, `tools/`, `.github/` | 아래 §4 |
 
-기술 스택 결정과 근거는 [`docs/adr/0001-tech-stack.md`](docs/adr/0001-tech-stack.md) 를 따른다 ("제안" 항목은 확정 전). 구조·설계 원칙은 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)(초안 v0.1)와 `docs/adr/`를 따르며, 확정되면 컨벤션을 이 파일에 추가한다. **확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.**
+**확정되지 않은 것은 추측해서 코드/설정에 넣지 않는다.** 문서 머리말의 `status`가 `draft`이거나 본문에 "제안"이라고 된 항목은 확정 전이다.
 
-## 2. 작업 순서
+## 2. 문서 지도
 
-1. `docs/PRD.md` 완성 → 2. `docs/ARCHITECTURE.md` + `docs/adr/` → 3. API·데이터 명세 → 4. `/ralplan` 으로 `PLAN.md` → 5. 구현
-상위 문서가 바뀌면 하위 문서를 함께 갱신한다.
+전체 지도와 작성 규칙은 [`docs/README.md`](docs/README.md). 상황별 진입점만 적는다.
+
+| 하려는 일 | 읽을 문서 |
+|---|---|
+| 기능·정책 수치 | [`docs/PRD.md`](docs/PRD.md) (정책 수치의 유일한 원본) |
+| 구조·모듈 경계·설계 원칙 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| 결정 근거(스택, 인증, 동시성, 채팅·알림) | [`docs/adr/`](docs/adr/) |
+| 보안 훅·3겹 방어·사람용 명령 | [`docs/guides/agent-hooks.md`](docs/guides/agent-hooks.md) |
+
+작업 순서: PRD → ARCHITECTURE(+ADR) → API·데이터 명세 → `/ralplan` 으로 PLAN → 구현.
+
+- **상위 문서가 바뀌면 하위 문서를 함께 확인한다.** 문서 머리말의 `based_on` 이 관계를 나타낸다.
+- **한 사실은 한 곳에만 쓴다.** 값을 복사하지 않고 원본 위치를 가리킨다 (`docs/README.md` 3장).
+- 코드가 바뀌면 그 코드를 설명하는 문서(머리말 `covers`)도 같은 PR 에서 갱신한다.
 
 ## 3. Git flow
 
@@ -32,7 +44,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 | `release/<버전>` | 릴리스 준비 | `develop` → `main`(사람이 병합) + `develop` |
 | `hotfix/<이름>` | 운영 긴급 수정 | `main` → `main`(사람이 병합) + `develop` |
 
-- 브랜치 이름: 소문자·숫자·`.`·`-`·`_` (예: `feature/study-create`, `release/0.1.0`)
+- 브랜치 이름: 소문자·숫자·`.`·`-`·`_` (예: `feature/study-create`, `release/0.1.0`). 문서 작업도 `feature/` 를 쓴다.
 - **에이전트는** main 에 직접 commit/push 하지 않고, main 대상 PR 을 만들지 않으며, PR 을 병합하지 않는다. PR 은 항상 `--base develop`.
 - force push, `git reset --hard`, `git clean -f` 는 사용하지 않는다.
 - GitHub 쪽 **Branch Protection**(main/develop: PR 필수, 직접 push 금지)을 반드시 함께 설정한다. 로컬 훅은 이를 대체하지 못한다.
@@ -48,61 +60,28 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 - scope(선택): `backend` `frontend` `docs` `tools`
 - 제목은 한 줄, 마침표 없음. 하나의 커밋 = 하나의 논리적 변경.
 
-## 4. 3겹 방어
+## 4. 3겹 방어와 보안 가드
 
-같은 규칙을 세 층에서 강제한다. 앞 층이 우회돼도 뒤 층이 막는다.
+같은 규칙을 ① 에이전트 훅(`.claude/`) ② 로컬 git 훅(`.githooks/`) ③ CI + Branch Protection 세 층에서 강제한다. 상세·사람용 명령·한계는 [`docs/guides/agent-hooks.md`](docs/guides/agent-hooks.md).
 
-| 층 | 대상 | 수단 | 우회 가능성 |
-|---|---|---|---|
-| ① 에이전트 훅 | Claude Code 의 도구 호출 | `.claude/` 의 PreToolUse 훅 (§5) | 셸 문자열 우회 |
-| ② 로컬 git 훅 | 사람·에이전트 모두의 commit/push | `.githooks/` (commit-msg, pre-commit, pre-push) | `--no-verify` (①이 에이전트의 사용을 차단) |
-| ③ CI + Branch Protection | PR 병합 | `.github/workflows/ci.yml` | 없음 (최종 방어선) |
-
-- 규칙의 단일 출처: `tools/git-policy.sh` (커밋 형식, 브랜치 이름, PR 대상, 시크릿 파일명). ②와 ③이 같은 파일을 쓴다.
-- clone 후 한 번 실행: `bash tools/setup-git-hooks.sh` (상태 확인: `--check`). 권장: `gitleaks` 설치.
-- CI 의 필수 상태 검사로는 **`CI 통과`** 하나만 지정한다 (건너뛴 job 은 통과, 실패는 실패).
-- `backend/`, `frontend/` 의 build·test 는 `backend/build.gradle`, `frontend/package.json` 이 생기면 자동으로 켜진다.
+- 규칙의 단일 출처: `tools/git-policy.sh`. clone 후 한 번 `bash tools/setup-git-hooks.sh`.
 - 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①).
-
-## 5. 보안 가드 (훅)
-
-`.claude/settings.json` 의 PreToolUse 훅이 아래를 **차단**한다 (원본: `tools/hooks-src/`).
-
-- main 직접 commit/push, force push, main 대상 PR, PR 병합, 규칙 위반 브랜치명
-- `.env`·키·인증서·`secrets/` 등 시크릿 파일의 읽기/쓰기 (`.env.example` 은 허용)
-- `rm -r/-rf`, `find -delete`, `git reset --hard`, `git clean -f`, `DROP DATABASE/TABLE` 등
-- `.claude/hooks`, `.claude/settings*.json`, `tools/hooks-ctl.sh` 수정/실행 (읽기는 허용)
-
-**Fail-Closed**: 훅이 고장 나도 도구 호출은 통과되지 않는다. 대신 정책 위반(🚫)과 훅 고장(⛔ `hook-error`)을 구분해 원인과 복구 명령을 알려 준다.
+- 차단 대상: main 직접 commit/push·PR·병합, 시크릿 파일 접근(`.env.example` 제외), `rm -r`·`git reset --hard` 등 파괴 명령, 훅·설정 파일 수정.
 
 ### 에이전트 행동 규칙
 - 차단되면 **우회하지 않는다** (다른 명령/도구로 같은 동작 시도 금지). 사유를 사용자에게 전달하고 사람이 할 일을 안내한다.
 - `⛔ hook-error` 를 만나면 직접 고치려 하지 말고 사용자에게 `! bash tools/hooks-ctl.sh check` / `fix` 실행을 요청한다.
-- 훅 로직을 바꾸려면 `tools/hooks-src/` 를 수정하고 `bash tools/hooks-src/tests/run.sh` 가 통과하는지 확인한 뒤, **사람이** `! bash tools/hooks-ctl.sh install` 로 반영한다.
+- 훅 로직을 바꾸려면 `tools/hooks-src/` 를 수정하고 테스트가 통과하는지 확인한 뒤, **사람이** `! bash tools/hooks-ctl.sh install` 로 반영한다.
 
-### 사람용 명령 (`!` 접두사 = 훅을 거치지 않고 실행)
-
-| 명령 | 동작 |
-|---|---|
-| `! bash tools/hooks-ctl.sh verify` | 원본 빌드 + 자체 테스트만 (활성화 안 함) |
-| `! bash tools/hooks-ctl.sh install` | 빌드 → 테스트 → 원자적 교체 → 설정 반영 → 스모크 (실패 시 자동 롤백) |
-| `! bash tools/hooks-ctl.sh check` | 설치 상태 진단 |
-| `! bash tools/hooks-ctl.sh fix` | 진단 → 재설치 → 안 되면 이전 버전 롤백 |
-| `! bash tools/hooks-ctl.sh rollback` | 직전 버전으로 즉시 복원 |
-
-인자 역할: 같은 단어라도 경로(`cat secrets/x`)와 글자(커밋 메시지, 검색어, 출력 문구)를 구분한다. 글자 자리는 `echo`/`printf` 인자, `git commit|tag` 의 `-m` 값, `gh pr|issue|release` 의 `--title`/`--body`, `grep` 계열의 검색 패턴, `cat`·`tee`·`git commit`·`gh` 로 가는 heredoc 본문뿐이다. `-F`, `--body-file`, 리다이렉션 대상 같은 경로 자리와, `$(..)`·백틱·파이프가 섞인 명령은 치환하지 않고 그대로 검사한다.
-
-한계: 훅은 셸 문자열을 단순 분석하므로 `bash -c`, 변수 치환, 스크립트 내부 명령 같은 우회까지는 막지 못한다. 보조 방어선일 뿐이다.
-
-## 6. 시크릿
+## 5. 시크릿
 
 - `.env` 등 시크릿은 커밋하지 않는다. 필요한 키 이름은 `.env.example` 에만 적는다.
 - 실제 값은 사람이 직접 관리한다. 에이전트는 시크릿을 읽지도, 만들어 채워 넣지도 않는다.
 - 로그·에러 메시지·테스트 픽스처에 토큰/개인정보를 남기지 않는다.
 
-## 7. 코드 컨벤션
+## 6. 코드 컨벤션
 
-`docs/ARCHITECTURE.md` 확정 후 작성한다 (패키지 구조, 네이밍, 테스트 전략, 린트/포맷터). 그 전에는 `.editorconfig` 를 따른다.
+패키지 구조·네이밍·테스트·린트는 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 가 확정되면 이곳에 추가한다. 그 전에는 `.editorconfig` 를 따른다.
 
 확정된 규칙만 먼저 적는다.
 

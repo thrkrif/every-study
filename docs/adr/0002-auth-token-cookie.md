@@ -1,3 +1,10 @@
+---
+status: draft
+based_on:
+  - docs/PRD.md@0.3
+  - docs/ARCHITECTURE.md@0.1
+---
+
 # ADR-0002: 인증 — 소셜 로그인과 JWT 쿠키
 
 - 상태: 제안 (수치는 확정 필요)
