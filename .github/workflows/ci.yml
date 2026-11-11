@@ -71,6 +71,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # 조직(Organization) 저장소로 옮기면 GITLEAKS_LICENSE 시크릿이 필요하다.
 
+  # ── 2-1. 문서 머리말·링크 ────────────────────────────────
+  docs:
+    name: docs (머리말, based_on 버전, 링크)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 문서 검사 자체 테스트
+        run: bash tools/tests/docs-check.sh
+
+      - name: 문서 머리말과 링크 검사
+        run: bash tools/docs-check.sh
+
   # ── 3. 보안 훅 / git 훅 자체 검증 ─────────────────────────
   hooks:
     name: hooks (자체 테스트, 원본·설치본 일치)
@@ -152,7 +165,7 @@ jobs:
   ci-pass:
     name: CI 통과
     if: always()
-    needs: [policy, secrets, hooks, backend, frontend]
+    needs: [policy, secrets, docs, hooks, backend, frontend]
     runs-on: ubuntu-latest
     steps:
       - name: 결과 집계
