@@ -1,14 +1,14 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.3
+  - docs/PRD.md@0.5
 ---
 
 # ADR-0001: 기술 스택
 
 - 상태: 부분 확정 (아래 "확정"은 결정됨, "제안"은 검토 후 확정)
 - 일자: 2026-11-09
-- 관련: [PRD](../PRD.md) (v0.3), [ARCHITECTURE](../ARCHITECTURE.md)
+- 관련: [PRD](../PRD.md) (v0.5), [ARCHITECTURE](../ARCHITECTURE.md)
 
 ## 배경
 
