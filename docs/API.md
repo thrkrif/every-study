@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.1"
+version: "0.2"
 based_on:
-  - docs/PRD.md@0.5
-  - docs/ARCHITECTURE.md@0.3
-  - docs/DATA-MODEL.md@0.1
+  - docs/PRD.md@0.6
+  - docs/ARCHITECTURE.md@0.4
+  - docs/DATA-MODEL.md@0.2
 ---
 
 # API 명세
@@ -41,14 +41,14 @@ based_on:
 | 401 | `UNAUTHENTICATED` | 로그인 필요, 토큰 만료 (클라이언트는 `/auth/refresh` 후 1회 재시도) |
 | 403 | `FORBIDDEN` / `CSRF_INVALID` | 권한 없음 / CSRF 불일치 |
 | 403 | `USER_RESTRICTED` | 제재로 신청·개설 불가. `until` 포함 |
-| 404 | `NOT_FOUND` | 대상 없음 (숨김 스터디도 일반 사용자에게는 404) |
+| 404 | `NOT_FOUND` | 대상 없음 |
 | 409 | `STUDY_FULL` | 정원 참 → 클라이언트는 대기 안내 |
 | 409 | `STUDY_NOT_RECRUITING` | 종료·파투 상태이거나 체크인 오픈 이후 |
 | 409 | `ALREADY_JOINED` / `ALREADY_WAITING` | 중복 |
 | 409 | `STUDY_NOT_FULL` | 정원에 여유가 있어 대기할 수 없음 (참여 신청을 안내) |
 | 409 | `ENTRY_CRITERIA_NOT_MET` | 입장 기준(출석률·신규 불허) 미충족 |
 | 409 | `CAPACITY_BELOW_MEMBERS` | 정원을 현재 참여자 수 미만으로 줄이려 함 |
-| 409 | `SCHEDULE_LOCKED` | 허용되지 않는 시점의 일정 변경 |
+| 409 | `SCHEDULE_LOCKED` | 참여자가 있어 일정·장소를 수정할 수 없음 (PRD 4.2). 새 스터디를 만들도록 안내 |
 | 409 | `LOCK_TIMEOUT` | 락 대기 초과. 재시도 가능 (ADR-0004) |
 | 422 | `CHECKIN_OUT_OF_RANGE` | 반경 밖 |
 | 422 | `CHECKIN_WINDOW_CLOSED` | 체크인 가능 시간 아님 |
@@ -93,7 +93,7 @@ based_on:
 | `GET /api/v1/studies` | 공개 | 목록. 필터 `districtCode`, `topicCode`, `jobCode`, `recruiting=true`, 정렬 `sort=latest\|deadline`, 커서 |
 | `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `403 USER_RESTRICTED` 가능 |
 | `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함 |
-| `PATCH /api/v1/studies/{id}` | 주최자 | 제목·소개·일정·장소 수정. 일정·장소 변경은 참여자에게 즉시 알림. 정책상 허용되지 않는 시점이면 `SCHEDULE_LOCKED` |
+| `PATCH /api/v1/studies/{id}` | 주최자 | 제목·소개는 항상 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없을 때만** 수정 가능하고, 있으면 `SCHEDULE_LOCKED`. 응답 상세의 `scheduleEditable`로 클라이언트가 입력란을 잠근다 |
 | `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소. 증액 시 대기자에게 알림 |
 
 **개설 요청**
@@ -173,7 +173,6 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 | `PUT /api/v1/blocks/{userId}` · `DELETE` | 회원 | 사용자 차단·해제 |
 | `GET /api/v1/admin/reports?status=` | 운영자 | 신고 큐 |
 | `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 반려 또는 처리 완료 (`note` 필수) |
-| `POST /api/v1/admin/studies/{id}/hide` · `/unhide` | 운영자 | 목록 숨김·해제 |
 | `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 강제 종료 = 파투. 참여자 지표 영향 없음 |
 | `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 메시지 삭제 |
 | `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여·해제 |
@@ -190,7 +189,7 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 
 | type | 대상 | 시점 |
 |---|---|---|
-| `STUDY_CHANGED` | 참여자 | 일정·장소 수정, 취소 |
+| `STUDY_CANCELLED` | 참여자 | 스터디 취소(파투, 강제 종료) |
 | `CHECKIN_REMINDER_DAY`, `_HOUR`, `CHECKIN_OPEN` | 참여자 | 전날, 1시간 전, 체크인 오픈 (PRD 4.5) |
 | `WAITING_OPENED` | 대기자 | 자리 발생, 정원 증액 (PRD 4.14) |
 | `HOST_ASSIGNED` | 새 주최자 | 승계 |
@@ -198,10 +197,9 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 | `APPEAL_RESULT` | 신청자 | 이의 결정 |
 | `SANCTION_APPLIED` | 대상자 | 제재 부여 |
 
-## 9. 확정이 필요한 작은 항목 (제안)
+## 9. 결정 현황
 
-1. 대기 등록 조건: 정원이 **차 있을 때만** 허용한다 (여유가 있으면 신청하면 되므로). 여유 있을 때 요청하면 `409 STUDY_NOT_FULL`로 거부한다.
-2. 일정 수정 허용 범위: 체크인 오픈 전까지만, 시작 시각 변경은 같은 날 안으로 제한할지 여부. 기본 제안은 "체크인 오픈 전까지 모든 필드 수정 가능, 변경 시 알림"이다.
-3. 숨김 스터디: 일반 사용자에게는 404, 참여자·주최자에게는 상세 접근 허용 (제안).
-4. 호출 제한(`429`) 대상: 체크인 코드 입력, 신청, 신고, 채팅 전송, 비회원 목록·상세 조회. 값은 구현 시 정한다.
-5. (결정) 비회원에게도 상세에서 참여자 닉네임과 지표를 보여 준다. 비회원은 참여할 수 없고 프로필도 공개라 숨길 실익이 없다 (PRD 4.3). 대신 비회원 목록·상세에도 호출 제한(4번)을 둔다.
+**확정 (2026-11-13)**: 대기 등록은 정원이 찼을 때만(`STUDY_NOT_FULL`), 참여자가 있으면 일정·장소 수정 불가(`SCHEDULE_LOCKED`, 일정을 바꾸려면 주최자가 방을 나가 새 스터디를 만든다), 숨김 스터디 없음, 비회원도 상세에서 참여자 닉네임·지표 열람(비회원은 참여할 수 없고 프로필도 공개, PRD 4.3).
+
+**구현하며 정할 항목**
+1. 호출 제한(`429`) 대상과 수치: 체크인 코드 입력, 신청, 신고, 채팅 전송, 비회원 목록·상세 조회.

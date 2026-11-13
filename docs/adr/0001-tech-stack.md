@@ -1,14 +1,14 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.5
+  - docs/PRD.md@0.6
 ---
 
 # ADR-0001: 기술 스택
 
 - 상태: 부분 확정 (아래 "확정"은 결정됨, "제안"은 검토 후 확정)
 - 일자: 2026-11-09
-- 관련: [PRD](../PRD.md) (v0.5), [ARCHITECTURE](../ARCHITECTURE.md)
+- 관련: [PRD](../PRD.md) (v0.6), [ARCHITECTURE](../ARCHITECTURE.md)
 
 ## 배경
 
@@ -61,12 +61,11 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 - CSRF 대응 (상태 변경 요청 보호)과 CORS 허용 오리진 설정이 필요하다.
 - 구체 설계(액세스/리프레시 수명, 갱신 흐름, 폐기)는 ARCHITECTURE.md 와 별도 ADR 에서 정한다.
 
-## 미결정 (추측해서 넣지 않음)
+## 후속 결정 (2026-11-13)
 
-> 2026-11-11: 아래 항목은 [ARCHITECTURE](../ARCHITECTURE.md)와 ADR-0002~0005에서 **제안**으로 다뤘다 (확정 전). 패키지 매니저 npm, JWT 설계(ADR-0002), 패키지 구조(ADR-0003), Redis는 소규모에서 불필요(ADR-0005), 배포는 VM 1대 + Docker Compose 후보.
+[ARCHITECTURE](../ARCHITECTURE.md)와 ADR-0002~0005에서 아래를 확정했다.
 
-- 패키지 매니저 (npm / pnpm)
-- JWT 세부 설계 (수명, 리프레시, 폐기, 쿠키 도메인)
-- 백엔드 패키지 구조, 계층 규칙
-- Redis 도입 시점 (채팅 서버 증설 시)
-- 배포·호스팅 환경
+- 패키지 매니저 npm, 프론트 서버 상태 TanStack Query
+- JWT 수명·쿠키 정책 (ADR-0002), 백엔드 패키지 구조와 루트 패키지 `com.everystudy` (ADR-0003)
+- 배포는 Docker (VM 1대 + Compose), Redis는 소규모에서 불필요 (ADR-0005)
+- 호스팅 업체·도메인은 아직 미정 (ARCHITECTURE 11장)

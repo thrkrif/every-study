@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.1"
+version: "0.2"
 based_on:
-  - docs/PRD.md@0.5
-  - docs/ARCHITECTURE.md@0.3
+  - docs/PRD.md@0.6
+  - docs/ARCHITECTURE.md@0.4
 ---
 
 # 데이터 명세
@@ -52,7 +52,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | status | VARCHAR(12) | `ACTIVE` / `WITHDRAWN` |
 | created_at, withdrawn_at | DATETIME(6) | |
 
-- 닉네임은 중복을 허용할지 정해야 한다 (11장 1번).
+- 닉네임은 **중복 불허**(`UNIQUE (nickname)`, 확정). 탈퇴 시 값을 비우므로(`NULL`) 충돌하지 않는다.
 - 탈퇴: 개인정보 컬럼만 비우고 행과 `id`는 남긴다. 다른 테이블의 `user_id`는 그대로 둔다 (PRD 4.1, ARCHITECTURE 5장).
 
 ### `social_account`
@@ -77,7 +77,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | used_at | DATETIME(6) NULL | 회전으로 소진된 시각 |
 | revoked_at | DATETIME(6) NULL | |
 
-- 인덱스 `(user_id)`, `(family_id)`. 만료된 행은 스케줄러가 주기적으로 지운다 (작업 목록에 추가, 11장 2번).
+- 인덱스 `(user_id)`, `(family_id)`. 만료된 행은 스케줄러가 주기적으로 지운다 (스케줄러 작업 목록에 포함, ARCHITECTURE 4.7).
 
 ## 4. 스터디
 
@@ -104,7 +104,6 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | allow_newcomer | BOOLEAN | 입장 기준: 신규 허용 (기본 `TRUE`) |
 | status | VARCHAR(10) | `ACTIVE` / `ENDED` / `CANCELLED` (PRD 4.14) |
 | cancel_reason | VARCHAR(20) NULL | `HOST_LEFT`(주최자만 남고 포기), `OPERATOR`(강제 종료) |
-| hidden | BOOLEAN | 운영자 숨김 (목록에서 제외, 상세 직접 접근 정책은 API 명세) |
 | judged_at | DATETIME(6) NULL | 출석 판정 완료 시각. 노쇼 후보 판정 작업의 멱등 표시 |
 | voided_at | DATETIME(6) NULL | 주최자 미도착으로 **세션 무효** 처리한 시각 (PRD 4.6) |
 | ended_at | DATETIME(6) NULL | 종료 처리 시각 |
@@ -112,7 +111,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 
 - "모집 중 / 마감"은 저장하지 않는다. `status='ACTIVE'`, 체크인 오픈 전, 현재 참여자 수 < `capacity`로 **계산**한다 (ARCHITECTURE 4.2).
 - 인덱스
-  - `(status, hidden, district_code, start_at)` 목록 탐색
+  - `(status, district_code, start_at)` 목록 탐색
   - `(host_id, status)` 내 주최 스터디
   - `(status, session_date)` 종료 처리 작업 (`ACTIVE`이고 `session_date`가 오늘(KST) 이전)
   - `(status, judged_at, start_at)` 출석 판정 작업
@@ -138,7 +137,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | cancel_type | VARCHAR(10) NULL | 나갈 때 판정: `EARLY`(사전) / `LATE`(직전). 기준 시간은 PRD 4.6 |
 
 - `UNIQUE (study_id, user_id)` (ADR-0004 이중 방어선). **주최자도 `study_member`에 `ACTIVE`로 들어간다.** 정원 계산과 채팅 권한을 한 규칙으로 처리하기 위해서다. 주최자 여부는 `study.host_id`로 판단한다.
-- 나간 뒤 다시 신청하면 같은 행을 `ACTIVE`로 되돌린다 (재신청 허용은 제안, 11장 3번). 나간 이력은 `attendance_event`에 남아 있다.
+- 나간 뒤 다시 신청하면 같은 행을 `ACTIVE`로 되돌린다 (재신청 허용, 확정). 나간 이력은 `attendance_event`에 남아 있다.
 - 인덱스 `(user_id, status)` 내 참여 스터디.
 
 ### `study_waiting`
@@ -218,7 +217,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | attendance_event_id | BIGINT FK UNIQUE | 대상 판정. 판정당 이의 1건 |
 | study_id, user_id | BIGINT FK | |
 | reason | VARCHAR(500) | |
-| evidence_url | VARCHAR(500) NULL | 증빙 (파일 저장 방식은 11장 4번) |
+| evidence_url | VARCHAR(500) NULL | 증빙 (MVP는 텍스트만 받고 이 컬럼은 비워 둔다, 파일 업로드는 후속) |
 | host_opinion | VARCHAR(500) NULL | 1차 주최자 의견 |
 | status | VARCHAR(10) | `OPEN` / `ACCEPTED` / `REJECTED` |
 | decided_by | BIGINT NULL FK(user) | 운영자 |
@@ -272,7 +271,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | 예: `STUDY_CHANGED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE` |
+| type | VARCHAR(30) | 예: `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE` |
 | study_id | BIGINT NULL | 연결 대상 |
 | title, body | VARCHAR | 중복을 견디는 문장 (ADR-0005) |
 | read_at | DATETIME(6) NULL | |
@@ -293,12 +292,13 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | scheduled_at | DATETIME(6) | 예정 발송 시각 (일정 알림은 미리 기록) |
 | attempts | TINYINT | |
 | next_attempt_at | DATETIME(6) | 백오프 |
+| expires_at | DATETIME(6) | 유효 기한. 이 시각이 지난 `PENDING` 건은 발송하지 않고 `CANCELLED`로 바꾼다 (서버 중단 후 늦은 알림 방지, ARCHITECTURE 4.6) |
 | last_error | VARCHAR(300) NULL | |
 | sent_at | DATETIME(6) NULL | |
 
 - 워커는 `status='PENDING' AND next_attempt_at <= now`를 한 번에 상한 건수만큼 읽는다. 인덱스 `(status, next_attempt_at)`.
-- 일정이 바뀌면 해당 스터디의 미발송 일정 알림 행을 `CANCELLED`로 바꾸고 새로 만든다 (ARCHITECTURE 4.6).
-- 수신 설정은 발송 시점에 읽는다. 꺼져 있으면 `CANCELLED`가 아니라 `SKIPPED`로 구분할지는 11장 5번.
+- 스터디가 취소되면 해당 스터디의 미발송 일정 알림 행을 `CANCELLED`로 바꾼다. 주최자 혼자일 때 일정을 수정하면 미발송 행을 취소하고 새로 만든다 (ARCHITECTURE 4.6).
+- 수신 설정은 발송 시점에 읽는다. 꺼져 있으면 건너뛴다. 상태를 `CANCELLED`로 둘지 `SKIPPED`를 추가할지는 11장 2번.
 
 ### `notification_setting`
 PK `(user_id, channel)`, `enabled BOOLEAN`. 행이 없으면 기본값(켜짐, 제안).
@@ -355,7 +355,7 @@ PK `(room_id, user_id)`, `last_read_message_id BIGINT`. "읽지 않음" 개수�
 | reporter_id | BIGINT FK | |
 | target_type | VARCHAR(10) | `STUDY` / `USER` / `MESSAGE` |
 | target_id | BIGINT | |
-| reason | VARCHAR(20) | 고정 분류 (부적절한 모집, 욕설 등. 목록은 11장 6번) |
+| reason | VARCHAR(20) | 고정 분류 (부적절한 모집, 욕설 등. 목록은 11장 1번) |
 | detail | VARCHAR(500) NULL | |
 | status | VARCHAR(10) | `OPEN` / `DISMISSED` / `RESOLVED` |
 | handled_by | BIGINT NULL FK | |
@@ -372,7 +372,7 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 |---|---|---|
 | id | BIGINT PK | |
 | actor_id | BIGINT FK | 운영자 또는 시스템(`NULL`) |
-| action | VARCHAR(40) | 예: `REPORT_DISMISS`, `STUDY_HIDE`, `STUDY_FORCE_END`, `MESSAGE_DELETE`, `SANCTION_GRANT`, `SANCTION_REVOKE`, `APPEAL_DECIDE`, `ATTENDANCE_CORRECT` |
+| action | VARCHAR(40) | 예: `REPORT_DISMISS`, `STUDY_FORCE_END`, `MESSAGE_DELETE`, `SANCTION_GRANT`, `SANCTION_REVOKE`, `APPEAL_DECIDE`, `ATTENDANCE_CORRECT` |
 | target_type, target_id | VARCHAR, BIGINT | |
 | detail | JSON NULL | 변경 전후 값 |
 | created_at | DATETIME(6) | |
@@ -385,7 +385,7 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 
 | 작업 | 대상 조건 |
 |---|---|
-| 알림 워커 | `notification_outbox.status='PENDING' AND next_attempt_at <= now` |
+| 알림 워커 | `notification_outbox.status='PENDING' AND next_attempt_at <= now`. `expires_at < now`인 건은 발송하지 않고 취소 |
 | 주최자 미도착 무효 처리 | `study.status='ACTIVE' AND voided_at IS NULL AND 주최자 checkin 없음 AND start_at + (미도착 기준) < now` |
 | 노쇼 후보 판정 | `study.judged_at IS NULL AND start_at + (체크인 마감) < now`, 무효·파투 스터디는 `VOIDED` 이벤트로 처리 |
 | 이의 기간 경과 확정 | `NO_SHOW_CANDIDATE`이고 이의 없는 채 기간 경과 |
@@ -393,11 +393,11 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 | 채팅 보관 만료 삭제 | `chat_room.purge_after <= now AND purged_at IS NULL` |
 | 토큰 정리 | `refresh_token.expires_at < now` |
 
-## 11. 확정이 필요한 작은 항목 (제안)
+## 11. 결정 현황
 
-1. 닉네임 중복 허용 여부: 중복을 허용하지 않고 `UNIQUE`로 두는 것을 제안한다 (탈퇴 시 비우므로 충돌하지 않는다).
-2. 만료된 리프레시 토큰 정리를 스케줄러 작업에 추가한다 (ARCHITECTURE 4.7 작업 목록에 반영 필요).
-3. 나갔다가 같은 스터디에 재신청: 허용(같은 행 재활성화)을 제안한다. 직전 취소 기록은 이벤트에 남는다. 불허로 하면 `LEFT` 행이 있을 때 신청을 거부한다.
-4. 이의 신청 증빙 파일: MVP는 텍스트 설명만 받고 파일 업로드는 후속으로 미루는 것을 제안한다 (`evidence_url` 컬럼은 비워 둔다).
-5. 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 vs `SKIPPED` 추가).
-6. 신고 사유 분류 목록.
+**확정 (2026-11-13)**: 닉네임 중복 불허, 나갔다가 재신청 허용(같은 행 재활성화, 직전 취소 기록은 이벤트에 남음), 이의 증빙은 텍스트만, 만료 리프레시 토큰 정리, 참여자가 있으면 일정·장소 수정 불가, 스터디 숨김 없음.
+
+**구현하며 정할 항목**
+1. 신고 사유 분류 목록 (`report.reason`)
+2. 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 vs `SKIPPED` 추가)
+3. 일회용 코드 자릿수와 수명

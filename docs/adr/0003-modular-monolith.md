@@ -1,13 +1,13 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.5
-  - docs/ARCHITECTURE.md@0.3
+  - docs/PRD.md@0.6
+  - docs/ARCHITECTURE.md@0.4
 ---
 
 # ADR-0003: 모듈러 모놀리스와 패키지 규칙
 
-- 상태: 제안
+- 상태: 확정 (2026-11-13)
 - 일자: 2026-11-11
 - 관련: [ARCHITECTURE 3장](../ARCHITECTURE.md)
 
@@ -22,7 +22,7 @@ based_on:
 - 다른 모듈의 `domain`·`repository`는 **참조 금지**. 공개 `service` 인터페이스 또는 도메인 이벤트로만 소통한다.
 - 모듈 간 비동기 반응은 Spring 이벤트(`AFTER_COMMIT`)로 한다. 이 이벤트는 **같은 프로세스 안에서만** 신뢰한다. 반드시 전달돼야 하는 것(알림)은 아웃박스에 기록한다 (ADR-0005).
 - 경계는 **아키텍처 테스트**로 CI에서 검사한다 (도구는 구현 시 확정, ArchUnit 후보).
-- 루트 패키지명은 그룹 ID 확정 후 정한다.
+- 루트 패키지명은 `com.everystudy`다 (임시, 도메인이 정해지면 IDE 리팩터링으로 바꾼다).
 
 ## 대안
 
