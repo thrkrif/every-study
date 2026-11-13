@@ -13,6 +13,8 @@ status: confirmed
 | 무엇을 만드는지, 규칙이 뭔지 (기능·정책 수치) | [PRD](PRD.md) |
 | 구조, 모듈 경계, 설계 원칙 | [ARCHITECTURE](ARCHITECTURE.md) |
 | 왜 이렇게 정했는지, 대안은 | [`adr/`](adr/) (번호 순) |
+| 테이블·컬럼·제약, 스케줄러 조회 조건 | [DATA-MODEL](DATA-MODEL.md) |
+| REST 경로·권한·오류 코드, 채팅(STOMP) | [API](API.md) |
 | 기술 스택·버전 | [ADR-0001](adr/0001-tech-stack.md) |
 | 인증·쿠키·CSRF | [ADR-0002](adr/0002-auth-token-cookie.md) |
 | 패키지 구조, 모듈 간 의존 | [ADR-0003](adr/0003-modular-monolith.md) |
@@ -25,7 +27,7 @@ status: confirmed
 ```
 PRD  (무엇을, 수치)
  └─ ARCHITECTURE  (어떻게: 구조·원칙)  ── adr/  (결정과 근거)
-     └─ API·데이터 명세  (아직 없음)
+     └─ DATA-MODEL · API  (데이터·API 명세)
          └─ PLAN  (아직 없음)
              └─ 코드
 ```
