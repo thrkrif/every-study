@@ -1,13 +1,13 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.5
-  - docs/ARCHITECTURE.md@0.3
+  - docs/PRD.md@0.6
+  - docs/ARCHITECTURE.md@0.4
 ---
 
 # ADR-0004: 정원·승계 동시성과 정합성
 
-- 상태: 제안 (방향은 ADR-0001의 "스터디 행 락"을 구체화)
+- 상태: 확정 (2026-11-13, 방향은 ADR-0001의 "스터디 행 락"을 구체화)
 - 일자: 2026-11-11
 - 관련: [ARCHITECTURE 4.2~4.5](../ARCHITECTURE.md), PRD 4.4, 4.13, 8장
 
