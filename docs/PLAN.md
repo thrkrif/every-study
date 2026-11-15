@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.2"
+version: "0.3"
 based_on:
   - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.4
+  - docs/ARCHITECTURE.md@0.5
   - docs/DATA-MODEL.md@0.2
   - docs/API.md@0.2
 ---
@@ -64,7 +64,8 @@ based_on:
   - 선행: 결정 D-1 · 사람 H-4
   - 참조: ADR-0001, ADR-0003, ARCHITECTURE 3장·5장·7장·8장, AGENTS.md 6장, API 첫머리(springdoc)
   - 완료: Gradle Wrapper 프로젝트가 `com.everystudy` 아래 `common`(주입 가능한 `Clock`, RFC 9457 오류 응답, 설정 속성 틀)을 갖춘다 · 로컬 MySQL은 Docker Compose로 뜬다 · Testcontainers MySQL에 Flyway를 적용하고 JPA `validate`로 기동하는 테스트 통과 · springdoc으로 OpenAPI 문서가 생성된다 · 로그 마스킹(토큰·이메일·좌표) 기본 설정과, 로그 캡처 테스트에서 해당 패턴이 0건임을 확인 · `.env.example`에 키 이름만 · CI `backend` job이 자동으로 켜져 통과
-  - 문서: ARCHITECTURE 3장과 실제 패키지 일치 확인, ARCHITECTURE 머리말 `covers`에 `backend/src/main/java/com/everystudy/common/**` 추가, ADR-0001의 D-1 결과 기록
+    · Gradle 테스트 작업이 `test`(단위·슬라이스)와 `integrationTest`(Testcontainers, 태그)로 나뉘어 CI에서 따로 보이고, Testcontainers MySQL 컨테이너는 JVM 하나에서 공유한다 (ARCHITECTURE 8.1) · 단위 테스트 예시 하나(고정 `Clock`)와 테스트 데이터 빌더 위치를 정한다
+  - 문서: ARCHITECTURE 3장과 실제 패키지 일치 확인, ARCHITECTURE 머리말 `covers`에 `backend/src/main/java/com/everystudy/common/**` 추가, ADR-0001의 D-1 결과 기록, AGENTS.md 6장 "테스트"에 이름·빌더·태그 규칙 추가
 
 - [ ] T-002 [프론트] 프론트 프로젝트 뼈대
   - 선행: 결정 D-1
