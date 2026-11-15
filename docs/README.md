@@ -14,6 +14,7 @@ status: confirmed
 | 구조, 모듈 경계, 설계 원칙 | [ARCHITECTURE](ARCHITECTURE.md) |
 | 왜 이렇게 정했는지, 대안은 | [`adr/`](adr/) (번호 순) |
 | 무엇을 어떤 순서로 만드는지, 진행 상황 | [PLAN](PLAN.md) |
+| 화면 디자인 원칙, 색·글꼴 토큰, 컴포넌트·문구 규칙 | [DESIGN](DESIGN.md) |
 | 테이블·컬럼·제약, 스케줄러 조회 조건 | [DATA-MODEL](DATA-MODEL.md) |
 | REST 경로·권한·오류 코드, 채팅(STOMP) | [API](API.md) |
 | 기술 스택·버전 | [ADR-0001](adr/0001-tech-stack.md) |
