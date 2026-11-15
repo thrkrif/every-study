@@ -6,7 +6,7 @@ based_on:
 
 # ADR-0001: 기술 스택
 
-- 상태: 부분 확정 (아래 "확정"은 결정됨, "제안"은 검토 후 확정)
+- 상태: 확정 (버전·도구는 2026-11-16 확정. 호스팅 업체·도메인은 ARCHITECTURE 11장에서 별도 결정)
 - 일자: 2026-11-09
 - 관련: [PRD](../PRD.md) (v0.6), [ARCHITECTURE](../ARCHITECTURE.md)
 
@@ -28,19 +28,21 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 | 인증 | JWT | 브라우저 보관은 **httpOnly 쿠키** (XSS 노출 최소화) |
 | 프론트 | Next.js (React), TypeScript | PRD 확정 사항 |
 
-### 제안 (버전은 공식 문서로 확인한 값)
+### 버전과 도구 (확정, 2026-11-16)
 
-| 영역 | 제안 | 근거 |
+주 버전 계열만 정한다. 패치 버전은 처음 쓰는 작업(T-001, T-002)에서 최신 안정 버전을 공식 문서와 레지스트리로 확인해 잠금 파일(Gradle 의존성, `package-lock.json`)에 맡긴다. 새 라이브러리 API를 쓸 때는 이 버전을 고정해 공식 문서를 조회한다 (AGENTS.md 6장).
+
+| 영역 | 결정 | 근거 |
 |---|---|---|
-| Spring Boot | 4.1.x | 문서 기준 Java 17 이상(최대 26), Gradle 8.14 이상 또는 9.x 요구 |
-| JDK | 21 (LTS) | Boot 요구(17 이상)를 충족하는 보수적 선택. 팀 환경에 따라 변경 가능 |
-| Gradle | 8.14 이상 (Wrapper 로 고정) | Boot 4.1 요구 범위 |
-| Next.js | 16.x | 문서 기준 Node 20.9 이상, TypeScript 5.1 이상 |
-| Node | 20.9 이상 (LTS) | Next.js 16 요구 |
-| 린트·포맷 (프론트) | ESLint, Prettier | |
-| 테스트 (백엔드) | JUnit 5, Testcontainers(MySQL) | 실제 DB 로 정원 마감 동시성 검증 |
-| 테스트 (프론트) | Vitest, Testing Library | E2E(Playwright)는 후속 검토 |
-| 로컬 실행 | Docker Compose (MySQL, 필요 시 Redis) | |
+| Spring Boot | 4.1.x | 3.5는 OSS 지원이 2026-06-30에 끝났고 4.0은 2026-12-31에 끝난다. 4.1 문서 기준 Java 17 이상(27까지), Gradle 8.14 이상 또는 9.x 요구. 4.2는 안정화 후 후속 작업으로 검토 |
+| JDK | 21 (LTS) | Boot 요구(17 이상)를 충족하는 보수적 선택. 25(LTS)도 Boot 4.1이 지원하므로 필요해지면 올린다 |
+| Gradle | 9.x (Wrapper 로 고정) | Boot 4.1 요구 범위의 최신 계열 |
+| Next.js | 16.x, TypeScript 5.x | 문서 기준 Node 20.9 이상, TypeScript 5.1 이상 |
+| Node | 24 (LTS) | Node 20은 2026-04-30에 지원이 끝났다. Vitest 5가 22.12 이상을 요구한다. 26은 LTS 전환 시점이 확인되지 않아 제외 |
+| 린트·포맷 (프론트) | ESLint(flat config), Prettier | Next.js 16은 `next build`에서 린트를 실행하지 않으므로 npm 스크립트로 실행한다 |
+| 테스트 (백엔드) | JUnit, Testcontainers(MySQL) | 버전은 Boot 4.1이 관리하는 값을 따른다 (T-001에서 확정). 실제 DB 로 정원 마감 동시성 검증 |
+| 테스트 (프론트) | Vitest 5, Testing Library | E2E(Playwright)는 후속 검토 |
+| 로컬 실행 | Docker Compose (MySQL) | Redis는 소규모에서 불필요 (ADR-0005) |
 
 ## 결과와 영향
 
