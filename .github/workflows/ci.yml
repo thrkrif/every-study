@@ -125,7 +125,7 @@ jobs:
         if: steps.detect.outputs.found == 'true'
         with:
           distribution: temurin
-          java-version: '21'   # ADR-0001 제안값. 확정/변경 시 함께 수정
+          java-version: '21'   # ADR-0001 확정값. 변경 시 함께 수정
       - uses: gradle/actions/setup-gradle@v4
         if: steps.detect.outputs.found == 'true'
       - name: 빌드와 테스트 (Testcontainers 는 러너의 Docker 사용)
@@ -146,7 +146,7 @@ jobs:
       - uses: actions/setup-node@v4
         if: steps.detect.outputs.found == 'true'
         with:
-          node-version: lts/*   # Next.js 16 은 Node 20.9 이상 요구 (ADR-0001)
+          node-version: '24'   # ADR-0001 확정값 (Node 24 LTS). 변경 시 함께 수정
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       # 패키지 매니저가 npm 으로 확정된 경우의 틀. pnpm 으로 정하면 이 블록을 바꾼다.

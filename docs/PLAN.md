@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.3"
+version: "0.4"
 based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.5
@@ -542,7 +542,7 @@ based_on:
 
 | 번호 | 항목 | 출처 | 막는 작업 |
 |---|---|---|---|
-| D-1 | ADR-0001의 "제안" 항목 확정: Spring Boot·JDK·Gradle·Next.js·Node 버전, ESLint·Prettier, Vitest·Testing Library, JUnit 5·Testcontainers (CI의 Java 버전도 제안값) | ADR-0001, ci.yml | T-001, T-002 |
+| D-1 | **결정됨(2026-11-16, ADR-0001)**: Spring Boot 4.1.x, JDK 21, Gradle 9.x, Next.js 16.x, Node 24(CI 반영), ESLint·Prettier, Vitest 5·Testing Library. 패치 버전은 T-001·T-002에서 최신 안정 버전을 확인하고, JUnit·Testcontainers는 Boot 4.1이 관리하는 버전을 T-001에서 확정한다 | ADR-0001, ci.yml | T-001, T-002 |
 | D-2 | 모듈 경계 검사 도구 (ArchUnit 후보) | ADR-0003 | T-003 |
 | D-3 | 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
 | D-4 | 신고 사유 분류 목록 | DATA-MODEL 11장 1번 | T-053 |
