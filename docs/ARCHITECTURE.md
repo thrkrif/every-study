@@ -5,7 +5,8 @@ based_on:
   - docs/PRD.md@0.6
 covers:
   - backend/src/main/java/com/everystudy/common/**
-  - frontend/src/**
+  - frontend/src/lib/api/**
+  - frontend/src/app/providers.tsx
 ---
 
 # ARCHITECTURE — 모두의 스터디
