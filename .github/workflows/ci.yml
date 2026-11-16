@@ -124,56 +124,72 @@ jobs:
       - name: 설치본으로 같은 테스트 실행
         run: bash tools/hooks-src/tests/run.sh
 
-  # ── 4. 백엔드 (backend/build.gradle 이 생기면 자동으로 켜짐) ──
+  # ── 4. 바뀐 경로 감지 ─────────────────────────────────────
+  # 백엔드·프론트 job 은 자기 영역이 바뀐 PR 에서만 돈다 (규칙은 tools/ci-changes.sh).
+  # develop·main 으로의 push(병합 직후)에서는 전부 돌려 건너뛴 조합이 없는지 다시 확인한다.
+  changes:
+    name: changes (바뀐 경로 감지)
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.detect.outputs.backend }}
+      frontend: ${{ steps.detect.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # 대상 브랜치와 갈라진 지점을 찾는다
+
+      - name: 경로 감지 자체 테스트
+        run: bash tools/tests/ci-changes.sh
+
+      - name: 바뀐 경로 감지
+        id: detect
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if [ -n "$BASE_REF" ]; then
+            bash tools/ci-changes.sh --base "origin/$BASE_REF" | tee -a "$GITHUB_OUTPUT"
+          else
+            bash tools/ci-changes.sh | tee -a "$GITHUB_OUTPUT"
+          fi
+
+  # ── 5. 백엔드 (backend/** 가 바뀐 PR 에서만) ───────────────
   backend:
     name: backend (test, integrationTest, build)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 백엔드 프로젝트 감지
-        id: detect
-        run: |
-          if [ -f backend/build.gradle ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; echo "backend/build.gradle 없음 — 건너뜀"; fi
       - uses: actions/setup-java@v4
-        if: steps.detect.outputs.found == 'true'
         with:
           distribution: temurin
           java-version: '21'   # ADR-0001 확정값. 변경 시 함께 수정
       - uses: gradle/actions/setup-gradle@v4
-        if: steps.detect.outputs.found == 'true'
       # 단위·통합 테스트를 따로 실행해 어느 층이 실패했는지 바로 보이게 한다 (ARCHITECTURE 8.1).
       - name: 단위·슬라이스 테스트
-        if: steps.detect.outputs.found == 'true'
         working-directory: backend
         run: ./gradlew test
       - name: 통합 테스트 (Testcontainers 는 러너의 Docker 사용)
-        if: steps.detect.outputs.found == 'true'
         working-directory: backend
         run: ./gradlew integrationTest
       - name: 빌드
-        if: steps.detect.outputs.found == 'true'
         working-directory: backend
         run: ./gradlew build
 
-  # ── 5. 프론트엔드 (frontend/package.json 이 생기면 자동으로 켜짐) ──
+  # ── 6. 프론트엔드 (frontend/** 가 바뀐 PR 에서만) ──────────
   frontend:
     name: frontend (lint, test, build)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: 프론트엔드 프로젝트 감지
-        id: detect
-        run: |
-          if [ -f frontend/package.json ]; then echo "found=true" >> "$GITHUB_OUTPUT"; else echo "found=false" >> "$GITHUB_OUTPUT"; echo "frontend/package.json 없음 — 건너뜀"; fi
       - uses: actions/setup-node@v4
-        if: steps.detect.outputs.found == 'true'
         with:
           node-version: '24'   # ADR-0001 확정값 (Node 24 LTS). 변경 시 함께 수정
           cache: npm
           cache-dependency-path: frontend/package-lock.json
-      # 패키지 매니저가 npm 으로 확정된 경우의 틀. pnpm 으로 정하면 이 블록을 바꾼다.
       - name: 설치, 린트, 테스트, 빌드
-        if: steps.detect.outputs.found == 'true'
         working-directory: frontend
         run: |
           npm ci
@@ -181,13 +197,14 @@ jobs:
           npm test --if-present
           npm run build
 
-  # ── 6. 필수 상태 검사용 집계 ──────────────────────────────
+  # ── 7. 필수 상태 검사용 집계 ──────────────────────────────
   # Branch Protection 에는 이 job("CI 통과") 하나만 필수로 지정하면 된다.
   # 건너뛴 job(skipped)은 통과로, 실패·취소는 실패로 본다.
+  # changes 가 실패하면 backend·frontend 는 건너뛰어지지만 changes 의 실패로 여기서 막힌다.
   ci-pass:
     name: CI 통과
     if: always()
-    needs: [policy, secrets, docs, migrations, hooks, backend, frontend]
+    needs: [policy, secrets, docs, migrations, hooks, changes, backend, frontend]
     runs-on: ubuntu-latest
     steps:
       - name: 결과 집계

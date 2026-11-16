@@ -24,10 +24,11 @@ covers:
 - 규칙의 단일 출처: `tools/git-policy.sh` (커밋 형식, 브랜치 이름, PR 대상, 시크릿 파일명). ②와 ③이 같은 파일을 쓴다.
 - clone 후 한 번 실행: `bash tools/setup-git-hooks.sh` (상태 확인: `--check`). 권장: `gitleaks` 설치.
 - CI 의 필수 상태 검사로는 **`CI 통과`** 하나만 지정한다 (건너뛴 job 은 통과, 실패는 실패).
-- `backend/`, `frontend/` 의 build·test 는 `backend/build.gradle`, `frontend/package.json` 이 생기면 자동으로 켜진다. 백엔드는 `test`(단위·슬라이스) → `integrationTest`(Testcontainers) → `build` 순서로 따로 실행한다.
+- `backend`·`frontend` job 은 **자기 영역이 바뀐 PR 에서만** 돈다. `changes` job 이 `tools/ci-changes.sh` 로 바뀐 경로를 보고 정한다: `backend/**` 는 백엔드, `frontend/**` 는 프론트, `.github/workflows/**` 나 감지 스크립트가 바뀌면 둘 다. 문서만 바꾼 PR 은 둘 다 건너뛴다. develop·main 으로의 push(병합 직후)에서는 전부 실행한다. 건너뛴 job 은 `CI 통과` 에서 통과로 센다.
+- 백엔드는 `test`(단위·슬라이스) → `integrationTest`(Testcontainers) → `build` 순서로 따로 실행한다.
 - 문서 검사: `bash tools/docs-check.sh` (머리말·`based_on` 버전·링크, 자세한 내용은 [docs/README.md](../README.md)). CI 는 오류로, pre-commit(②)은 경고로만 처리한다.
 - 마이그레이션 검사: `bash tools/flyway-check.sh` (Flyway 파일명 형식, 번호 중복·누락). CI `migrations` job 에서만 실행한다.
-- 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①), `bash tools/tests/docs-check.sh` (문서 검사), `bash tools/tests/flyway-check.sh` (마이그레이션 검사).
+- 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①), `bash tools/tests/docs-check.sh` (문서 검사), `bash tools/tests/flyway-check.sh` (마이그레이션 검사), `bash tools/tests/ci-changes.sh` (CI 경로 감지).
 
 ## 2. 보안 가드 (에이전트 훅)
 
