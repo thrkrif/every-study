@@ -96,12 +96,17 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 - 이름: 단위·슬라이스는 `<대상>Test`, 통합은 `<대상>IntegrationTest`. 메서드 이름은 영어 camelCase, `@DisplayName`에 한국어로 기대 동작을 한 문장으로 적는다.
 - 태그: 통합 테스트는 `com.everystudy.support.IntegrationTestSupport`를 상속한다 (`integration` 태그와 공유 MySQL 컨테이너가 따라온다). `@SpringBootTest`를 직접 붙이지 않는다.
 - 위치: 테스트 데이터 빌더는 `src/test/java/com/everystudy/<모듈>/fixture/<엔티티>Fixture`, 여러 모듈이 쓰는 테스트 도구(고정 시계 `TestClocks` 등)는 `com.everystudy.support`.
+- 프론트: `npm test`(Vitest, Node 24 필요). 테스트 파일은 대상 옆에 `<대상>.test.ts(x)`, 이름은 한국어 한 문장. 명령과 규칙은 `frontend/README.md`.
 
 ### DB 마이그레이션 (Flyway)
 - 위치 `backend/src/main/resources/db/migration/`, 파일명 `V<번호>__<설명>.sql`.
 - **병합된 마이그레이션은 수정하지 않는다.** 변경은 새 버전 파일로 추가한다.
 - JPA 는 `ddl-auto=validate`. 스키마 생성·변경은 Flyway 로만 한다.
 - MySQL 은 `utf8mb4` 를 명시한다.
+
+### 프론트 API 호출
+- 화면 코드에서 `fetch`를 직접 부르지 않고 `frontend/src/lib/api/client.ts`의 `apiFetch`만 쓴다 (쿠키 포함, CSRF 헤더, 오류 변환이 한 곳에 있다).
+- 오류는 `ApiError`의 `code`로 분기한다. 코드 목록(`errors.ts`)은 API 명세 1장 표와 함께 고친다.
 
 ### 인증 (JWT)
 - 토큰은 `localStorage` 에 두지 않고 **httpOnly 쿠키**로 다룬다. CSRF·CORS 대응을 함께 설계한다.
