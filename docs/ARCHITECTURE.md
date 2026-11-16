@@ -5,6 +5,7 @@ based_on:
   - docs/PRD.md@0.6
 covers:
   - backend/src/main/java/com/everystudy/common/**
+  - frontend/src/**
 ---
 
 # ARCHITECTURE — 모두의 스터디
@@ -141,10 +142,10 @@ covers:
 ## 6. 프론트엔드 구조 (제안)
 
 - Next.js(App Router) + TypeScript, **모바일 우선 반응형**, PWA(웹 푸시용 서비스 워커·manifest).
-- 페이지는 PRD 5장의 화면 목록과 1:1로 둔다. 서버 상태 조회는 한 가지 방식으로 통일한다 (TanStack Query를 제안, 구현 전 확정).
-- API 호출은 한 곳(`api client`)에서 쿠키 포함(`credentials`)·CSRF 헤더·오류 처리를 담당한다. 토큰을 JS로 읽거나 저장하지 않는다.
+- 페이지는 PRD 5장의 화면 목록과 1:1로 둔다. 서버 상태 조회는 TanStack Query 한 가지로 통일한다 (ADR-0001 후속 결정).
+- API 호출은 한 곳(`frontend/src/lib/api/client.ts`의 `apiFetch`)에서 쿠키 포함(`credentials`)·CSRF 헤더·오류 처리를 담당한다. 화면 코드는 `fetch`를 직접 부르지 않는다. 토큰을 JS로 읽거나 저장하지 않는다.
 - 카카오맵은 클라이언트에서만 로드한다 (스터디 만들기: 장소 선택, 상세: 지도 표시). 앱 키는 공개용 JavaScript 키이며 도메인 제한을 건다.
-- 패키지 매니저는 **npm**을 제안한다 (CI가 이미 `npm ci` 기준, 도구를 늘리지 않는다).
+- 패키지 매니저는 **npm**이다 (ADR-0001 후속 결정. CI가 `npm ci` 기준, 도구를 늘리지 않는다).
 
 ## 7. 보안과 개인정보
 

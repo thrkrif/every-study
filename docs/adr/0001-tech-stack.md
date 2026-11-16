@@ -81,3 +81,15 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 - OpenAPI 문서 생성은 springdoc-openapi 3.2.0 (3.x가 Boot 4 호환 계열. Boot가 관리하지 않아 `build.gradle`에 버전을 적는다). 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)를 함께 쓰려고 `springdoc-openapi-starter-webmvc-ui`를 넣는다
 - MySQL 이미지는 `mysql:8.4`(LTS)로 로컬 Compose와 통합 테스트를 같게 맞춘다. 데이터베이스 기본 콜레이션은 `utf8mb4_0900_ai_ci`
 - 의존성 버전은 Gradle 의존성 잠금(`gradle.lockfile`)으로 고정한다
+
+## 후속 결정 (2026-11-16, T-002)
+
+프론트 뼈대를 만들며 패치 버전과 남은 도구를 정했다. 정확한 버전의 원본은 `frontend/package.json`과 `frontend/package-lock.json`이고, 아래 값은 결정 시점의 기록이다.
+
+- Next.js 16.4.6, React 19.3.0, TypeScript 5.9.3 (TypeScript 7이 나와 있으나 이 문서가 정한 5.x를 유지한다)
+- ESLint 10.15.0 (9.x는 지원이 끝났다. `eslint-config-next` 16.4.6이 `>=9`를 허용하고 린트가 통과함을 확인), Prettier 3.10.1. 포맷 규칙 충돌은 `eslint-config-prettier`로 끈다
+- Vitest 5.1.0, Testing Library(React 16.3.3), 테스트 DOM은 jsdom 31.0.1
+- TanStack Query 5.107.1
+- Node는 24.15 이상이어야 한다 (jsdom 31의 요구 사항). `frontend/.nvmrc`와 `package.json`의 `engines`에 적는다
+- `package.json`에는 정확한 버전을 적고(범위 표기 없음) 잠금 파일을 함께 커밋한다
+- Next.js 템플릿이 기본으로 켜는 `cacheComponents`·`partialPrefetching`은 켜지 않았다. 필요해지는 화면 작업에서 정한다

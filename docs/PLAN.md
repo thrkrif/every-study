@@ -67,7 +67,7 @@ based_on:
     · Gradle 테스트 작업이 `test`(단위·슬라이스)와 `integrationTest`(Testcontainers, 태그)로 나뉘어 CI에서 따로 보이고, Testcontainers MySQL 컨테이너는 JVM 하나에서 공유한다 (ARCHITECTURE 8.1) · 단위 테스트 예시 하나(고정 `Clock`)와 테스트 데이터 빌더 위치를 정한다
   - 문서: ARCHITECTURE 3장과 실제 패키지 일치 확인, ARCHITECTURE 머리말 `covers`에 `backend/src/main/java/com/everystudy/common/**` 추가, ADR-0001의 D-1 결과 기록, AGENTS.md 6장 "테스트"에 이름·빌더·태그 규칙 추가
 
-- [ ] T-002 [프론트] 프론트 프로젝트 뼈대
+- [x] T-002 [프론트] 프론트 프로젝트 뼈대
   - 선행: 결정 D-1
   - 참조: ARCHITECTURE 6장, ADR-0001, API 1장(오류 형식·CSRF)
   - 완료: Next.js(App Router)·TypeScript·ESLint·Prettier·Vitest·Testing Library·TanStack Query 구성 · API 클라이언트 한 곳에서 `credentials` 포함, `X-XSRF-TOKEN` 헤더, 오류 `code` 분기 처리 · 단위 테스트: CSRF 헤더 부착, `code`별 오류 변환 · 토큰을 JS로 읽거나 저장하지 않음 · CI `frontend` job(lint, test, build) 통과
