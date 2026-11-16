@@ -3,6 +3,8 @@ status: draft
 version: "0.5"
 based_on:
   - docs/PRD.md@0.6
+covers:
+  - backend/src/main/java/com/everystudy/common/**
 ---
 
 # ARCHITECTURE — 모두의 스터디
@@ -55,7 +57,7 @@ based_on:
 | `notification` | 알림 생성·발송(푸시/이메일), 수신 설정 | 4.5 |
 | `chat` | 채팅방·메시지·읽음·공지·신고/차단, 스터디 종료 시 폐쇄와 메시지 삭제 | 4.12, 4.14 |
 | `admin` | 이의·신고 큐, 신고 조치(스터디 강제 종료, 메시지 삭제, 이용 정지), 제재 해제 (간단한 어드민) | 4.11 |
-| `common` | 시간(`Clock`), 예외, 설정 속성, 공통 응답 | |
+| `common` | 시간(`Clock`), 예외·오류 응답, 설정 속성, 로그 마스킹, 요청 추적(traceId). 기능 모듈과 달리 `web/service/domain/repository`로 나누지 않고 역할별 하위 패키지(`time`, `error`, `logging`, `web`)를 둔다 | |
 
 **의존 방향 규칙**
 - 모듈 내부 계층: `web → service → (domain, repository)`. 컨트롤러가 리포지토리를 직접 쓰지 않는다.
@@ -198,7 +200,7 @@ based_on:
 - 로컬: Docker Compose (MySQL). 소규모 확정이므로 Redis는 두지 않는다.
 - 운영: **VM 1대 + Docker Compose** (백엔드, 프론트, 역프록시·TLS, MySQL 또는 관리형 DB). 컨테이너는 `restart: unless-stopped`로 장애 후 자동으로 다시 켠다. 호스팅 업체와 도메인은 **미결정**이다 (비용 확인 후).
 - 프론트와 백엔드는 같은 사이트(예: `app.<도메인>`, `api.<도메인>`)로 두어 쿠키 인증을 단순하게 유지한다.
-- 환경: `local`, `prod` (스테이징은 필요해질 때). DB 백업과 복구 절차는 배포 확정 시 정한다.
+- 환경: `local`, `prod` (스테이징은 필요해질 때). `prod`는 Spring 프로파일(`SPRING_PROFILES_ACTIVE=prod`)로 켜고, 개발용 도구인 API 문서와 Swagger UI는 `prod`에서 끈다. DB 백업과 복구 절차는 배포 확정 시 정한다.
 
 ## 10. 확장 지점 (규모가 커질 때)
 

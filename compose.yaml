@@ -1,0 +1,30 @@
+# 로컬 개발용 MySQL (ARCHITECTURE 9장). 저장소 루트에서:
+#   docker compose up -d      # 시작 (.env 의 MYSQL_* 값을 읽는다. 키 이름은 .env.example)
+#   docker compose down       # 중지 (데이터는 볼륨에 남는다)
+# 통합 테스트는 이 DB 를 쓰지 않고 Testcontainers 가 따로 띄운다.
+name: every-study
+
+services:
+  mysql:
+    image: mysql:8.4   # 통합 테스트(IntegrationTestSupport)와 같은 버전으로 맞춘다
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-every_study}
+      MYSQL_USER: ${MYSQL_USER:?.env 에 MYSQL_USER 를 적으세요}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?.env 에 MYSQL_PASSWORD 를 적으세요}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"   # root 는 쓰지 않는다
+      TZ: UTC
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-13306}:3306"   # 내 컴퓨터에서만 접속
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\" -p\"$$MYSQL_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql-data:

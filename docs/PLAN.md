@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.4"
+version: "0.5"
 based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.5
   - docs/DATA-MODEL.md@0.2
-  - docs/API.md@0.2
+  - docs/API.md@0.3
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -60,7 +60,7 @@ based_on:
 
 ### M1 걸어다니는 뼈대
 
-- [ ] T-001 백엔드 프로젝트 뼈대
+- [x] T-001 백엔드 프로젝트 뼈대
   - 선행: 결정 D-1 · 사람 H-4
   - 참조: ADR-0001, ADR-0003, ARCHITECTURE 3장·5장·7장·8장, AGENTS.md 6장, API 첫머리(springdoc)
   - 완료: Gradle Wrapper 프로젝트가 `com.everystudy` 아래 `common`(주입 가능한 `Clock`, RFC 9457 오류 응답, 설정 속성 틀)을 갖춘다 · 로컬 MySQL은 Docker Compose로 뜬다 · Testcontainers MySQL에 Flyway를 적용하고 JPA `validate`로 기동하는 테스트 통과 · springdoc으로 OpenAPI 문서가 생성된다 · 로그 마스킹(토큰·이메일·좌표) 기본 설정과, 로그 캡처 테스트에서 해당 패턴이 0건임을 확인 · `.env.example`에 키 이름만 · CI `backend` job이 자동으로 켜져 통과
@@ -515,7 +515,7 @@ based_on:
 | H-1 | 카카오·구글 OAuth 앱 등록(로컬 리다이렉트 URI), JWT 서명 키 | T-004 |
 | H-2 | 카카오맵 JavaScript 키와 로컬 도메인 제한 | T-010 |
 | H-3 | VAPID 키 쌍 | T-042 |
-| H-4 | GitHub Branch Protection(main·develop) 설정 확인 | T-001 |
+| H-4 | **확인됨(2026-11-16)**: GitHub 룰셋으로 main·develop에 PR 필수, 필수 검사 `CI 통과`, 삭제·force push 금지를 적용 (저장소 공개 전환) | T-001 |
 | H-5 | SMTP 계정과 발신 주소 | T-041 |
 | H-6 | 서버(또는 임시 호스트·터널), 도메인, DNS, TLS 인증서 | T-013, T-065 |
 | H-7 | 배포 도메인을 카카오맵 허용 도메인과 OAuth 리다이렉트 URI에 등록 | T-013 |
@@ -560,6 +560,7 @@ based_on:
 | D-16 | **결정됨(2026-11-15)**: 파투(`CANCELLED`) 스터디의 채팅방은 정상 종료와 같은 경로로 폐쇄하고 보관 기간 뒤 메시지를 삭제한다. PRD 4.12·4.14 문구 반영은 T-049 PR에서 한다 | PRD 4.12·4.14 | T-049, T-054 |
 | D-17 | 감사 로그 기록 범위. PRD 8장·DATA-MODEL 9장은 점수 변동과 운영자 조치를 모두 기록하라고 하고, PRD 4.6은 "주최자의 수동 변경"을 기록하라고 하나 PRD 3장·4.6은 주최자가 출석을 바꿀 수 없다고 함. 권장안: 자동 감점·제재·판정 확정과 운영자 조치를 모두 기록하고, 4.6 문구는 "운영자 정정"으로 고친다 | PRD 4.6·8장, DATA-MODEL 9장 | T-019 |
 | D-18 | 알림 종류별 `expires_at` 기준(예: 일정 알림은 해당 시점 이후 무의미, 대기 알림은 체크인 오픈까지). 권장안: 일정 알림은 다음 알림 시각 또는 체크인 마감, 대기 알림은 체크인 오픈, 그 밖의 즉시 알림은 고정 기간(설정값). 기술 파라미터 기본값(락 대기·백오프·최대 횟수·배치 상한)은 결정 항목이 아니라 진행 규칙 9로 처리 | ARCHITECTURE 4.6, ADR-0005 | T-040 |
+| D-19 | **결정됨(2026-11-16, API 첫머리·ARCHITECTURE 9장)**: OpenAPI 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)는 개발용이라 운영(`prod`)에서는 끈다. `application-prod.yml`에서 끄므로 배포할 때 `SPRING_PROFILES_ACTIVE=prod`를 지정해야 한다 | API 첫머리, ARCHITECTURE 9장 | T-013 |
 
 ### 7.2 문서 간 불일치 (X) — PLAN에서 임의로 고치지 않음
 
@@ -581,3 +582,4 @@ based_on:
 | X-14 | `APPEAL_CLOSED`(API 5장)가 API 1장 오류 표에 없음 | API 1장 표에 `409 APPEAL_CLOSED` 추가 | T-034 |
 | X-15 | **체크인과 자동 판정의 경쟁.** ADR-0004 결정 1은 멤버 구성을 바꾸는 작업만 `study` 행 락으로 직렬화한다. 체크인(T-027)과 주최자 미도착 무효·노쇼 후보 판정(T-031)은 락 대상이 아니어서, 마감 직전 체크인이 판정보다 늦게 커밋되면 출석과 노쇼 후보가 함께 남거나, 주최자가 체크인했는데 세션이 무효가 될 수 있음 | ADR-0004 결정 1의 대상에 "체크인, 일회용 코드 체크인, 세션 무효·노쇼 후보 판정"을 추가한다(보강 ADR 또는 ADR-0004 후속 결정). 체크인은 락을 잡은 뒤 서버 시각으로 시간창을 검사하고, 판정은 락을 잡은 뒤 대상 조건(`judged_at IS NULL`, 마감 경과)을 다시 확인한다 | T-027, T-031 |
 | X-16 | **체크인 오픈 시 대기 정리.** PRD 4.14와 DATA-MODEL 4장(`study_waiting`)은 체크인이 열리면 대기를 자동 해제(행 삭제)한다고 하나, ADR-0005·ARCHITECTURE 4.7 작업 목록과 DATA-MODEL 10장에는 그 시점에 도는 작업이 없음 | 체크인 오픈 이후의 대기 행은 조회(`myState`, `waitingCount`)와 알림 대상에서 걸러 내고, 행 삭제는 스터디 종료·파투 처리 때 한다. DATA-MODEL 4장 문구를 "체크인 오픈 이후에는 무효로 보고 종료 시 삭제"로 고친다 | T-017, T-030 |
+| X-17 | **결정됨(2026-11-16, API 1장)**: 서버 내부 오류는 `500 INTERNAL_ERROR`, 잘못된 본문·파라미터는 `VALIDATION_FAILED`, 405·415 등 HTTP 표준 오류는 `code` 없이 `status`로 구분한다. T-001에서 구현 | API 1장 | T-004 |
