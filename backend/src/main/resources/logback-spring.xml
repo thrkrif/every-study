@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 콘솔 로그를 Spring Boot 기본 형식 그대로 쓰되, 출력 직전에 토큰·이메일·좌표를 가린다 (MaskingPatternLayout). -->
+<!-- 앱은 컨테이너에서 돌므로 파일로 쓰지 않는다. 출력 대상을 추가하면 같은 레이아웃을 써야 한다. -->
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <charset>${CONSOLE_LOG_CHARSET}</charset>
+            <layout class="com.everystudy.common.logging.MaskingPatternLayout">
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

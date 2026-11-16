@@ -71,3 +71,13 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 - JWT 수명·쿠키 정책 (ADR-0002), 백엔드 패키지 구조와 루트 패키지 `com.everystudy` (ADR-0003)
 - 배포는 Docker (VM 1대 + Compose), Redis는 소규모에서 불필요 (ADR-0005)
 - 호스팅 업체·도메인은 아직 미정 (ARCHITECTURE 11장)
+
+## 후속 결정 (2026-11-16, T-001)
+
+백엔드 뼈대를 만들며 패치 버전과 남은 도구를 정했다. 정확한 버전의 원본은 `backend/build.gradle`, `backend/gradle.lockfile`, `backend/gradle/wrapper/gradle-wrapper.properties`이고, 아래 값은 결정 시점의 기록이다.
+
+- Spring Boot 4.1.2, Gradle 9.9.1 (Wrapper, 배포본 체크섬 고정)
+- JUnit Jupiter 6.0.3, Testcontainers 2.0.5: Spring Boot가 관리하는 버전을 그대로 쓰고 따로 고정하지 않는다
+- OpenAPI 문서 생성은 springdoc-openapi 3.2.0 (3.x가 Boot 4 호환 계열. Boot가 관리하지 않아 `build.gradle`에 버전을 적는다). 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)를 함께 쓰려고 `springdoc-openapi-starter-webmvc-ui`를 넣는다
+- MySQL 이미지는 `mysql:8.4`(LTS)로 로컬 Compose와 통합 테스트를 같게 맞춘다. 데이터베이스 기본 콜레이션은 `utf8mb4_0900_ai_ci`
+- 의존성 버전은 Gradle 의존성 잠금(`gradle.lockfile`)으로 고정한다

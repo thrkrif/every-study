@@ -24,7 +24,7 @@ covers:
 - 규칙의 단일 출처: `tools/git-policy.sh` (커밋 형식, 브랜치 이름, PR 대상, 시크릿 파일명). ②와 ③이 같은 파일을 쓴다.
 - clone 후 한 번 실행: `bash tools/setup-git-hooks.sh` (상태 확인: `--check`). 권장: `gitleaks` 설치.
 - CI 의 필수 상태 검사로는 **`CI 통과`** 하나만 지정한다 (건너뛴 job 은 통과, 실패는 실패).
-- `backend/`, `frontend/` 의 build·test 는 `backend/build.gradle`, `frontend/package.json` 이 생기면 자동으로 켜진다.
+- `backend/`, `frontend/` 의 build·test 는 `backend/build.gradle`, `frontend/package.json` 이 생기면 자동으로 켜진다. 백엔드는 `test`(단위·슬라이스) → `integrationTest`(Testcontainers) → `build` 순서로 따로 실행한다.
 - 문서 검사: `bash tools/docs-check.sh` (머리말·`based_on` 버전·링크, 자세한 내용은 [docs/README.md](../README.md)). CI 는 오류로, pre-commit(②)은 경고로만 처리한다.
 - 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①), `bash tools/tests/docs-check.sh` (문서 검사).
 

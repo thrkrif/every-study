@@ -92,7 +92,10 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 ### 테스트
 - 전략과 층별 기준은 [ARCHITECTURE 8장](docs/ARCHITECTURE.md)이 원본이다. 요약: 단위 테스트가 대다수, 통합 테스트(Testcontainers)는 DB·트랜잭션·보안 동작 자체를 검증할 때만.
 - 실패하는 테스트를 먼저 쓴다. 시간은 `Clock`, 무작위는 `RandomSource`를 주입하고, 외부 경계는 인터페이스와 가짜 구현을 쓴다.
-- 테스트 이름·빌더 위치·태그 규칙은 T-001에서 첫 테스트를 쓸 때 정해 이곳에 추가한다.
+- 실행: `./gradlew test`(단위·슬라이스, Docker 불필요), `./gradlew integrationTest`(Testcontainers). 명령은 `backend/README.md`.
+- 이름: 단위·슬라이스는 `<대상>Test`, 통합은 `<대상>IntegrationTest`. 메서드 이름은 영어 camelCase, `@DisplayName`에 한국어로 기대 동작을 한 문장으로 적는다.
+- 태그: 통합 테스트는 `com.everystudy.support.IntegrationTestSupport`를 상속한다 (`integration` 태그와 공유 MySQL 컨테이너가 따라온다). `@SpringBootTest`를 직접 붙이지 않는다.
+- 위치: 테스트 데이터 빌더는 `src/test/java/com/everystudy/<모듈>/fixture/<엔티티>Fixture`, 여러 모듈이 쓰는 테스트 도구(고정 시계 `TestClocks` 등)는 `com.everystudy.support`.
 
 ### DB 마이그레이션 (Flyway)
 - 위치 `backend/src/main/resources/db/migration/`, 파일명 `V<번호>__<설명>.sql`.

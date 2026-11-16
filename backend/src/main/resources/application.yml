@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: every-study
+
+  # 접속 정보는 환경변수로만 받는다. 키 이름은 저장소 루트의 .env.example 에 있다.
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:13306}/${MYSQL_DATABASE:every_study}?characterEncoding=UTF-8&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+    username: ${MYSQL_USER}
+    password: ${MYSQL_PASSWORD}
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate   # 스키마는 Flyway 로만 만든다 (ADR-0001)
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC   # 시간은 UTC 로 저장한다 (ARCHITECTURE 5장)
+
+  flyway:
+    locations: classpath:db/migration
+
+logging:
+  pattern:
+    correlation: "[%X{traceId:-}] "

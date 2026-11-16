@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.2"
+version: "0.3"
 based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.5
@@ -9,7 +9,7 @@ based_on:
 
 # API 명세
 
-백엔드 REST API와 채팅(WebSocket) 인터페이스의 **경로, 권한, 요청·응답 모양, 오류**를 정한다. 정책 수치는 PRD가 원본이라 값을 적지 않는다. 인증·CSRF의 이유는 [ADR-0002](adr/0002-auth-token-cookie.md), 테이블은 [DATA-MODEL](DATA-MODEL.md)을 본다. 상세 필드는 구현 시 OpenAPI(springdoc)로 생성하고, 이 문서는 그 골격과 규칙의 원본이다.
+백엔드 REST API와 채팅(WebSocket) 인터페이스의 **경로, 권한, 요청·응답 모양, 오류**를 정한다. 정책 수치는 PRD가 원본이라 값을 적지 않는다. 인증·CSRF의 이유는 [ADR-0002](adr/0002-auth-token-cookie.md), 테이블은 [DATA-MODEL](DATA-MODEL.md)을 본다. 상세 필드는 구현 시 OpenAPI(springdoc)로 생성하고, 이 문서는 그 골격과 규칙의 원본이다. 생성된 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)는 개발용이라 `local`에서만 열고 `prod`에서는 끈다(`404`).
 
 ## 1. 공통 규칙
 
@@ -33,11 +33,11 @@ based_on:
 { "type": "about:blank", "title": "정원이 찼습니다", "status": 409,
   "code": "STUDY_FULL", "detail": "...", "traceId": "..." }
 ```
-`code`는 클라이언트 분기용 안정 값이다. 사용자 문구는 `title`/`detail`이 아니라 클라이언트가 `code`로 정한다.
+`type`이 기본값(`about:blank`)이면 응답에서 생략되고(RFC 9457), 요청 경로가 `instance`로 들어간다. `code`는 클라이언트 분기용 안정 값이다. 사용자 문구는 `title`/`detail`이 아니라 클라이언트가 `code`로 정한다.
 
 | status | code | 의미 |
 |---|---|---|
-| 400 | `VALIDATION_FAILED` | 필드 오류. `errors: [{field, message}]` 포함 |
+| 400 | `VALIDATION_FAILED` | 입력 오류(본문 필드, 쿼리·경로 파라미터의 형식·누락·제약 위반, 읽을 수 없는 JSON 본문). `errors: [{field, message}]` 포함. 어느 필드인지 알 수 없으면(깨진 JSON) 빈 배열 |
 | 401 | `UNAUTHENTICATED` | 로그인 필요, 토큰 만료 (클라이언트는 `/auth/refresh` 후 1회 재시도) |
 | 403 | `FORBIDDEN` / `CSRF_INVALID` | 권한 없음 / CSRF 불일치 |
 | 403 | `USER_RESTRICTED` | 제재로 신청·개설 불가. `until` 포함 |
@@ -55,6 +55,9 @@ based_on:
 | 422 | `CHECKIN_CODE_INVALID` | 코드 오류·만료·시도 초과 |
 | 422 | `HOST_NOT_CHECKED_IN` | 주최자 체크인 전이라 코드 체크인 불가 |
 | 429 | `RATE_LIMITED` | 호출 제한 |
+| 500 | `INTERNAL_ERROR` | 서버가 처리하지 못한 오류. 원인은 응답에 넣지 않는다(`detail` 없음). `traceId`로 서버 로그를 찾는다 |
+
+표에 없는 HTTP 표준 오류(허용하지 않는 메서드 `405`, 받을 수 없는 응답 형식 `406`, 지원하지 않는 본문 형식 `415` 등)는 `code` 없이 같은 형식(`status`, `title`, `traceId`)으로 응답한다. 클라이언트는 `status`로 구분한다.
 
 ## 2. 인증
 

@@ -113,7 +113,7 @@ jobs:
 
   # ── 4. 백엔드 (backend/build.gradle 이 생기면 자동으로 켜짐) ──
   backend:
-    name: backend (build, test)
+    name: backend (test, integrationTest, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -128,7 +128,16 @@ jobs:
           java-version: '21'   # ADR-0001 확정값. 변경 시 함께 수정
       - uses: gradle/actions/setup-gradle@v4
         if: steps.detect.outputs.found == 'true'
-      - name: 빌드와 테스트 (Testcontainers 는 러너의 Docker 사용)
+      # 단위·통합 테스트를 따로 실행해 어느 층이 실패했는지 바로 보이게 한다 (ARCHITECTURE 8.1).
+      - name: 단위·슬라이스 테스트
+        if: steps.detect.outputs.found == 'true'
+        working-directory: backend
+        run: ./gradlew test
+      - name: 통합 테스트 (Testcontainers 는 러너의 Docker 사용)
+        if: steps.detect.outputs.found == 'true'
+        working-directory: backend
+        run: ./gradlew integrationTest
+      - name: 빌드
         if: steps.detect.outputs.found == 'true'
         working-directory: backend
         run: ./gradlew build
