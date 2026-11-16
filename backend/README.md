@@ -11,10 +11,13 @@ Spring Boot REST API. 구조와 규칙은 [ARCHITECTURE](../docs/ARCHITECTURE.md
 
 | 하려는 일 | 명령 |
 |---|---|
-| 단위·슬라이스 테스트 (Docker 불필요) | `./gradlew test` |
+| 단위·슬라이스 테스트와 모듈 경계 검사 (Docker 불필요) | `./gradlew test` |
 | 통합 테스트 (Testcontainers MySQL) | `./gradlew integrationTest` |
 | 전체 빌드와 모든 테스트 | `./gradlew build` |
 | 의존성을 바꾼 뒤 잠금 파일 갱신 | `./gradlew dependencies --write-locks` |
+| 마이그레이션 파일명·번호 검사 | `bash ../tools/flyway-check.sh` |
+
+모듈 경계 검사(`com.everystudy.architecture`)가 실패하면 메시지에 나온 의존을 없애는 쪽으로 코드를 옮긴다. 규칙은 [ARCHITECTURE 3장](../docs/ARCHITECTURE.md)에 있다.
 
 ## 로컬 실행
 

@@ -3,7 +3,7 @@ status: draft
 version: "0.5"
 based_on:
   - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.5
+  - docs/ARCHITECTURE.md@0.6
   - docs/DATA-MODEL.md@0.2
   - docs/API.md@0.3
 ---
@@ -73,7 +73,7 @@ based_on:
   - 완료: Next.js(App Router)·TypeScript·ESLint·Prettier·Vitest·Testing Library·TanStack Query 구성 · API 클라이언트 한 곳에서 `credentials` 포함, `X-XSRF-TOKEN` 헤더, 오류 `code` 분기 처리 · 단위 테스트: CSRF 헤더 부착, `code`별 오류 변환 · 토큰을 JS로 읽거나 저장하지 않음 · CI `frontend` job(lint, test, build) 통과
   - 문서: ARCHITECTURE 6장 확인, 머리말 `covers`에 프론트 소스 경로 추가
 
-- [ ] T-003 모듈 경계 테스트와 CI 확장
+- [x] T-003 모듈 경계 테스트와 CI 확장
   - 선행: T-001 · 결정 D-2, X-8, X-11
   - 참조: ADR-0003, ARCHITECTURE 3장(의존 방향), ADR-0001(Flyway 번호 검사 예정)
   - 완료: 아키텍처 테스트가 "다른 모듈의 `domain`·`repository` 참조 금지", "`web → service → domain/repository`", 모듈 순환 금지(특히 `study`가 `chat`에 의존하지 않음, X-8)를 검사하고, 위반 예시로 실패함을 확인 · Flyway 파일명 형식·번호 중복·누락 검사 스크립트가 `tools/`에 있고 자체 테스트와 함께 CI에서 실행
@@ -190,7 +190,7 @@ based_on:
   - 선행: T-003 · 결정 D-17
   - 참조: PRD 4.11·8장(점수 변동 감사 로그), ARCHITECTURE 1장(감사 가능성)·4.5, DATA-MODEL 9장(`audit_log`)
   - 완료: `audit_log` 테이블과 기록용 공개 서비스(호출한 트랜잭션 안에서 기록, 시스템 행위자는 `NULL`) · 기록 범위는 D-17 결정대로 · 테스트: 원 트랜잭션 롤백 시 감사 로그 0건, 변경 전후 값이 `detail`에 남음 · 조회 API·권한은 T-052
-  - 문서: DATA-MODEL 9장 확인, 머리말 `covers`에 `admin/**`(또는 X-11에서 정한 소속) 추가
+  - 문서: DATA-MODEL 9장 확인, 머리말 `covers`에 감사 로그 경로(`common/**` 아래, X-11) 포함 확인
 
 - [ ] T-020 주최자 나가기: 승계·파투·감점
   - 선행: T-018, T-019 · 결정 X-13
@@ -543,7 +543,7 @@ based_on:
 | 번호 | 항목 | 출처 | 막는 작업 |
 |---|---|---|---|
 | D-1 | **결정됨(2026-11-16, ADR-0001)**: Spring Boot 4.1.x, JDK 21, Gradle 9.x, Next.js 16.x, Node 24(CI 반영), ESLint·Prettier, Vitest 5·Testing Library. 패치 버전은 T-001·T-002에서 최신 안정 버전을 확인하고, JUnit·Testcontainers는 Boot 4.1이 관리하는 버전을 T-001에서 확정한다 | ADR-0001, ci.yml | T-001, T-002 |
-| D-2 | 모듈 경계 검사 도구 (ArchUnit 후보) | ADR-0003 | T-003 |
+| D-2 | **결정됨(2026-11-16, ADR-0003 후속 결정)**: 모듈 경계 검사 도구는 ArchUnit 1.5.1(코어만 사용). T-003에서 함께 정한 것: 모듈의 공개 면은 `service`·`event` 패키지, `web`은 같은 모듈의 `domain` 타입을 쓸 수 있고 `repository`는 못 쓴다 | ADR-0003 | T-003 |
 | D-3 | 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
 | D-4 | 신고 사유 분류 목록 | DATA-MODEL 11장 1번 | T-053 |
 | D-5 | 호출 제한 수치 (대상은 API 9장 1번에 있음) | API 9장 1번 | T-064 |
@@ -573,10 +573,10 @@ based_on:
 | X-5 | API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
 | X-6 | 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음 | `409 NICKNAME_TAKEN` 추가 | T-006 |
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |
-| X-8 | **이벤트→알림 트랜잭션 경계와 모듈 방향.** ARCHITECTURE 3장은 모듈 간 리스너를 `AFTER_COMMIT`으로 실행한다고 하나, 4.6과 ADR-0005는 아웃박스를 비즈니스 트랜잭션 안에서 기록한다고 함(`AFTER_COMMIT`에서 기록하면 커밋 후 실패 시 알림 유실). 또 `study`가 개설 시 `chat_room`을 만들고(PRD 4.12, API 4장) 종료 시 폐쇄하면 `study → chat` 의존이 생겨 3장의 `chat → study` 방향과 순환 | 알림은 `BEFORE_COMMIT` 동기 리스너 또는 `notification` 공개 서비스 직접 호출로 같은 트랜잭션에 기록하고, `AFTER_COMMIT`은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너(같은 트랜잭션)로 받아 방 생성·폐쇄를 하고, `study`는 `chat`을 참조하지 않는다. ARCHITECTURE 3장과 ADR-0003에 반영 | T-003, T-008, T-014, T-015 |
+| X-8 | **결정됨(2026-11-16, 오른쪽 제안대로. ARCHITECTURE 3장, ADR-0003 후속 결정).** **이벤트→알림 트랜잭션 경계와 모듈 방향.** ARCHITECTURE 3장은 모듈 간 리스너를 `AFTER_COMMIT`으로 실행한다고 하나, 4.6과 ADR-0005는 아웃박스를 비즈니스 트랜잭션 안에서 기록한다고 함(`AFTER_COMMIT`에서 기록하면 커밋 후 실패 시 알림 유실). 또 `study`가 개설 시 `chat_room`을 만들고(PRD 4.12, API 4장) 종료 시 폐쇄하면 `study → chat` 의존이 생겨 3장의 `chat → study` 방향과 순환 | 알림은 `BEFORE_COMMIT` 동기 리스너 또는 `notification` 공개 서비스 직접 호출로 같은 트랜잭션에 기록하고, `AFTER_COMMIT`은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너(같은 트랜잭션)로 받아 방 생성·폐쇄를 하고, `study`는 `chat`을 참조하지 않는다. ARCHITECTURE 3장과 ADR-0003에 반영 | T-003, T-008, T-014, T-015 |
 | X-9 | DATA-MODEL 5장의 `UNIQUE (study_id, user_id, type)`와 재신청 허용(같은 행 재활성화, DATA-MODEL 11장 확정)이 충돌: 나가기→재신청→다시 나가기에서 `EARLY_CANCEL`·`LATE_CANCEL`이 중복되어 거부됨. MySQL은 부분 유일 인덱스가 없음 | 생성 컬럼(ADR-0001 "생성 컬럼으로 우회")으로 판정 종류(`ATTENDED`, `LATE`, `NO_SHOW_CANDIDATE`, `NO_SHOW`, `VOIDED`)일 때만 값을 갖고 취소 종류는 `NULL`인 키를 만들어 `UNIQUE (study_id, user_id, 그 키)`로 둔다. 취소 이벤트의 중복 방지는 `study` 락으로 충분 | T-018 |
 | X-10 | 일정 알림을 미리 예약하면(ARCHITECTURE 4.6) 아웃박스가 `notification` 행을 FK로 참조하므로, 발송 전 예약 알림이 알림 센터(`/me/notifications`)에 미리 보임 | `notification`에 `visible_at`을 두고 알림 센터는 `visible_at <= now`만 보여 준다 (또는 센터는 발송된 건만) | T-014, T-040 |
-| X-11 | 모듈 소속: ARCHITECTURE 3장에 `schedule` 모듈(일정 변경, 세션 무효)이 있으나 일정은 `study` 테이블에 있음(ARCHITECTURE 5장). `attendance_event`는 `trust` 소속인데 체크인·자동 판정은 `attendance` 소속. 감사 로그 소속 모듈도 없음 | 일정 수정은 `study`, 세션 무효·노쇼 후보 판정은 `attendance`, 이벤트 기록·집계는 `trust`(공개 서비스), 감사 로그는 `common` 또는 `admin`으로 정하고 `schedule` 모듈을 지운다. ARCHITECTURE 3장 갱신 | T-003, T-022, T-031 |
+| X-11 | **결정됨(2026-11-16, 오른쪽 제안대로, 감사 로그는 `common`. ARCHITECTURE 3장, ADR-0003 후속 결정).** 모듈 소속: ARCHITECTURE 3장에 `schedule` 모듈(일정 변경, 세션 무효)이 있으나 일정은 `study` 테이블에 있음(ARCHITECTURE 5장). `attendance_event`는 `trust` 소속인데 체크인·자동 판정은 `attendance` 소속. 감사 로그 소속 모듈도 없음 | 일정 수정은 `study`, 세션 무효·노쇼 후보 판정은 `attendance`, 이벤트 기록·집계는 `trust`(공개 서비스), 감사 로그는 `common`(여러 모듈이 기록하므로 `admin`에 두면 모두 `admin`에 의존하게 됨)으로 정하고 `schedule` 모듈을 지운다. ARCHITECTURE 3장 갱신 | T-003, T-022, T-031 |
 | X-12 | 지각 판정에 대한 이의가 인정되면(`NO_SHOW_CLEARED`, "직전 판정을 무효화") 출석으로 볼지 집계에서 뺄지 정의가 없음 | 이의 인정은 "판정이 틀렸음"이므로 출석으로 집계하는 정정 이벤트(`ATTENDED`)를 추가 | T-032, T-056 |
 | X-13 | 주최자가 시작 후 나가면(`LEFT_AFTER_START`) `study_member` 상태, `host_id`, 이미 한 체크인과 출석 집계 처리가 정의되지 않음 | `study_member`는 `LEFT`, `host_id`와 체크인은 그대로 두어 세션은 진행되고(PRD 4.13A 마지막 항목), 취소 이벤트는 만들지 않는다. 체크인 전이었다면 미도착 규칙(T-031)으로 처리 | T-020, T-046 |
 | X-14 | `APPEAL_CLOSED`(API 5장)가 API 1장 오류 표에 없음 | API 1장 표에 `409 APPEAL_CLOSED` 추가 | T-034 |

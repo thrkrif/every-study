@@ -84,6 +84,19 @@ jobs:
       - name: 문서 머리말과 링크 검사
         run: bash tools/docs-check.sh
 
+  # ── 2-2. Flyway 마이그레이션 파일명 ──────────────────────
+  migrations:
+    name: migrations (Flyway 파일명, 번호 중복·누락)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 마이그레이션 검사 자체 테스트
+        run: bash tools/tests/flyway-check.sh
+
+      - name: 마이그레이션 파일명과 번호 검사
+        run: bash tools/flyway-check.sh
+
   # ── 3. 보안 훅 / git 훅 자체 검증 ─────────────────────────
   hooks:
     name: hooks (자체 테스트, 원본·설치본 일치)
@@ -174,7 +187,7 @@ jobs:
   ci-pass:
     name: CI 통과
     if: always()
-    needs: [policy, secrets, docs, hooks, backend, frontend]
+    needs: [policy, secrets, docs, migrations, hooks, backend, frontend]
     runs-on: ubuntu-latest
     steps:
       - name: 결과 집계

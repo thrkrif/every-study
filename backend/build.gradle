@@ -40,6 +40,9 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-flyway-test'
     testImplementation 'org.testcontainers:testcontainers-mysql'
+    // 모듈 경계 검사 (ADR-0003). Spring Boot BOM 밖이라 버전을 직접 적는다.
+    // JUnit 엔진 연동(archunit-junit5) 없이 코어만 쓰고, 규칙은 일반 JUnit 테스트에서 실행한다.
+    testImplementation 'com.tngtech.archunit:archunit:1.5.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
