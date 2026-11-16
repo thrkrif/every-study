@@ -25,7 +25,7 @@ covers:
 - clone 후 한 번 실행: `bash tools/setup-git-hooks.sh` (상태 확인: `--check`). 권장: `gitleaks` 설치.
 - CI 의 필수 상태 검사로는 **`CI 통과`** 하나만 지정한다 (건너뛴 job 은 통과, 실패는 실패).
 - `backend/`, `frontend/` 의 build·test 는 `backend/build.gradle`, `frontend/package.json` 이 생기면 자동으로 켜진다. 백엔드는 `test`(단위·슬라이스) → `integrationTest`(Testcontainers) → `build` 순서로 따로 실행한다.
-- 문서 검사: `bash tools/docs-check.sh` (머리말·`based_on` 버전·링크, 자세한 내용은 [docs/README.md](../README.md)). CI 는 오류로, pre-commit(②)은 경고로만 처리한다.
+- 문서 검사: `bash tools/docs-check.sh` (머리말·`based_on` 버전·링크, 자세한 내용은 [docs/README.md](../README.md)). CI 는 오류로, pre-commit(②)은 경고로만 처리한다. `--base <참조>`를 주면 `covers` 검사(바뀐 코드를 설명하는 문서가 함께 바뀌었는지)도 한다. CI 는 PR 의 대상 브랜치를, pre-commit 은 `origin/develop` 을 기준으로 쓰고, 문서를 고칠 내용이 없는 PR 은 커밋 메시지의 `Docs-Unchanged: <사유>` 줄로 건너뛴다.
 - 마이그레이션 검사: `bash tools/flyway-check.sh` (Flyway 파일명 형식, 번호 중복·누락). CI `migrations` job 에서만 실행한다.
 - 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①), `bash tools/tests/docs-check.sh` (문서 검사), `bash tools/tests/flyway-check.sh` (마이그레이션 검사).
 

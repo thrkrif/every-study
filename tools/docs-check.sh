@@ -3,30 +3,45 @@
 #   bash tools/docs-check.sh                  # 오류가 있으면 1 (CI)
 #   bash tools/docs-check.sh --warn           # 같은 검사를 하되 항상 0 (로컬 pre-commit)
 #   bash tools/docs-check.sh --root <저장소>  # 다른 저장소 루트를 검사 (테스트용)
+#   bash tools/docs-check.sh --base <git 참조> # covers 검사도 한다 (5번). 예: --base origin/develop
 #
 # 검사 항목 (docs/**/*.md 전부)
 #   1. 맨 위에 닫힌 YAML 머리말이 있고 status 가 draft|confirmed|superseded 인가
 #   2. version 이 있으면 숫자와 점으로 된 형식인가
 #   3. based_on 의 각 항목이 "경로@버전" 형식이고, 대상 문서가 있고, 그 버전과 같은가 (다르면 "오래됨")
 #   4. 상대 경로 링크의 대상이 실제로 있는가 (코드 블록·인라인 코드·http 링크는 제외)
+#   5. (--base 가 있을 때) <참조>에서 갈라진 뒤 바뀐 파일(커밋 + 스테이징)이 어떤 문서의 covers 에
+#      해당하는데 그 문서는 바뀌지 않았는가.
+#      문서를 고칠 내용이 없으면 커밋 메시지에 "Docs-Unchanged: <사유>" 줄을 넣어 건너뛴다.
+#      covers 패턴: ** 는 / 를 포함한 아무 문자열, * 는 / 를 뺀 문자열, ? 는 / 를 뺀 한 글자.
 #
 # 한계: 문서 내용이 바뀌었는데 version 을 올리지 않은 경우는 알 수 없다 (사람이 판단).
+#       covers 검사는 문서 파일이 바뀌었는지만 본다. 맞게 고쳤는지는 리뷰가 본다.
 set -u
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WARN=0
+BASE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --warn) WARN=1 ;;
     --root) [ -n "${2:-}" ] && [ -d "$2" ] || { echo "--root 에 존재하는 디렉토리가 필요합니다" >&2; exit 2; }
             ROOT="$(cd "$2" && pwd)"; shift ;;
-    -h|--help) sed -n '2,14p' "$0"; exit 0 ;;
+    --base) [ -n "${2:-}" ] || { echo "--base 에 git 참조가 필요합니다 (예: origin/develop)" >&2; exit 2; }
+            BASE="$2"; shift ;;
+    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
     *) echo "알 수 없는 옵션: $1" >&2; exit 2 ;;
   esac
   shift
 done
 
 [ -d "$ROOT/docs" ] || exit 0   # 문서가 없는 저장소는 검사할 것이 없다
+
+MERGE_BASE=""
+if [ -n "$BASE" ]; then
+  MERGE_BASE="$(git -C "$ROOT" merge-base "$BASE" HEAD 2>/dev/null)" \
+    || { echo "--base 참조를 찾을 수 없음: $BASE (git 저장소가 아니거나 참조가 없습니다)" >&2; exit 2; }
+fi
 
 if [ "$WARN" = 1 ]; then MARK='⚠'; else MARK='✖'; fi
 ERR=0
@@ -86,6 +101,22 @@ check_links() { # <절대경로> <표시 이름>
              | sed -E 's/^\]\(//; s/\)$//')
 }
 
+# covers 패턴을 정규식으로 바꾼다 (** → .*, * → [^/]*, ? → [^/], 나머지 특수문자는 글자 그대로)
+glob_to_regex() {
+  local glob="$1" re="" i c
+  for ((i = 0; i < ${#glob}; i++)); do
+    c="${glob:i:1}"
+    case "$c" in
+      '*') if [ "${glob:i+1:1}" = '*' ]; then re="$re.*"; i=$((i + 1)); else re="$re[^/]*"; fi ;;
+      '?') re="$re[^/]" ;;
+      '.'|'+'|'('|')'|'['|']'|'{'|'}'|'^'|'$'|'|'|'\\') re="$re\\$c" ;;
+      *) re="$re$c" ;;
+    esac
+  done
+  printf '^%s$' "$re"
+}
+
+COVERS=""   # "<문서 경로><탭><covers 패턴>" 을 한 줄에 하나씩 (5번 검사용)
 count=0
 while IFS= read -r f; do
   [ -n "$f" ] || continue
@@ -136,8 +167,47 @@ while IFS= read -r f; do
     fi
   done < <(fm_list "$block" based_on)
 
+  while IFS= read -r pattern; do
+    [ -n "$pattern" ] && COVERS="${COVERS}${name}"$'\t'"${pattern}"$'\n'
+  done < <(fm_list "$block" covers)
+
   check_links "$f" "$name"
 done < <(find "$ROOT/docs" -type f -name '*.md' | sort)
+
+# ── 5. covers: 코드가 바뀌었는데 그 코드를 설명하는 문서가 그대로인가 ──
+if [ -n "$MERGE_BASE" ] && [ -n "$COVERS" ]; then
+  # 갈라진 지점부터 인덱스까지. 커밋 전(pre-commit)에는 스테이징된 변경도 포함된다.
+  changed="$(git -C "$ROOT" diff --cached --name-only --no-renames "$MERGE_BASE")"
+  skip_reason="$(git -C "$ROOT" log --format=%B "$MERGE_BASE..HEAD" \
+    | sed -n 's/^Docs-Unchanged:[[:space:]]*//p' | sed 's/[[:space:]]*$//' | grep -v '^$' | head -n 1)"
+
+  while IFS= read -r doc; do
+    [ -n "$doc" ] || continue
+    printf '%s\n' "$changed" | grep -qxF -- "$doc" && continue   # 문서도 함께 바뀜
+
+    hits=""; nhits=0
+    while IFS=$'\t' read -r d pattern; do
+      [ "$d" = "$doc" ] || continue
+      re="$(glob_to_regex "$pattern")"
+      while IFS= read -r path; do
+        [ -n "$path" ] || continue
+        if [[ "$path" =~ $re ]] && ! printf '%s\n' "$hits" | grep -qxF -- "$path"; then
+          hits="${hits}${path}"$'\n'; nhits=$((nhits + 1))
+        fi
+      done <<< "$changed"
+    done <<< "$COVERS"
+    [ "$nhits" -gt 0 ] || continue
+
+    shown="$(printf '%s' "$hits" | head -n 3 | paste -sd ' ' -)"
+    [ "$nhits" -gt 3 ] && shown="$shown 외 $((nhits - 3))개"
+    if [ -n "$skip_reason" ]; then
+      printf 'ℹ %s: covers 검사를 건너뜀 (Docs-Unchanged: %s)\n' "$doc" "$skip_reason" >&2
+    else
+      report "$doc" "covers 에 해당하는 코드가 바뀌었는데 이 문서는 바뀌지 않음: $shown" \
+        "문서가 코드와 같은지 확인해 고치세요. 고칠 내용이 없으면 커밋 메시지에 'Docs-Unchanged: <사유>' 줄을 넣으세요."
+    fi
+  done < <(printf '%s' "$COVERS" | cut -f1 | sort -u)
+fi
 
 if [ "$ERR" -gt 0 ]; then
   if [ "$WARN" = 1 ]; then
