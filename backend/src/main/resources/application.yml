@@ -2,7 +2,12 @@ spring:
   application:
     name: every-study
 
-  # 접속 정보는 환경변수로만 받는다. 키 이름은 저장소 루트의 .env.example 에 있다.
+  # 로컬 편의: backend/ 에서 실행하면 저장소 루트의 .env 를 읽는다. 파일이 없으면(운영, CI) 건너뛴다.
+  # 같은 키의 환경변수가 있으면 환경변수가 이긴다.
+  config:
+    import: "optional:file:../.env[.properties]"
+
+  # 접속 정보는 환경변수(또는 위 .env)로만 받는다. 키 이름은 저장소 루트의 .env.example 에 있다.
   datasource:
     url: jdbc:mysql://${MYSQL_HOST:localhost}:${MYSQL_PORT:13306}/${MYSQL_DATABASE:every_study}?characterEncoding=UTF-8&connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
     username: ${MYSQL_USER}
