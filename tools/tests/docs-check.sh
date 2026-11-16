@@ -74,9 +74,78 @@ expect 0 "코드 블록·인라인 코드의 링크는 무시" --root "$d"
 d="$(fresh)"; printf '# 머리말 없는 문서\n[끊김](NOPE.md)\n' > "$d/docs/L.md"
 expect_msg "머리말 없는 문서도 링크 검사" "끊어진 링크" --root "$d"
 
-echo "== ⑤ 옵션"
+echo "== ⑤ covers (--base)"
+# git 저장소를 만든다: develop 에 기준 커밋을 두고 feature 브랜치로 옮긴 상태. 문서 C.md 가 코드 경로를 covers 로 가진다.
+g() { git -C "$d" -c user.name=test -c user.email=test@example.com -c commit.gpgsign=false -c core.hooksPath=/dev/null "$@"; }
+put() { mkdir -p "$d/$(dirname "$1")"; printf '%s\n' "${2:-x}" >> "$d/$1"; }   # put <경로> [내용]
+commit() { g add -A; g commit -q --allow-empty -m "$1" ${2:+-m "$2"}; }          # commit <제목> [본문]
+repo() {
+  d="$(fresh)"
+  printf -- '---\nstatus: draft\ncovers:\n  - src/app/**\n  - conf/app.yml\n  - lib/*.sh\n---\n# C\n' > "$d/docs/C.md"
+  put src/app/A.java; put src/app/deep/B.java; put src/other/O.java; put conf/app.yml; put conf/other.yml
+  put lib/a.sh; put lib/sub/b.sh
+  git -C "$d" init -q -b develop; commit "chore: base"; g checkout -q -b feature/x
+}
+
+repo; put src/app/A.java; commit "feat: code"
+expect 0 "--base 가 없으면 covers 를 검사하지 않음" --root "$d"
+expect 1 "코드만 바뀌고 문서는 그대로" --root "$d" --base develop
+expect_msg "covers 메시지에 문서와 파일" "docs/C.md: covers 에 해당하는 코드가 바뀌었는데 이 문서는 바뀌지 않음: src/app/A.java" --root "$d" --base develop
+expect_msg "예외 방법 안내" "Docs-Unchanged: <사유>" --root "$d" --base develop
+expect 0 "--warn 은 covers 위반이어도 0" --warn --root "$d" --base develop
+expect_msg "--warn covers 메시지" "경고" --warn --root "$d" --base develop
+put docs/C.md "갱신"; commit "docs: update"
+expect 0 "코드와 문서가 함께 바뀜 (다른 커밋이어도 됨)" --root "$d" --base develop
+
+repo; put docs/C.md "갱신"; put src/other/O.java; put conf/other.yml; put lib/sub/b.sh; commit "feat: unrelated"
+expect 0 "covers 밖의 파일과 문서만 바뀜 (* 는 / 를 넘지 않음)" --root "$d" --base develop
+repo; put src/other/O.java; commit "feat: unrelated"
+expect 0 "covers 밖의 파일만 바뀜" --root "$d" --base develop
+repo; put src/app/deep/B.java; commit "feat: deep"
+expect 1 "** 는 하위 디렉토리까지" --root "$d" --base develop
+repo; put conf/app.yml; commit "feat: conf"
+expect 1 "파일 하나를 가리키는 패턴" --root "$d" --base develop
+repo; put lib/a.sh; commit "feat: lib"
+expect 1 "* 패턴" --root "$d" --base develop
+repo; put src/app/New.java; commit "feat: new file"
+expect 1 "새 파일" --root "$d" --base develop
+repo; rm "$d/src/app/A.java"; commit "feat: delete"
+expect 1 "삭제된 파일" --root "$d" --base develop
+repo; put src/app/A.java; g add -A
+expect 1 "스테이징만 한 변경도 본다 (pre-commit)" --root "$d" --base develop
+repo; put src/app/A.java; put src/app/deep/B.java; put src/app/C.java; put src/app/D.java; put conf/app.yml; commit "feat: many"
+expect_msg "파일이 많으면 3개와 나머지 수" "외 2개" --root "$d" --base develop
+repo; put src/app/A.java; commit "feat: code"; g checkout -q develop; put src/other/O.java; commit "feat: develop moved"; g checkout -q feature/x
+expect_msg "develop 이 앞서가도 갈라진 뒤의 변경만 본다" "src/app/A.java" --root "$d" --base develop
+repo; g checkout -q develop; put src/app/A.java; commit "feat: on develop"; g checkout -q feature/x; g merge -q develop; put src/other/O.java; commit "feat: mine"
+expect 0 "기준 브랜치에서 온 변경은 내 변경이 아님" --root "$d" --base develop
+
+repo; printf -- '---\nstatus: draft\ncovers:\n  - src/**\n---\n# D\n' > "$d/docs/D.md"; commit "docs: second doc"
+g checkout -q develop; g merge -q feature/x; g checkout -q feature/x
+put src/app/A.java; put docs/C.md "갱신"; commit "feat: one doc updated"
+expect 1 "같은 코드를 가리키는 두 문서 중 하나만 바뀜" --root "$d" --base develop
+out="$(bash "$CHECK" --root "$d" --base develop 2>&1 >/dev/null)"
+if printf '%s' "$out" | grep -q '^✖ docs/D.md' && ! printf '%s' "$out" | grep -q '^✖ docs/C.md'; then ok; else bad "바뀌지 않은 문서만 보고 ($out)"; fi
+
+echo "== ⑥ covers 예외 (Docs-Unchanged)"
+repo; put src/app/A.java; commit "refactor: rename" "Docs-Unchanged: 이름만 바꿔 설명이 달라지지 않음"
+expect 0 "사유가 있는 예외" --root "$d" --base develop
+expect_msg "건너뛴 문서와 사유를 보여 줌" "docs/C.md: covers 검사를 건너뜀 (Docs-Unchanged: 이름만 바꿔 설명이 달라지지 않음)" --root "$d" --base develop
+repo; put src/app/A.java; commit "refactor: rename" "Docs-Unchanged:   "
+expect 1 "사유가 없는 예외는 인정하지 않음" --root "$d" --base develop
+repo; put src/app/A.java; commit "refactor: rename" "본문에 Docs-Unchanged: 라고 쓰기만 함"
+expect 1 "줄 맨 앞이 아니면 예외가 아님" --root "$d" --base develop
+repo; g checkout -q develop; commit "chore: old" "Docs-Unchanged: 예전 커밋"; g checkout -q feature/x; g merge -q develop; put src/app/A.java; commit "feat: code"
+expect 1 "기준 브랜치에 있던 예외는 내 변경에 적용되지 않음" --root "$d" --base develop
+repo; put src/app/A.java; commit "refactor: rename" "Docs-Unchanged: 사유"; printf '# 머리말 없음\n' > "$d/docs/NOFM.md"; commit "docs: bad"
+expect 1 "예외는 covers 만 건너뛰고 다른 검사는 그대로" --root "$d" --base develop
+
+echo "== ⑦ 옵션"
 expect 2 "알 수 없는 옵션" --nope
 expect 2 "--root 에 없는 디렉토리" --root "$T/없음"
+expect 2 "--base 에 값이 없음" --base
+repo; expect 2 "--base 에 없는 참조" --root "$d" --base nope
+d="$(fresh)"; expect 2 "git 저장소가 아닌데 --base" --root "$d" --base develop
 
 echo
 echo "통과 $pass · 실패 $fail"

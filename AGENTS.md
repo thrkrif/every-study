@@ -31,7 +31,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 
 - **상위 문서가 바뀌면 하위 문서를 함께 확인한다.** 문서 머리말의 `based_on` 이 관계를 나타내고, 버전이 어긋나면 CI(`bash tools/docs-check.sh`)가 "오래됨"으로 막는다. 의미 있는 변경이면 그 문서의 `version` 을 올린다.
 - **한 사실은 한 곳에만 쓴다.** 값을 복사하지 않고 원본 위치를 가리킨다 (`docs/README.md` 3장).
-- 코드가 바뀌면 그 코드를 설명하는 문서(머리말 `covers`)도 같은 PR 에서 갱신한다.
+- 코드가 바뀌면 그 코드를 설명하는 문서(머리말 `covers`)도 같은 PR 에서 갱신한다. CI 가 검사한다 (`bash tools/docs-check.sh --base origin/develop`). 문서를 확인했는데 고칠 내용이 없을 때만 커밋 메시지 본문에 `Docs-Unchanged: <사유>` 줄을 넣는다 (`docs/README.md` 4장). 검사를 통과하려고 문서에 의미 없는 변경을 넣지 않는다.
 
 ## 3. Git flow
 
