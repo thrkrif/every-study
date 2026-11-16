@@ -1,10 +1,12 @@
 ---
 status: draft
-version: "0.3"
+version: "0.4"
 based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.6
-  - docs/DATA-MODEL.md@0.2
+  - docs/DATA-MODEL.md@0.3
+covers:
+  - backend/src/main/java/com/everystudy/auth/web/**
 ---
 
 # API 명세
@@ -67,6 +69,27 @@ based_on:
 | `GET /login/oauth2/code/{provider}` | 공개 | 콜백. 쿠키 발급 후 프론트로 리다이렉트. 신규 사용자는 온보딩 화면으로 |
 | `POST /api/v1/auth/refresh` | 쿠키 | 리프레시 회전. 새 쿠키 발급, 재사용 탐지 시 401과 로그아웃 |
 | `POST /api/v1/auth/logout` | 회원 | 리프레시 토큰 폐기, 쿠키 삭제 |
+
+**소셜 로그인 흐름** (화면은 `fetch`가 아니라 페이지 이동으로 시작한다)
+
+1. 프론트가 브라우저를 `GET /oauth2/authorization/{provider}`로 보낸다 → 서버가 공급자 동의 화면으로 리다이렉트.
+2. 공급자가 `GET /login/oauth2/code/{provider}`로 돌려보낸다 → 서버가 회원을 찾거나 만들고 아래 쿠키를 내려준 뒤 프론트로 리다이렉트한다.
+
+| 결과 | 리다이렉트 대상 (프론트 오리진 기준) |
+|---|---|
+| 온보딩을 마친 회원 | `/` |
+| 온보딩 전 회원(신규 포함) | `/onboarding` |
+| 실패(동의 취소, 잘못된 `state`, 공급자 오류) | `/login?error=social_login_failed` (쿠키 없음) |
+
+**토큰 쿠키** (ADR-0002. 값은 JS로 읽을 수 없다)
+
+| 쿠키 | 내용 | `Path` | 수명 | 공통 속성 |
+|---|---|---|---|---|
+| `access_token` | 액세스 JWT | `/` | 액세스 수명 | `HttpOnly; Secure; SameSite=Lax` |
+| `refresh_token` | 리프레시 토큰(불투명 값) | `/api/v1/auth` | 리프레시 수명 | 같음 |
+
+- 리프레시 쿠키는 갱신과 로그아웃이 읽으므로 두 경로를 묶는 `/api/v1/auth`로 제한한다.
+- 같은 소셜 계정은 항상 같은 회원이다. 응답 본문에는 토큰이나 회원 정보를 싣지 않는다(내 정보는 3장 `GET /me`).
 
 ## 3. 내 정보
 

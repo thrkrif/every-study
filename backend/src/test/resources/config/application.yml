@@ -1,0 +1,21 @@
+# 테스트 전용 값. classpath:/config/ 는 classpath:/ 의 application.yml 과 합쳐지고 같은 키는 이 파일이 이긴다.
+# 모두 지어낸 값이다. 테스트는 실제 공급자에 접속하지 않는다 (공급자 호출은 가짜 구현으로 바꾼다).
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: test-kakao-client
+            client-secret: test-kakao-client-value
+          google:
+            client-id: test-google-client
+            client-secret: test-google-client-value
+
+everystudy:
+  auth:
+    token:
+      signing-key: test-only-signing-key-not-used-anywhere-else
+    web:
+      frontend-url: http://localhost:3000
+      cookie-secure: true

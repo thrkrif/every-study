@@ -4,8 +4,8 @@ version: "0.5"
 based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.6
-  - docs/DATA-MODEL.md@0.2
-  - docs/API.md@0.3
+  - docs/DATA-MODEL.md@0.3
+  - docs/API.md@0.4
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -91,7 +91,7 @@ based_on:
   - 완료: PR에서 `backend` job은 `backend/**`가, `frontend` job은 `frontend/**`가 바뀌었을 때만 실행하고, CI 워크플로가 바뀌면 둘 다 실행한다 · develop·main으로의 push에서는 전부 실행 · 판단 규칙은 `tools/`의 스크립트에 있고 자체 테스트와 함께 CI에서 실행 · 필수 상태 검사(`CI 통과`)는 건너뛴 job을 통과로 본다 · 저장소는 나누지 않는다(문서·API 명세·도구를 한곳에서 맞추기 위해. 배포 분리는 T-013)
   - 문서: docs/guides/agent-hooks.md 1장
 
-- [ ] T-004 소셜 로그인과 토큰 쿠키 발급
+- [x] T-004 소셜 로그인과 토큰 쿠키 발급
   - 선행: T-001 · 결정 D-9 · 사람 H-1
   - 참조: ADR-0002 결정 1·2·4·확정 값, DATA-MODEL 3장(`user`, `social_account`, `refresh_token`), API 2장
   - 완료: 카카오·구글 OAuth2 로그인 성공 시 자체 액세스 JWT와 리프레시 토큰을 쿠키로 발급 · 소셜 토큰 미저장 · 같은 `(provider, provider_user_id)` 재로그인은 같은 사용자 · 신규 사용자는 온보딩으로 리다이렉트 · 쿠키 속성(HttpOnly, Secure, SameSite, Path)을 통합 테스트로 확인 (OAuth 공급자는 테스트에서 대체)
@@ -518,7 +518,7 @@ based_on:
 
 | 번호 | 내용 | 필요한 작업 |
 |---|---|---|
-| H-1 | 카카오·구글 OAuth 앱 등록(로컬 리다이렉트 URI), JWT 서명 키 | T-004 |
+| H-1 | 카카오·구글 OAuth 앱 등록(로컬 리다이렉트 URI), JWT 서명 키. 등록할 값과 환경변수 이름은 `backend/README.md` "소셜 로그인 준비" | T-004 |
 | H-2 | 카카오맵 JavaScript 키와 로컬 도메인 제한 | T-010 |
 | H-3 | VAPID 키 쌍 | T-042 |
 | H-4 | **확인됨(2026-11-16)**: GitHub 룰셋으로 main·develop에 PR 필수, 필수 검사 `CI 통과`, 삭제·force push 금지를 적용 (저장소 공개 전환) | T-001 |
@@ -556,7 +556,7 @@ based_on:
 | D-6 | 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 / `SKIPPED` 추가) | DATA-MODEL 11장 2번 | T-043 |
 | D-7 | 일회용 코드 자릿수·수명·입력 시도 제한 횟수 | DATA-MODEL 11장 3번 | T-028 |
 | D-8 | 이메일 발송 수단(SMTP 업체·발신 주소) — 문서에 없음 | 없음 | T-041 |
-| D-9 | 이메일 주소 확보 방식(소셜 공급자 제공 이메일 사용 여부, 카카오 이메일 동의 항목) — 문서에 없음 | DATA-MODEL 3장(`email` NULL 허용) | T-004, T-041 |
+| D-9 | **결정됨(2026-11-17, DATA-MODEL 3장)**: 공급자가 확인한 이메일만 저장한다. 구글은 기본 제공 이메일, 카카오는 선택 동의 항목(`account_email`)이고 동의하지 않으면 `NULL`로 가입된다. T-004에서 함께 정한 것: 온보딩 전 회원은 닉네임·직군·지역이 `NULL`(DATA-MODEL 3장), 액세스 JWT는 HS256, 리프레시 쿠키 `Path`는 `/api/v1/auth`(ADR-0002 후속 결정). T-041은 이메일이 없는 회원에게 이메일 알림을 보내지 않는 경우를 다룬다 | DATA-MODEL 3장(`email` NULL 허용) | T-004, T-041 |
 | D-10 | 운영자(`ADMIN`) 계정 지정 방법 — 문서에 없음 | 없음 | T-052 |
 | D-11 | 이의 반복 기각 시 제한의 기준과 효과 | PRD 4.9 악용 방지 | T-058 |
 | D-12 | 채팅 새 메시지 알림의 채널·묶음 방식 | PRD 4.12 | T-050 |
