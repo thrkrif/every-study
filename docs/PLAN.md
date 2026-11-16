@@ -79,7 +79,7 @@ based_on:
   - 완료: 아키텍처 테스트가 "다른 모듈의 `domain`·`repository` 참조 금지", "`web → service → domain/repository`", 모듈 순환 금지(특히 `study`가 `chat`에 의존하지 않음, X-8)를 검사하고, 위반 예시로 실패함을 확인 · Flyway 파일명 형식·번호 중복·누락 검사 스크립트가 `tools/`에 있고 자체 테스트와 함께 CI에서 실행
   - 문서: ADR-0003에 D-2 결과 반영(결정 변경이면 새 ADR), AGENTS.md 6장 코드 컨벤션에 확정 규칙 추가, ARCHITECTURE 3장에 X-11 결과 반영
 
-- [ ] T-070 문서 `covers` 검사
+- [x] T-070 문서 `covers` 검사
   - 선행: T-001, T-003
   - 참조: docs/README.md 4장(`covers`), AGENTS.md 3장(코드가 바뀌면 문서도 같은 PR), `tools/docs-check.sh`
   - 완료: PR에서 바뀐 코드 경로가 어떤 문서의 `covers`에 해당하는데 그 문서가 같은 PR에서 바뀌지 않았으면 `docs-check`가 보고한다 (로컬은 경고, CI는 오류, 문서 갱신이 필요 없는 PR을 위한 명시적 예외 방법 포함) · 자체 테스트(`tools/tests/`)에 통과·실패·예외 사례 · CI에서 실행
