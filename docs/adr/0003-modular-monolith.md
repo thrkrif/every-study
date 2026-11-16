@@ -2,7 +2,7 @@
 status: draft
 based_on:
   - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.5
+  - docs/ARCHITECTURE.md@0.6
 ---
 
 # ADR-0003: 모듈러 모놀리스와 패키지 규칙
@@ -34,3 +34,14 @@ based_on:
 - 모듈 간 호출은 약간 번거롭지만, 이벤트와 인터페이스 덕에 변경 범위가 작다.
 - 정합성이 필요한 곳(정원, 승계)은 한 트랜잭션 안에서 처리하고, 이벤트로 흩뿌리지 않는다.
 - 규모가 커지면 `chat`, `notification`이 첫 분리 후보다.
+
+## 후속 결정 (2026-11-16, T-003)
+
+모듈 경계 테스트를 만들며 아래를 정했다. 규칙의 현재 내용은 [ARCHITECTURE 3장](../ARCHITECTURE.md)이 원본이고, 여기는 결정과 이유의 기록이다.
+
+- **검사 도구는 ArchUnit 1.5.1** (PLAN D-2). 코어(`com.tngtech.archunit:archunit`)만 쓰고 규칙은 일반 JUnit 테스트에서 실행한다. ArchUnit은 컴파일된 클래스 파일만 읽으므로 Spring Boot 버전과 무관하고, JDK 21 클래스 파일과 Boot 4.1이 관리하는 JUnit 6에서 `./gradlew test`가 통과함을 확인했다. JUnit 엔진 연동 모듈(`archunit-junit5`)은 엔진 호환을 따로 챙겨야 해서 넣지 않았다. Boot가 버전을 관리하지 않으므로 `build.gradle`에 버전을 적는다.
+- **이벤트 수신 방식을 나눈다** (PLAN X-8). 위 결정의 "`AFTER_COMMIT`"은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. 함께 커밋돼야 하는 반응(채팅방 생성·폐쇄)은 같은 트랜잭션의 동기 리스너로 받고, 알림은 변경을 일으킨 모듈이 같은 트랜잭션에서 `notification` 공개 서비스를 호출해 아웃박스에 기록한다. `AFTER_COMMIT`에서 아웃박스를 쓰면 커밋 뒤 실패 시 알림이 유실되기 때문이다.
+- **`study`는 `chat`을 참조하지 않는다** (PLAN X-8). 채팅방 생성·폐쇄는 `chat`이 `study`의 이벤트를 받아서 한다. 반대로 두면 `chat → study`(참여 여부 조회)와 순환한다.
+- **모듈의 공개 면은 `service`와 `event` 패키지다.** 다른 모듈이 받는 이벤트 클래스를 `domain`에 두면 "다른 모듈의 `domain` 참조 금지"와 충돌하므로 `<모듈>.event`에 둔다. 버린 대안: 이벤트를 `service`에 두기 → 서비스 클래스와 이벤트가 한 패키지에 섞여 기각.
+- **`web`은 같은 모듈의 `domain` 타입을 쓸 수 있다.** 금지하면 요청·응답 DTO가 `domain`의 enum을 쓰지 못해 문자열 변환이나 enum 중복이 필요해진다. `repository` 직접 사용만 테스트로 막고, 엔티티를 응답으로 내보내지 않는 것은 코드 리뷰로 지킨다.
+- **모듈 구성 정리** (PLAN X-11). `schedule` 모듈을 없앤다(일정은 `study` 테이블에 있어 `study`가 수정). 세션 무효·노쇼 후보 판정은 `attendance`, 출석 이벤트 기록·집계는 `trust`의 공개 서비스, 감사 로그는 `common`에 둔다(`admin`에 두면 기록하는 모든 모듈이 `admin`에 의존하게 된다).

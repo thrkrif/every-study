@@ -3,7 +3,7 @@ status: draft
 version: "0.2"
 based_on:
   - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.5
+  - docs/ARCHITECTURE.md@0.6
 ---
 
 # 데이터 명세

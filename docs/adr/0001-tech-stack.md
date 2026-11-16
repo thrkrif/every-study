@@ -93,3 +93,8 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 - Node는 24.15 이상이어야 한다 (jsdom 31의 요구 사항). `frontend/.nvmrc`와 `package.json`의 `engines`에 적는다
 - `package.json`에는 정확한 버전을 적고(범위 표기 없음) 잠금 파일을 함께 커밋한다
 - Next.js 템플릿이 기본으로 켜는 `cacheComponents`·`partialPrefetching`은 켜지 않았다. 필요해지는 화면 작업에서 정한다
+
+## 후속 결정 (2026-11-16, T-003)
+
+- 위 "CI 에서 중복·누락 검사 예정"을 구현했다. `tools/flyway-check.sh`가 파일명 형식(`V<번호>__<설명>.sql`), 번호 중복, 번호 누락(1부터 빠짐없이)을 검사하고 CI `migrations` job에서 자체 테스트와 함께 실행한다. 병합된 파일의 내용 변경은 검사하지 않는다 (Flyway 체크섬 검증에 맡긴다).
+- 모듈 경계 검사 도구(ArchUnit)의 버전은 [ADR-0003](0003-modular-monolith.md) 후속 결정에 적었다.

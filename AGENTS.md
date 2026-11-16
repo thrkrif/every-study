@@ -85,6 +85,14 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 
 확정된 규칙만 먼저 적는다.
 
+### 모듈과 패키지
+- 원본은 [ARCHITECTURE 3장](docs/ARCHITECTURE.md)이다. 요약: 패키지는 `com.everystudy.<모듈>.<계층>`, 계층은 `web`, `service`, `domain`, `repository`, `event`.
+- 다른 모듈은 `service`와 `event` 패키지로만 참조한다. 다른 모듈의 `domain`·`repository`·`web`은 쓰지 않는다. 다른 모듈이 받는 이벤트 클래스는 `<모듈>.event`에 둔다.
+- 모듈 안에서는 `web → service → (domain, repository)`. `web`은 `repository`를 직접 쓰지 않고, 아래 계층은 위 계층에 의존하지 않는다.
+- 모듈 간 의존은 순환하지 않는다. `study`는 `chat`을 참조하지 않고, `common`은 기능 모듈에 의존하지 않는다.
+- 알림은 `AFTER_COMMIT` 리스너에서 만들지 않는다. 비즈니스 트랜잭션 안에서 `notification` 공개 서비스로 아웃박스에 기록한다.
+- 이 규칙은 아키텍처 테스트(`backend/src/test/java/com/everystudy/architecture/`)가 `./gradlew test`에서 검사한다. 테스트가 실패하면 규칙을 끄거나 예외를 추가하지 말고 코드를 옮긴다. 규칙 자체를 바꿔야 하면 사람에게 확인하고 ARCHITECTURE 3장과 함께 고친다.
+
 ### 라이브러리 API 사용
 - 라이브러리·프레임워크 API를 처음 쓰기 전에 **버전을 고정해** Context7(공식 문서 조회)로 확인한다. 버전을 고정하지 않으면 다른 버전의 문서가 나올 수 있다 (예: Spring Boot 3.x와 4.x는 테스트 어노테이션의 패키지가 다르다). 사용 버전은 ADR-0001이 원본이다.
 - 문서 조회는 오류 확률을 줄이는 단계일 뿐이고, 컴파일과 테스트 통과가 최종 확인이다.
@@ -103,6 +111,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 - **병합된 마이그레이션은 수정하지 않는다.** 변경은 새 버전 파일로 추가한다.
 - JPA 는 `ddl-auto=validate`. 스키마 생성·변경은 Flyway 로만 한다.
 - MySQL 은 `utf8mb4` 를 명시한다.
+- 번호는 1부터 빠짐없이 이어 쓴다. 파일명 형식·번호 중복·누락은 `bash tools/flyway-check.sh` 가 검사한다 (CI `migrations` job).
 
 ### 프론트 API 호출
 - 화면 코드에서 `fetch`를 직접 부르지 않고 `frontend/src/lib/api/client.ts`의 `apiFetch`만 쓴다 (쿠키 포함, CSRF 헤더, 오류 변환이 한 곳에 있다).
