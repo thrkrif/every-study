@@ -21,9 +21,14 @@ Spring Boot REST API. 구조와 규칙은 [ARCHITECTURE](../docs/ARCHITECTURE.md
 ```bash
 docker compose up -d                 # 저장소 루트에서. MySQL 시작
 cd backend
-set -a; . ../.env; set +a            # .env 값을 환경변수로 올린다
 ./gradlew bootRun
 ```
+
+앱은 `backend/`에서 실행하면 저장소 루트의 `.env`를 직접 읽는다(`application.yml`의 `spring.config.import`). 알아 둘 것:
+
+- IDE에서 실행할 때는 작업 디렉토리(Working directory)를 `backend/`로 맞춘다. 다르면 `.env`를 찾지 못해 `Access denied for user '${MYSQL_USER}'`가 난다.
+- `.env`의 값에는 따옴표를 쓰지 않는다 (`KEY=value`). Spring은 따옴표를 값의 일부로 읽는다.
+- 같은 이름의 환경변수가 있으면 환경변수가 우선한다. `.env`가 없는 환경(운영, CI)에서는 환경변수만 쓴다.
 
 실행 후 API 문서를 보는 주소:
 
