@@ -103,8 +103,10 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
         assertThat(mvc.get().uri("/oauth2/authorization/kakao"))
                 .hasStatus(302)
                 .redirectedUrl().startsWith("https://kauth.kakao.com/oauth/authorize?")
-                .contains("client_id=test-kakao-client", "scope=account_email",
-                        "redirect_uri=http://localhost/login/oauth2/code/kakao");
+                .contains("client_id=test-kakao-client",
+                        "redirect_uri=http://localhost/login/oauth2/code/kakao")
+                // 카카오에는 scope 를 보내지 않는다. 개인 앱은 이메일 항목을 켤 수 없어 보내면 KOE205 로 실패한다.
+                .doesNotContain("scope=");
         assertThat(mvc.get().uri("/oauth2/authorization/google"))
                 .hasStatus(302)
                 .redirectedUrl().startsWith("https://accounts.google.com/o/oauth2/v2/auth?")
