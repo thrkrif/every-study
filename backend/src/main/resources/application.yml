@@ -64,6 +64,13 @@ everystudy:
       frontend-url: ${FRONTEND_URL:http://localhost:3000}
       # HTTPS 가 아닌 로컬에서 쿠키가 저장되지 않는 브라우저(Safari)를 쓸 때만 false 로 둔다.
       cookie-secure: ${AUTH_COOKIE_SECURE:true}
+  # 정책 설정값 (ARCHITECTURE 4.9). 값의 원본은 PRD 다. 클라이언트는 GET /api/v1/meta/options 로 받는다.
+  study:
+    capacity-min: 2      # PRD 4.2 정원(주최자 포함)
+    capacity-max: 6
+    openable-days: 14    # PRD 4.2 개설 가능 범위
+  attendance:
+    checkin-radius-meters: 150   # PRD 4.6
 
 # Swagger UI 에서 상태 변경 요청을 보낼 때 CSRF 쿠키 값을 헤더로 붙이게 한다 (개발용. 운영에서는 Swagger UI 가 꺼져 있다).
 springdoc:

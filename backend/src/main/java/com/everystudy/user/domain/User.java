@@ -73,6 +73,16 @@ public class User {
         }
     }
 
+    /**
+     * 닉네임·직군·지역을 정한다. 온보딩과 이후 수정이 같은 동작이다.
+     * 값의 형식과 닉네임 중복은 호출한 쪽이 검사한다.
+     */
+    public void updateProfile(String nickname, String jobCode, String districtCode) {
+        this.nickname = nickname;
+        this.jobCode = jobCode;
+        this.districtCode = districtCode;
+    }
+
     /** 온보딩(닉네임·직군·지역 입력)을 마쳤는가. */
     public boolean isOnboarded() {
         return nickname != null && jobCode != null && districtCode != null;
@@ -80,6 +90,18 @@ public class User {
 
     public Long getId() {
         return id;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public String getJobCode() {
+        return jobCode;
+    }
+
+    public String getDistrictCode() {
+        return districtCode;
     }
 
     public String getEmail() {
