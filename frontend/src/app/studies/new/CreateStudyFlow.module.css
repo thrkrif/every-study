@@ -1,0 +1,100 @@
+/* 입력 화면 공통 배치: 휴대폰은 화면 전체 + 하단 고정, 태블릿·PC 는 가운데 카드 (DESIGN 6장) */
+.page {
+  max-width: var(--form-max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--page-gutter)
+    calc(var(--button-height) + var(--space-10) + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .page {
+    margin: var(--space-10) auto;
+    padding: var(--space-8);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+}
+
+.form {
+  margin-top: var(--space-8);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.question {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+}
+
+.help {
+  color: var(--color-ink-sub);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+/* 안내 띠 (DESIGN 5장): 화면당 하나 */
+.band {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.picked {
+  font-size: var(--text-heading-size);
+  line-height: var(--text-heading-line);
+  font-weight: 700;
+}
+
+.fieldError,
+.notice {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-bad);
+}
+
+.notice {
+  margin-top: var(--space-10);
+  text-align: center;
+}
+
+/* 요약 카드 (DESIGN 5장) */
+.summary {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
+}
+
+.summaryRow + .summaryRow {
+  border-top: 1px solid var(--color-line);
+}
+
+.summaryRow dt {
+  color: var(--color-ink-sub);
+  font-size: var(--text-label-size);
+  line-height: var(--text-body-line);
+}
+
+.summaryRow dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
