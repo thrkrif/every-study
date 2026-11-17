@@ -1,0 +1,55 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.seats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.seat {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-seat);
+  border: 1.5px solid var(--color-primary);
+  background: transparent;
+  transition: background-color var(--motion-base) ease-out;
+}
+
+.seat[data-state="member"] {
+  background: var(--color-primary);
+}
+
+.seat[data-state="host"] {
+  background: var(--color-ink);
+  border-color: var(--color-ink);
+}
+
+/* 내 칸: 가운데 흰 점 */
+.seat[data-mine]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+/* 마감은 오류가 아니다. 모든 칸을 중립색으로 채운다 */
+.row[data-full] .seat {
+  background: var(--color-disabled);
+  border-color: var(--color-disabled);
+}
+
+.count {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--text-label-weight);
+  color: var(--color-ink);
+}
