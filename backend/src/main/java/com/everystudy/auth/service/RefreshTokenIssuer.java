@@ -4,6 +4,7 @@ import com.everystudy.auth.domain.RefreshToken;
 import com.everystudy.auth.repository.RefreshTokenRepository;
 import com.everystudy.common.time.TimeProvider;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -30,15 +31,29 @@ class RefreshTokenIssuer {
 
     /** 로그인 한 번에 새 계열을 시작한다. 호출한 쪽의 트랜잭션 안에서 저장된다. */
     String issueForLogin(long userId) {
-        byte[] bytes = new byte[TOKEN_BYTES];
-        random.nextBytes(bytes);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-
+        String token = randomToken();
         refreshTokens.save(RefreshToken.startFamily(
                 userId,
                 UUID.randomUUID().toString(),
                 TokenHasher.sha256Hex(token),
                 time.now().plus(properties.refreshTtl())));
         return token;
+    }
+
+    /**
+     * 쓴 토큰을 같은 계열의 새 토큰으로 바꾼다. 새 토큰의 수명은 지금부터 다시 센다 (ADR-0002 확정 값).
+     * 호출한 쪽의 트랜잭션 안에서 저장된다.
+     */
+    String rotate(RefreshToken current) {
+        String token = randomToken();
+        Instant now = time.now();
+        refreshTokens.save(current.rotate(TokenHasher.sha256Hex(token), now.plus(properties.refreshTtl()), now));
+        return token;
+    }
+
+    private String randomToken() {
+        byte[] bytes = new byte[TOKEN_BYTES];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 }

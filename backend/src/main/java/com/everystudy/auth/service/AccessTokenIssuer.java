@@ -1,10 +1,7 @@
 package com.everystudy.auth.service;
 
 import com.everystudy.common.time.TimeProvider;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -18,17 +15,16 @@ import org.springframework.stereotype.Component;
  * 클레임: {@code sub}=회원 ID, {@code role}=역할, {@code iat}, {@code exp}.
  */
 @Component
-class AccessTokenIssuer {
+public class AccessTokenIssuer {
 
-    static final String ROLE_CLAIM = "role";
+    public static final String ROLE_CLAIM = "role";
 
     private final JwtEncoder encoder;
     private final TokenProperties properties;
     private final TimeProvider time;
 
     AccessTokenIssuer(TokenProperties properties, TimeProvider time) {
-        SecretKey key = new SecretKeySpec(properties.signingKey().getBytes(StandardCharsets.UTF_8), "HmacSHA256");
-        this.encoder = NimbusJwtEncoder.withSecretKey(key).algorithm(MacAlgorithm.HS256).build();
+        this.encoder = NimbusJwtEncoder.withSecretKey(properties.secretKey()).algorithm(MacAlgorithm.HS256).build();
         this.properties = properties;
         this.time = time;
     }

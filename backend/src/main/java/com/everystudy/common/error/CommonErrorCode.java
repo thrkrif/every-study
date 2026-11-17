@@ -6,6 +6,9 @@ import org.springframework.http.HttpStatus;
 public enum CommonErrorCode implements ErrorCode {
 
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "입력값이 올바르지 않습니다"),
+    UNAUTHENTICATED(HttpStatus.UNAUTHORIZED, "로그인이 필요합니다"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "권한이 없습니다"),
+    CSRF_INVALID(HttpStatus.FORBIDDEN, "CSRF 토큰이 올바르지 않습니다"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "대상을 찾을 수 없습니다"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다");
 

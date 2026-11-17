@@ -5,7 +5,7 @@ based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.6
   - docs/DATA-MODEL.md@0.3
-  - docs/API.md@0.4
+  - docs/API.md@0.5
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -97,7 +97,7 @@ based_on:
   - 완료: 카카오·구글 OAuth2 로그인 성공 시 자체 액세스 JWT와 리프레시 토큰을 쿠키로 발급 · 소셜 토큰 미저장 · 같은 `(provider, provider_user_id)` 재로그인은 같은 사용자 · 신규 사용자는 온보딩으로 리다이렉트 · 쿠키 속성(HttpOnly, Secure, SameSite, Path)을 통합 테스트로 확인 (OAuth 공급자는 테스트에서 대체)
   - 문서: DATA-MODEL 3장·API 2장 확인, 두 문서 머리말 `covers`에 `auth/**`, `user/**` 추가
 
-- [ ] T-005 토큰 갱신·로그아웃·CSRF
+- [x] T-005 토큰 갱신·로그아웃·CSRF
   - 선행: T-004
   - 참조: ADR-0002 결정 2·3·4·6, ARCHITECTURE 4.1·8장(인증·CSRF), API 1장·2장
   - 완료: `/auth/refresh` 회전, 재사용 탐지 시 같은 `family_id` 전체 폐기와 401 · `/auth/logout` 폐기·쿠키 삭제 · CSRF 누락·불일치 시 `403 CSRF_INVALID` · 허용 외 `Origin` 거부, CORS는 프론트 오리진 하나 · 만료 액세스 토큰은 `401 UNAUTHENTICATED` · 각 경우 통합 테스트

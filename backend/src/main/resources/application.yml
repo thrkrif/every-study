@@ -65,6 +65,12 @@ everystudy:
       # HTTPS 가 아닌 로컬에서 쿠키가 저장되지 않는 브라우저(Safari)를 쓸 때만 false 로 둔다.
       cookie-secure: ${AUTH_COOKIE_SECURE:true}
 
+# Swagger UI 에서 상태 변경 요청을 보낼 때 CSRF 쿠키 값을 헤더로 붙이게 한다 (개발용. 운영에서는 Swagger UI 가 꺼져 있다).
+springdoc:
+  swagger-ui:
+    csrf:
+      enabled: true
+
 logging:
   pattern:
     correlation: "[%X{traceId:-}] "
