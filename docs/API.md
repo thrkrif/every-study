@@ -1,14 +1,15 @@
 ---
 status: draft
-version: "0.6"
+version: "0.7"
 based_on:
   - docs/PRD.md@0.7
   - docs/ARCHITECTURE.md@0.7
-  - docs/DATA-MODEL.md@0.4
+  - docs/DATA-MODEL.md@0.5
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
   - backend/src/main/java/com/everystudy/meta/web/**
+  - backend/src/main/java/com/everystudy/study/web/**
 ---
 
 # API 명세
@@ -48,6 +49,7 @@ covers:
 | 401 | `UNAUTHENTICATED` | 로그인 필요, 액세스 토큰 만료·위조 (클라이언트는 `/auth/refresh` 후 1회 재시도). `/auth/refresh`가 이 코드를 주면 다시 로그인해야 한다 |
 | 403 | `FORBIDDEN` / `CSRF_INVALID` | 권한 없음 / CSRF 헤더 없음·불일치 (클라이언트는 CSRF 쿠키를 다시 읽어 1회 재시도) |
 | 403 | `USER_RESTRICTED` | 제재로 신청·개설 불가. `until` 포함 |
+| 403 | `ONBOARDING_REQUIRED` | 온보딩(닉네임·직군·지역)을 마치지 않아 쓸 수 없는 기능 (스터디 개설 등). 클라이언트는 온보딩 화면으로 보낸다 |
 | 404 | `NOT_FOUND` | 대상 없음 |
 | 409 | `NICKNAME_TAKEN` | 다른 회원이 쓰는 닉네임 (영문 대소문자 무시). 클라이언트는 닉네임 입력란에 안내한다 |
 | 409 | `STUDY_FULL` | 정원 참 → 클라이언트는 대기 안내 |
@@ -174,7 +176,7 @@ covers:
 |---|---|---|
 | `GET /api/v1/meta/options` | 공개 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정). 아래 응답 |
 | `GET /api/v1/studies` | 공개 | 목록. 필터 `regionCode`(시·도·시·구 어느 단계든, 생략하면 전체. "내 지역"은 클라이언트가 내 구의 시 코드로 부른다), `topicCode`, `jobCode`, `recruiting=true`, 정렬 `sort=latest\|deadline`, 커서 |
-| `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `403 USER_RESTRICTED` 가능 |
+| `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 제재 중이면 `403 USER_RESTRICTED`(T-035b에서 추가) |
 | `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함 |
 | `PATCH /api/v1/studies/{id}` | 주최자 | 제목·소개는 항상 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없을 때만** 수정 가능하고, 있으면 `SCHEDULE_LOCKED`. 응답 상세의 `scheduleEditable`로 클라이언트가 입력란을 잠근다 |
 | `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소. 증액 시 대기자에게 알림 |
@@ -187,7 +189,9 @@ covers:
   "regions": [{ "code": "GYEONGGI", "name": "경기",
                 "children": [{ "code": "SUWON", "name": "수원시",
                                "children": [{ "code": "SUWON_JANGAN", "name": "장안구", "children": [] }] }] }],
-  "study":   { "capacityMin": 2, "capacityMax": 6, "openableDays": 14 },
+  "study":   { "capacityMin": 2, "capacityMax": 6, "openableDays": 14,
+               "startMinuteUnit": 10, "durationMinuteUnit": 10, "durationMinMinutes": 30,
+               "minAttendanceRates": [50, 60, 70, 80, 90, 100] },
   "checkin": { "radiusMeters": 150 } }
 ```
 - 목록의 순서는 화면에 보일 순서다. 코드는 저장·요청에 쓰고, 화면에는 `name`을 쓴다.
@@ -200,7 +204,23 @@ covers:
   "startAt": "2026-11-25T05:00:00Z", "durationMin": 120, "capacity": 4,
   "minAttendanceRate": 70, "allowNewcomer": true }
 ```
-검증: 시작은 현재 이후이고 개설 가능 범위 안, 시작한 날(KST) 안에 끝남, 정원 범위(PRD 4.14), 입장 기준 형식. `districtCode`는 구 단위, `targetJobCodes`는 대분류·세부 직무 코드이고 빈 목록이면 직군 무관(PRD 4.2).
+검증 (실패하면 `400 VALIDATION_FAILED`와 필드. 수치는 `/meta/options`의 `study`와 같은 설정값이다):
+
+| 필드 | 규칙 |
+|---|---|
+| `title` | 2~40자. 앞뒤 공백은 잘라 낸다 |
+| `description` | 10~2000자. 앞뒤 공백은 잘라 낸다 |
+| `topicCode` | 주제 코드 |
+| `districtCode` | 구 단위 지역 코드 |
+| `targetJobCodes` | 대분류·세부 직무 코드 목록. 생략하거나 비우면 직군 무관 (PRD 4.2) |
+| `place` | `name` 100자, `address` 200자 이하. 좌표는 소수점 6자리로 저장한다 |
+| `startAt` | 현재 이후. 시작 날짜(KST)가 오늘부터 개설 가능 일수 뒤까지(오늘이 11일이고 14일이면 25일까지). `startMinuteUnit`분 단위이고 초가 없다 |
+| `durationMin` | `durationMinMinutes`분 이상, `durationMinuteUnit`분 단위. 시작한 날(KST) 안에 끝난다. 자정(24:00)에 끝나는 것까지 받는다 |
+| `capacity` | `capacityMin`~`capacityMax` (주최자 포함, PRD 4.2) |
+| `minAttendanceRate` | `null`(기준 없음) 또는 `minAttendanceRates` 중 하나 |
+| `allowNewcomer` | 생략하면 `true` (PRD 4.7 기본값) |
+
+개설하면 주최자가 `ACTIVE` 참여자로 들어가고 채팅방이 함께 만들어진다. 셋 중 하나라도 실패하면 아무것도 만들어지지 않는다.
 
 **상세 응답 주요 필드**: 기본 정보, `status`, `recruiting`(파생), `memberCount`, `capacity`, `members[{userId, nickname, trust}]`, 주최자 요약, `entryCriteria`, `myState`(`NONE`/`MEMBER`/`WAITING`/`HOST`), 주최자에게만 `waitingCount`.
 

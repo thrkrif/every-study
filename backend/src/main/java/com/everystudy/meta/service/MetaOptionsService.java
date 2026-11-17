@@ -29,7 +29,9 @@ public class MetaOptionsService {
                 Arrays.stream(TopicCode.values()).map(t -> new MetaOptions.Option(t.name(), t.label(), List.of())).toList(),
                 JobCode.categories().stream().map(MetaOptionsService::job).toList(),
                 RegionCode.provinces().stream().map(MetaOptionsService::region).toList(),
-                new MetaOptions.Study(study.capacityMin(), study.capacityMax(), study.openableDays()),
+                new MetaOptions.Study(study.capacityMin(), study.capacityMax(), study.openableDays(),
+                        study.startMinuteUnit(), study.durationMinuteUnit(), study.durationMinMinutes(),
+                        List.copyOf(study.minAttendanceRateOptions())),
                 new MetaOptions.Checkin(attendance.checkinRadiusMeters()));
     }
 

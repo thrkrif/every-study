@@ -28,13 +28,16 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @RestControllerAdvice
 class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    record FieldViolation(String field, String message) {
-    }
-
     @ExceptionHandler(BusinessException.class)
     ResponseEntity<Object> handleBusiness(BusinessException ex, WebRequest request) {
         ProblemDetail body = problem(ex.errorCode(), ex.detail());
         return handleExceptionInternal(ex, body, new HttpHeaders(), ex.errorCode().status(), request);
+    }
+
+    /** 서비스가 검사한 입력 오류 (현재 시각·설정값에 따라 달라지는 규칙). 형식 오류와 같은 응답이다. */
+    @ExceptionHandler(InvalidInputException.class)
+    ResponseEntity<Object> handleInvalidInput(InvalidInputException ex, WebRequest request) {
+        return validationFailed(ex, ex.violations(), new HttpHeaders(), request);
     }
 
     @Override

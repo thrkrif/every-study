@@ -1,12 +1,14 @@
 ---
 status: draft
-version: "0.4"
+version: "0.5"
 based_on:
   - docs/PRD.md@0.7
   - docs/ARCHITECTURE.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
+  - backend/src/main/java/com/everystudy/study/**
+  - backend/src/main/java/com/everystudy/chat/**
   - backend/src/main/resources/db/migration/**
 ---
 
@@ -97,7 +99,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | id | BIGINT PK | |
 | host_id | BIGINT FK(user) | 현재 주최자. 승계되면 바뀜 |
 | kind | VARCHAR(10) | `OFFLINE` 고정. 이후 비대면 추가를 위한 필드 (PRD 4.2) |
-| title | VARCHAR(60) | |
+| title | VARCHAR(60) | 입력은 2~40자 (API 4장). 컬럼은 여유를 둔다 |
 | description | TEXT | |
 | topic_code | VARCHAR(30) | |
 | district_code | VARCHAR(20) | **구** 단위 코드. 탐색의 시·도·시 필터는 이 코드의 상위 단계로 거른다 |
@@ -105,7 +107,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | place_address | VARCHAR(200) | |
 | latitude, longitude | DECIMAL(9,6) | 체크인 거리 계산 기준 |
 | start_at | DATETIME(6) | 시작 시각 (UTC) |
-| duration_min | SMALLINT | 진행 시간(분). 같은 날 안에 끝나야 한다 |
+| duration_min | SMALLINT | 진행 시간(분). 같은 날(KST) 안에 끝나야 한다. 자정(24:00)에 끝나는 것까지 받는다 |
 | session_date | DATE | `start_at`의 **KST 날짜**. 종료 처리와 목록 조회에 쓴다 |
 | capacity | TINYINT | 정원 (주최자 포함). 범위는 PRD 4.14 |
 | min_attendance_rate | TINYINT NULL | 입장 기준: 최소 출석률(%). `NULL`이면 기준 없음 |
@@ -329,11 +331,12 @@ PK `(user_id, channel)`, `enabled BOOLEAN`. 행이 없으면 기본값(켜짐, �
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | id | BIGINT PK | |
-| study_id | BIGINT UNIQUE FK | 스터디 생성 시 함께 만든다 (PRD 4.12) |
+| study_id | BIGINT UNIQUE FK | 스터디 생성 시 같은 트랜잭션에서 함께 만든다 (PRD 4.12). `chat` 모듈이 개설 이벤트를 받아 만든다 (PLAN X-8) |
 | status | VARCHAR(10) | `OPEN` / `CLOSED` |
 | closed_at | DATETIME(6) NULL | |
 | purge_after | DATETIME(6) NULL | 이 시각 이후 메시지 영구 삭제 (보관 기간은 PRD 4.14) |
 | purged_at | DATETIME(6) NULL | 삭제 완료 표시 (재실행해도 결과가 같게) |
+| created_at | DATETIME(6) | |
 
 ### `chat_message`
 | 컬럼 | 타입 | 설명 |

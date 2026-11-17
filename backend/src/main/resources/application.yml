@@ -69,6 +69,11 @@ everystudy:
     capacity-min: 2      # PRD 4.2 정원(주최자 포함)
     capacity-max: 6
     openable-days: 14    # PRD 4.2 개설 가능 범위
+    # 입력 단위 (PRD 에 없음. PLAN D-21): 시작 10분 단위, 진행 30분 이상 10분 단위, 최소 출석률 선택지
+    start-minute-unit: 10
+    duration-minute-unit: 10
+    duration-min-minutes: 30
+    min-attendance-rate-options: 50, 60, 70, 80, 90, 100
   attendance:
     checkin-radius-meters: 150   # PRD 4.6
 
