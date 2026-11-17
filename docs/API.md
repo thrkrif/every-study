@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.9"
+version: "0.10"
 based_on:
-  - docs/PRD.md@0.10
+  - docs/PRD.md@0.11
   - docs/ARCHITECTURE.md@0.8
   - docs/DATA-MODEL.md@0.7
 covers:
@@ -210,7 +210,7 @@ covers:
 | 필드 | 규칙 |
 |---|---|
 | `title` | 2~40자. 앞뒤 공백은 잘라 낸다 |
-| `description` | 10~2000자. 앞뒤 공백은 잘라 낸다 |
+| `description` | 선택. 2000자 이하. 앞뒤 공백은 잘라 내고, 생략하거나 공백만 쓰면 빈 문자열로 저장한다 (PRD 4.2) |
 | `topicCode` | 주제 코드 |
 | `districtCode` | 구 단위 지역 코드 |
 | `targetJobCodes` | 직군 **대분류** 코드 목록(세부 직무는 거절). 생략하거나 비우면 직군 무관. 고르면 참여 조건이다 (PRD 4.2·4.4) |
