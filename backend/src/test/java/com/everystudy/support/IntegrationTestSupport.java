@@ -1,8 +1,14 @@
 package com.everystudy.support;
 
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Tag;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.jdbc.core.ConnectionCallback;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.mysql.MySQLContainer;
@@ -28,6 +34,34 @@ public abstract class IntegrationTestSupport {
 
     static {
         MYSQL.start();
+    }
+
+    /**
+     * 모든 테이블을 비운다 (Flyway 이력 제외). 통합 테스트는 컨테이너 하나를 함께 쓰므로 각 테스트가 시작할 때 부른다.
+     * 외래 키 순서를 따지지 않도록 같은 연결에서 검사를 잠시 끈다.
+     */
+    protected static void cleanDatabase(JdbcTemplate jdbc) {
+        jdbc.execute((ConnectionCallback<Void>) connection -> {
+            try (Statement statement = connection.createStatement()) {
+                List<String> tables = new ArrayList<>();
+                try (ResultSet rs = statement.executeQuery(
+                        "SELECT table_name FROM information_schema.tables "
+                                + "WHERE table_schema = DATABASE() AND table_name <> 'flyway_schema_history'")) {
+                    while (rs.next()) {
+                        tables.add(rs.getString(1));
+                    }
+                }
+                statement.execute("SET FOREIGN_KEY_CHECKS = 0");
+                try {
+                    for (String table : tables) {
+                        statement.execute("TRUNCATE TABLE `" + table + "`");
+                    }
+                } finally {
+                    statement.execute("SET FOREIGN_KEY_CHECKS = 1");
+                }
+            }
+            return null;
+        });
     }
 
     @DynamicPropertySource

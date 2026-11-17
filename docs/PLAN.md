@@ -4,8 +4,8 @@ version: "0.5"
 based_on:
   - docs/PRD.md@0.7
   - docs/ARCHITECTURE.md@0.7
-  - docs/DATA-MODEL.md@0.4
-  - docs/API.md@0.6
+  - docs/DATA-MODEL.md@0.5
+  - docs/API.md@0.7
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -122,7 +122,7 @@ based_on:
   - 완료: 카카오·구글 로그인 버튼, 온보딩 입력과 검증, 미온보딩 사용자는 온보딩으로 이동 · 테스트: 401 → refresh 1회 → 성공 시 원 요청 재시도, 실패 시 로그인 화면 · 브라우저 기기 에뮬레이션 360px 폭에서 가로 스크롤 없이 모든 입력이 보임을 PR에 스크린샷으로 남김
   - 문서: 해당 없음
 
-- [ ] T-008 스터디 개설 API
+- [x] T-008 스터디 개설 API
   - 선행: T-006 · 결정 X-8
   - 참조: PRD 4.2·4.12, API 4장(개설 요청·검증), DATA-MODEL 4장(`study`, `study_target_job`, `study_member`)·8장(`chat_room`), ADR-0004
   - 완료: 개설 시 주최자를 `study_member` `ACTIVE`로 넣는다 · `chat_room`은 `study`가 직접 만들지 않고, `chat` 모듈이 X-8에서 정한 방식으로 `StudyCreated`를 받아 **같은 트랜잭션에서** 만든다(개설 롤백 시 채팅방 0건 테스트) · `session_date`는 KST 날짜 · 고정 `Clock`으로 개설 가능 범위 마지막 날, 자정을 넘기는 진행 시간, 과거 시작, 정원 범위 경계 테스트 · 개설 제한 제재 검사는 T-035b에서 추가
@@ -568,6 +568,7 @@ based_on:
 | D-18 | 알림 종류별 `expires_at` 기준(예: 일정 알림은 해당 시점 이후 무의미, 대기 알림은 체크인 오픈까지). 권장안: 일정 알림은 다음 알림 시각 또는 체크인 마감, 대기 알림은 체크인 오픈, 그 밖의 즉시 알림은 고정 기간(설정값). 기술 파라미터 기본값(락 대기·백오프·최대 횟수·배치 상한)은 결정 항목이 아니라 진행 규칙 9로 처리 | ARCHITECTURE 4.6, ADR-0005 | T-040 |
 | D-19 | **결정됨(2026-11-16, API 첫머리·ARCHITECTURE 9장)**: OpenAPI 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)는 개발용이라 운영(`prod`)에서는 끈다. `application-prod.yml`에서 끄므로 배포할 때 `SPRING_PROFILES_ACTIVE=prod`를 지정해야 한다 | API 첫머리, ARCHITECTURE 9장 | T-013 |
 | D-20 | **결정됨(2026-11-17, PRD 4.1~4.3 v0.7, DATA-MODEL 1장)**: 직군은 대분류 → 세부 직무 2단계다. 회원은 대분류 필수·세부 선택, 스터디 희망 직군은 대분류·세부를 여러 개 고를 수 있고 모두 선택이며 고르지 않으면 직군 무관(`ANY` 코드 없음). 지역은 시·도 → 시 → 구이고 회원·스터디는 구로 저장, 탐색은 어느 단계로든 거르며 "내 지역"은 내 구가 속한 시. 주제는 PRD 4.2의 6개. 목록은 `common/code`의 enum | PRD 4.1~4.3, DATA-MODEL 1장 | T-006, T-008, T-009 |
+| D-21 | **결정됨(2026-11-17, API 1·4장)**: PRD에 없는 개설 입력 규칙. 제목 2~40자, 소개 10~2000자. 시작 시각은 10분 단위, 진행 시간은 30분 이상 10분 단위(자정에 끝나는 것까지). 최소 출석률은 없음 또는 50~100% 중 10% 단위. 단위·최소값·선택지는 설정값이고 `/meta/options`로 내려준다. 온보딩 전 회원의 개설은 `403 ONBOARDING_REQUIRED` | API 1·4장, `StudyProperties` | T-008, T-010 |
 
 ### 7.2 문서 간 불일치 (X) — PLAN에서 임의로 고치지 않음
 

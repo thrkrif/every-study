@@ -58,9 +58,7 @@ class SocialLoginIntegrationTest extends IntegrationTestSupport {
 
     @BeforeEach
     void cleanTables() {
-        jdbc.update("DELETE FROM refresh_token");
-        jdbc.update("DELETE FROM social_account");
-        jdbc.update("DELETE FROM user");
+        cleanDatabase(jdbc);
     }
 
     @Test

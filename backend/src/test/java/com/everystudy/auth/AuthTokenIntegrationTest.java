@@ -83,9 +83,7 @@ class AuthTokenIntegrationTest extends IntegrationTestSupport {
 
     @BeforeEach
     void loginAsNewUser() {
-        jdbc.update("DELETE FROM refresh_token");
-        jdbc.update("DELETE FROM social_account");
-        jdbc.update("DELETE FROM user");
+        cleanDatabase(jdbc);
 
         MockHttpServletResponse login = FakeSocialProvider.login(mvc, "kakao", kakaoUser(1001L, null));
         access = login.getCookie("access_token");

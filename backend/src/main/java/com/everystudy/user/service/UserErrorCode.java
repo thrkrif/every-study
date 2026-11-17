@@ -6,7 +6,8 @@ import org.springframework.http.HttpStatus;
 /** 회원 모듈의 오류 코드 (API 명세 1장). */
 public enum UserErrorCode implements ErrorCode {
 
-    NICKNAME_TAKEN(HttpStatus.CONFLICT, "이미 쓰이고 있는 닉네임입니다");
+    NICKNAME_TAKEN(HttpStatus.CONFLICT, "이미 쓰이고 있는 닉네임입니다"),
+    ONBOARDING_REQUIRED(HttpStatus.FORBIDDEN, "닉네임·직군·지역을 먼저 정해야 합니다");
 
     private final HttpStatus status;
     private final String title;

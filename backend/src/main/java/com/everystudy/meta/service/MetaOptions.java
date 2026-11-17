@@ -15,7 +15,13 @@ public record MetaOptions(List<Option> topics, List<Option> jobs, List<Option> r
     public record Option(String code, String name, List<Option> children) {
     }
 
-    public record Study(int capacityMin, int capacityMax, int openableDays) {
+    /**
+     * 개설 화면이 쓰는 값.
+     *
+     * @param minAttendanceRates 입장 기준 "최소 출석률"로 고를 수 있는 값(%). 기준 없음은 따로 고른다
+     */
+    public record Study(int capacityMin, int capacityMax, int openableDays, int startMinuteUnit,
+            int durationMinuteUnit, int durationMinMinutes, List<Integer> minAttendanceRates) {
     }
 
     public record Checkin(int radiusMeters) {

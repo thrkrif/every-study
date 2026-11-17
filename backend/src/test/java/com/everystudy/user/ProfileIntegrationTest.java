@@ -36,9 +36,7 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
 
     @BeforeEach
     void loginAsNewUser() {
-        jdbc.update("DELETE FROM refresh_token");
-        jdbc.update("DELETE FROM social_account");
-        jdbc.update("DELETE FROM user");
+        cleanDatabase(jdbc);
         access = loginAccessCookie(1001L);
         csrf = mvc.get().uri(ME).cookie(access).exchange().getResponse().getCookie("XSRF-TOKEN");
     }
