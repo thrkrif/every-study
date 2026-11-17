@@ -1,12 +1,13 @@
 ---
 status: draft
-version: "0.7"
+version: "0.8"
 based_on:
   - docs/PRD.md@0.10
 covers:
   - backend/src/main/java/com/everystudy/common/**
   - frontend/src/lib/api/**
   - frontend/src/app/providers.tsx
+  - frontend/src/lib/session.ts
 ---
 
 # ARCHITECTURE — 모두의 스터디
@@ -152,6 +153,9 @@ covers:
 - Next.js(App Router) + TypeScript, **모바일 우선 반응형**, PWA(웹 푸시용 서비스 워커·manifest).
 - 페이지는 PRD 5장의 화면 목록과 1:1로 둔다. 서버 상태 조회는 TanStack Query 한 가지로 통일한다 (ADR-0001 후속 결정).
 - API 호출은 한 곳(`frontend/src/lib/api/client.ts`의 `apiFetch`)에서 쿠키 포함(`credentials`)·CSRF 헤더·오류 처리를 담당한다. 화면 코드는 `fetch`를 직접 부르지 않는다. 토큰을 JS로 읽거나 저장하지 않는다.
+  - `401 UNAUTHENTICATED`이면 `/auth/refresh`를 한 번 보내고 원 요청을 한 번 다시 보낸다. 동시에 여러 요청이 401을 받아도 갱신은 한 번만 보낸다(API 2장). 갱신이 실패하면 오류를 그대로 던지고, 로그인이 필요한 화면이 로그인 화면으로 보낸다(비회원도 보는 화면이 있어서 `apiFetch`가 이동시키지 않는다).
+  - `403 CSRF_INVALID`이면 응답에 실려 온 새 CSRF 쿠키로 한 번 다시 보낸다(API 1장).
+  - 로그인 상태는 `frontend/src/lib/session.ts`의 `useSession`(`GET /me`)으로 읽는다. 비회원은 오류가 아니라 `anonymous` 상태다.
 - 카카오맵은 클라이언트에서만 로드한다 (스터디 만들기: 장소 선택, 상세: 지도 표시). 앱 키는 공개용 JavaScript 키이며 도메인 제한을 건다.
 - 패키지 매니저는 **npm**이다 (ADR-0001 후속 결정. CI가 `npm ci` 기준, 도구를 늘리지 않는다).
 
