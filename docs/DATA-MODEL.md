@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.5"
+version: "0.6"
 based_on:
-  - docs/PRD.md@0.7
+  - docs/PRD.md@0.8
   - docs/ARCHITECTURE.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/user/**
@@ -131,9 +131,9 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | study_id | BIGINT FK | |
-| job_code | VARCHAR(30) | 희망 직군. 대분류 또는 세부 직무 코드. **행이 없으면 직군 무관**이다(`ANY` 같은 코드를 두지 않는다. PRD 4.2) |
+| job_code | VARCHAR(30) | 희망 직군 **대분류** 코드 (세부 직무는 아직 받지 않는다. PRD 4.2). **행이 없으면 직군 무관**이다(`ANY` 같은 코드를 두지 않는다) |
 
-- PK `(study_id, job_code)`. 안내용이며 신청을 막지 않는다 (PRD 4.4).
+- PK `(study_id, job_code)`. **참여 조건**이다: 행이 있으면 내 직군의 대분류가 그중 하나여야 신청할 수 있다 (PRD 4.4).
 
 ### `study_member`
 | 컬럼 | 타입 | 설명 |

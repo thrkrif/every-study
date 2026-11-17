@@ -95,7 +95,7 @@ public class Study {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    /** 희망 직군. 비어 있으면 직군 무관이다 (PRD 4.2). */
+    /** 희망 직군(대분류). 참여 조건이다. 비어 있으면 직군 무관이다 (PRD 4.2·4.4). */
     @ElementCollection
     @CollectionTable(name = "study_target_job", joinColumns = @JoinColumn(name = "study_id"))
     @Column(name = "job_code", nullable = false, length = 30)

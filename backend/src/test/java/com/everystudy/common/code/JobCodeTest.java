@@ -43,4 +43,16 @@ class JobCodeTest {
         assertThat(JobCode.find("ANY")).isEmpty();
         assertThat(JobCode.find(null)).isEmpty();
     }
+
+    @Test
+    @DisplayName("스터디 희망 직군 검증은 대분류만 받고 세부 직무와 모르는 코드는 거절한다")
+    void categoryCodeValidator() {
+        JobCategoryCode.Validator validator = new JobCategoryCode.Validator();
+
+        assertThat(validator.isValid("IT", null)).isTrue();
+        assertThat(validator.isValid("ETC", null)).isTrue();
+        assertThat(validator.isValid("IT_BACKEND", null)).isFalse();
+        assertThat(validator.isValid("ANY", null)).isFalse();
+        assertThat(validator.isValid(null, null)).isTrue();
+    }
 }

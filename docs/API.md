@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.7"
+version: "0.8"
 based_on:
-  - docs/PRD.md@0.7
+  - docs/PRD.md@0.8
   - docs/ARCHITECTURE.md@0.7
-  - docs/DATA-MODEL.md@0.5
+  - docs/DATA-MODEL.md@0.6
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -57,6 +57,7 @@ covers:
 | 409 | `ALREADY_JOINED` / `ALREADY_WAITING` | 중복 |
 | 409 | `STUDY_NOT_FULL` | 정원에 여유가 있어 대기할 수 없음 (참여 신청을 안내) |
 | 409 | `ENTRY_CRITERIA_NOT_MET` | 입장 기준(출석률·신규 불허) 미충족 |
+| 409 | `JOB_NOT_ALLOWED` | 내 직군의 대분류가 스터디의 희망 직군에 없음 (PRD 4.4) |
 | 409 | `CAPACITY_BELOW_MEMBERS` | 정원을 현재 참여자 수 미만으로 줄이려 함 |
 | 409 | `SCHEDULE_LOCKED` | 참여자가 있어 일정·장소를 수정할 수 없음 (PRD 4.2). 새 스터디를 만들도록 안내 |
 | 409 | `LOCK_TIMEOUT` | 락 대기 초과. 재시도 가능 (ADR-0004) |
@@ -200,7 +201,7 @@ covers:
 **개설 요청**
 ```json
 { "title": "...", "description": "...", "topicCode": "...", "districtCode": "...",
-  "targetJobCodes": ["IT_BACKEND", "IT_FRONTEND"], "place": { "name": "...", "address": "...", "latitude": 37.26, "longitude": 127.03 },
+  "targetJobCodes": ["IT"], "place": { "name": "...", "address": "...", "latitude": 37.26, "longitude": 127.03 },
   "startAt": "2026-11-25T05:00:00Z", "durationMin": 120, "capacity": 4,
   "minAttendanceRate": 70, "allowNewcomer": true }
 ```
@@ -212,7 +213,7 @@ covers:
 | `description` | 10~2000자. 앞뒤 공백은 잘라 낸다 |
 | `topicCode` | 주제 코드 |
 | `districtCode` | 구 단위 지역 코드 |
-| `targetJobCodes` | 대분류·세부 직무 코드 목록. 생략하거나 비우면 직군 무관 (PRD 4.2) |
+| `targetJobCodes` | 직군 **대분류** 코드 목록(세부 직무는 거절). 생략하거나 비우면 직군 무관. 고르면 참여 조건이다 (PRD 4.2·4.4) |
 | `place` | `name` 100자, `address` 200자 이하. 좌표는 소수점 6자리로 저장한다 |
 | `startAt` | 현재 이후. 시작 날짜(KST)가 오늘부터 개설 가능 일수 뒤까지(오늘이 11일이고 14일이면 25일까지). `startMinuteUnit`분 단위이고 초가 없다 |
 | `durationMin` | `durationMinMinutes`분 이상, `durationMinuteUnit`분 단위. 시작한 날(KST) 안에 끝난다. 자정(24:00)에 끝나는 것까지 받는다 |
@@ -230,7 +231,7 @@ covers:
 
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
-| `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`. 오류 `STUDY_FULL`, `STUDY_NOT_RECRUITING`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `ALREADY_JOINED` (검증 순서는 PRD 4.4) |
+| `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`. 오류 `STUDY_FULL`, `STUDY_NOT_RECRUITING`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4) |
 | `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소. 응답에 `cancelType`(`EARLY`/`LATE`). **주최자가 호출하면 주최 포기**로 승계·파투·감점 규칙 적용 (PRD 4.13), 응답에 `outcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`) |
 | `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표 |
 | `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `STUDY_NOT_RECRUITING`, `ALREADY_WAITING` |
