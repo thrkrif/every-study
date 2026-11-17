@@ -1,0 +1,60 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--text-label-weight);
+  color: var(--color-ink-sub);
+}
+
+.input {
+  width: 100%;
+  height: var(--button-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  font-size: 16px; /* 16px 미만이면 iOS 가 입력할 때 화면을 확대한다 */
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 0;
+  border-color: var(--color-primary);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--color-bad);
+}
+
+.below {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--text-label-line);
+}
+
+.hint,
+.error {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.hint {
+  color: var(--color-ink-sub);
+}
+
+.error {
+  color: var(--color-bad);
+}
+
+.count {
+  margin-left: auto;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-ink-sub);
+}

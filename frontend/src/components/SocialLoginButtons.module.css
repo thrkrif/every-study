@@ -1,0 +1,32 @@
+/* 색은 우리 토큰이 아니라 각 공급자 가이드의 값이다. 바꾸지 않는다. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.kakao,
+.google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: var(--button-height);
+  padding: 0 var(--space-3);
+  border-radius: 12px;
+  font-size: var(--text-body-size);
+  font-weight: 500;
+}
+
+.kakao {
+  background: #fee500;
+  color: rgb(0 0 0 / 85%);
+}
+
+.google {
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #747775;
+  color: #1f1f1f;
+}

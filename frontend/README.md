@@ -37,7 +37,9 @@ src/
   app/            화면(라우트). layout.tsx 가 Providers(TanStack Query)로 감싼다
   app/design/     토큰·공통 컴포넌트 확인 화면 (개발 서버에서만 /design)
   components/     공통 컴포넌트 (좌석 줄, 출석 기록 줄, 버튼, 상태 칩)
-  lib/api/        백엔드 호출. client.ts(apiFetch), errors.ts(ApiError, 오류 코드)
+  lib/api/        백엔드 호출. client.ts(apiFetch), errors.ts(ApiError, 오류 코드), me.ts, meta.ts
+  lib/session.ts  로그인 상태(useSession)와 메타 옵션(useMetaOptions) 조회
+public/auth/      카카오·구글 로그인 버튼 로고 (각 공급자 배포 리소스, 바꾸지 않는다)
   styles/         tokens.css(디자인 토큰), globals.css(기본 스타일)
 ```
 

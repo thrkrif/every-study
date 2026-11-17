@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiFetch } from "./client";
+import { apiFetch, socialLoginUrl } from "./client";
 import { ApiError, isApiError } from "./errors";
 
 const BASE_URL = "http://api.test";
@@ -240,5 +240,116 @@ describe("apiFetch", () => {
       expect(isApiError(new Error("x"))).toBe(false);
       expect(isApiError(undefined, "STUDY_FULL")).toBe(false);
     });
+  });
+
+  describe("인증 갱신 (API 1장: 401 후 refresh 1회 재시도)", () => {
+    const unauthenticated = () =>
+      problemResponse(401, { code: "UNAUTHENTICATED" });
+    const paths = () =>
+      fetchMock.mock.calls.map(([url, init]) => [
+        init?.method,
+        String(url).replace(`${BASE_URL}/api/v1`, ""),
+      ]);
+
+    it("401 이면 갱신을 한 번 보내고, 성공하면 원래 요청을 다시 보낸다", async () => {
+      let meCalls = 0;
+      fetchMock.mockImplementation(async (url) => {
+        const path = String(url);
+        if (path.endsWith("/auth/refresh"))
+          return new Response(null, { status: 204 });
+        meCalls += 1;
+        return meCalls === 1 ? unauthenticated() : jsonResponse(200, { id: 1 });
+      });
+
+      await expect(apiFetch("/me")).resolves.toEqual({ id: 1 });
+      expect(paths()).toEqual([
+        ["GET", "/me"],
+        ["POST", "/auth/refresh"],
+        ["GET", "/me"],
+      ]);
+    });
+
+    it("갱신이 실패하면 다시 보내지 않고 UNAUTHENTICATED 를 던진다", async () => {
+      fetchMock.mockImplementation(async () => unauthenticated());
+
+      const error = (await apiFetch("/me").catch((e) => e)) as ApiError;
+
+      expect(error.code).toBe("UNAUTHENTICATED");
+      expect(paths()).toEqual([
+        ["GET", "/me"],
+        ["POST", "/auth/refresh"],
+      ]);
+    });
+
+    it("다시 보낸 요청도 401 이면 갱신을 또 하지 않는다", async () => {
+      fetchMock.mockImplementation(async (url) =>
+        String(url).endsWith("/auth/refresh")
+          ? new Response(null, { status: 204 })
+          : unauthenticated(),
+      );
+
+      await expect(apiFetch("/me")).rejects.toMatchObject({
+        code: "UNAUTHENTICATED",
+      });
+      expect(
+        paths().filter(([, path]) => path === "/auth/refresh"),
+      ).toHaveLength(1);
+    });
+
+    it("동시에 여러 요청이 401 을 받아도 갱신은 한 번만 보낸다", async () => {
+      let refreshed = false;
+      fetchMock.mockImplementation(async (url) => {
+        if (String(url).endsWith("/auth/refresh")) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          refreshed = true;
+          return new Response(null, { status: 204 });
+        }
+        return refreshed ? jsonResponse(200, {}) : unauthenticated();
+      });
+
+      await Promise.all([
+        apiFetch("/me"),
+        apiFetch("/meta/options"),
+        apiFetch("/studies"),
+      ]);
+
+      expect(
+        paths().filter(([, path]) => path === "/auth/refresh"),
+      ).toHaveLength(1);
+    });
+
+    it("갱신·로그아웃 요청 자체의 401 에는 갱신하지 않는다", async () => {
+      fetchMock.mockImplementation(async () => unauthenticated());
+
+      await expect(
+        apiFetch("/auth/logout", { method: "POST" }),
+      ).rejects.toMatchObject({
+        code: "UNAUTHENTICATED",
+      });
+      expect(paths()).toEqual([["POST", "/auth/logout"]]);
+    });
+
+    it("403 CSRF_INVALID 이면 새 CSRF 쿠키를 다시 읽어 한 번 다시 보낸다", async () => {
+      let calls = 0;
+      fetchMock.mockImplementation(async () => {
+        calls += 1;
+        if (calls === 1) {
+          document.cookie = "XSRF-TOKEN=fresh; path=/";
+          return problemResponse(403, { code: "CSRF_INVALID" });
+        }
+        return new Response(null, { status: 204 });
+      });
+
+      await apiFetch("/me/profile", { method: "PUT", body: {} });
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(lastRequest().headers.get("X-XSRF-TOKEN")).toBe("fresh");
+    });
+  });
+
+  it("소셜 로그인 주소는 /api/v1 이 아니라 /oauth2 아래다", () => {
+    expect(socialLoginUrl("kakao")).toBe(
+      `${BASE_URL}/oauth2/authorization/kakao`,
+    );
   });
 });
