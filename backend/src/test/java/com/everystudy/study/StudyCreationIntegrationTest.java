@@ -98,7 +98,7 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
     void createsStudyWithHostMemberAndChatRoom() {
         ZonedDateTime start = kstAt(2, LocalTime.of(19, 30));
 
-        MvcTestResult result = create(body(start, 120, "[\"IT_BACKEND\", \"IT_FRONTEND\"]"));
+        MvcTestResult result = create(body(start, 120, "[\"IT\", \"PUBLIC\"]"));
 
         assertThat(result).hasStatus(201);
         long id = jdbc.queryForObject("SELECT id FROM study", Long.class);
@@ -120,7 +120,7 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
         assertThat(study.get("session_date").toString()).isEqualTo(start.toLocalDate().toString());
         assertThat(study.get("latitude").toString()).isEqualTo("37.300000");
         assertThat(jdbc.queryForList("SELECT job_code FROM study_target_job ORDER BY job_code", String.class))
-                .containsExactly("IT_BACKEND", "IT_FRONTEND");
+                .containsExactly("IT", "PUBLIC");
         assertThat(jdbc.queryForMap("SELECT study_id, user_id, status FROM study_member"))
                 .containsEntry("study_id", id).containsEntry("user_id", userId()).containsEntry("status", "ACTIVE");
         assertThat(jdbc.queryForMap("SELECT study_id, status FROM chat_room"))
@@ -178,11 +178,11 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
-    @DisplayName("시각·정원 규칙과 형식 오류는 400 VALIDATION_FAILED 이고 필드를 알려 준다")
+    @DisplayName("시각·정원 규칙과 형식 오류(세부 직무 희망 직군 포함)는 400 VALIDATION_FAILED 이고 필드를 알려 준다")
     void invalidInput() {
         MvcTestResult tooFar = create(body(kstAt(15, LocalTime.of(10, 0)), 60, "[]"));
         MvcTestResult crossesMidnight = create(body(kstAt(2, LocalTime.of(23, 0)), 70, "[]"));
-        MvcTestResult badFormat = create(body(kstAt(2, LocalTime.of(10, 0)), 60, "[\"ANY\"]")
+        MvcTestResult badFormat = create(body(kstAt(2, LocalTime.of(10, 0)), 60, "[\"IT_BACKEND\", \"ANY\"]")
                 .replace("\"SUWON_JANGAN\"", "\"SUWON\"").replace("\"모각코\"", "\"가\""));
 
         assertThat(tooFar).hasStatus(400).bodyJson().extractingPath("$.errors[*].field").asArray()
@@ -190,7 +190,7 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
         assertThat(crossesMidnight).hasStatus(400).bodyJson().extractingPath("$.errors[*].field").asArray()
                 .containsExactly("durationMin");
         assertThat(badFormat).hasStatus(400).bodyJson().extractingPath("$.errors[*].field").asArray()
-                .containsExactlyInAnyOrder("title", "districtCode", "targetJobCodes[0]");
+                .containsExactlyInAnyOrder("title", "districtCode", "targetJobCodes[0]", "targetJobCodes[1]");
         assertThat(count("study")).isZero();
     }
 

@@ -1,7 +1,7 @@
 package com.everystudy.study.web;
 
 import com.everystudy.common.code.DistrictCode;
-import com.everystudy.common.code.KnownJobCode;
+import com.everystudy.common.code.JobCategoryCode;
 import com.everystudy.common.code.KnownTopicCode;
 import com.everystudy.study.domain.Study;
 import com.everystudy.study.service.CreateStudyCommand;
@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 스터디 개설 요청 (API 4장). 여기서는 형식만 본다. 시각·정원·입장 기준 값의 범위는 서비스가 설정값으로 검사한다.
  *
- * @param targetJobCodes 희망 직군. 생략하거나 비우면 직군 무관
+ * @param targetJobCodes 희망 직군 대분류. 생략하거나 비우면 직군 무관. 세부 직무 코드는 받지 않는다 (PRD 4.2)
  * @param allowNewcomer  신규 허용. 생략하면 허용 (PRD 4.7 기본값)
  */
 record CreateStudyRequest(
@@ -29,7 +29,7 @@ record CreateStudyRequest(
         String description,
         @NotBlank(message = "필수 값입니다") @KnownTopicCode String topicCode,
         @NotBlank(message = "필수 값입니다") @DistrictCode String districtCode,
-        List<@NotBlank(message = "필수 값입니다") @KnownJobCode String> targetJobCodes,
+        List<@NotBlank(message = "필수 값입니다") @JobCategoryCode String> targetJobCodes,
         @NotNull(message = "필수 값입니다") @Valid PlaceRequest place,
         @NotNull(message = "필수 값입니다") Instant startAt,
         @NotNull(message = "필수 값입니다") Integer durationMin,
