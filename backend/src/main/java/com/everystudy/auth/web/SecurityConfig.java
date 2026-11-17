@@ -41,6 +41,8 @@ class SecurityConfig {
             "/oauth2/**",
             "/login/oauth2/**",
             AuthController.BASE_PATH + "/**",
+            // 코드 목록과 클라이언트용 설정값 (API 4장)
+            "/api/v1/meta/**",
             // API 문서. 운영에서는 springdoc 을 꺼서 404 다 (PLAN D-19).
             "/v3/api-docs/**",
             "/swagger-ui/**",

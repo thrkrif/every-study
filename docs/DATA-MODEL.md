@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.3"
+version: "0.4"
 based_on:
-  - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.6
+  - docs/PRD.md@0.7
+  - docs/ARCHITECTURE.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -23,7 +23,8 @@ covers:
 | 시각 | `DATETIME(6)`, **UTC** 저장. 컬럼 이름은 `*_at` |
 | 날짜 | KST 기준 날짜는 `DATE` (`session_date`). 설명은 해당 컬럼에 적는다 |
 | 열거형 | `VARCHAR`에 대문자 코드 저장 (MySQL `ENUM` 미사용: 값 추가가 마이그레이션이 되는 것을 피함). 허용 값은 코드의 enum과 `CHECK` 제약으로 맞춘다 |
-| 고정 목록 | 주제, 직군, 지역(구)은 테이블이 아니라 **코드 값**이다. 목록 자체는 `GET /meta/options`로 내려준다 (API 명세). 값 추가는 코드 변경이다 |
+| 고정 목록 | 주제, 직군, 지역은 테이블이 아니라 **코드 값**이다. 원본은 백엔드 `common/code`의 enum이고, 목록 자체는 `GET /meta/options`로 내려준다 (API 4장). 값 추가는 코드 변경이다. 이미 저장된 코드는 지우거나 이름을 바꾸지 않는다 |
+| 계층 코드 | **직군**은 대분류 → 세부 직무 2단계(예: `IT` → `IT_BACKEND`), **지역**은 시·도 → 시 → 구 3단계(예: `GYEONGGI` → `SUWON` → `SUWON_YEONGTONG`). 컬럼에는 코드 하나만 저장하고, 상위 단계는 코드가 안다(상위 코드 컬럼을 따로 두지 않는다) |
 | 삭제 | 기본은 물리 삭제 없이 상태 컬럼을 바꾼다. 예외는 각 테이블에 적는다 |
 | 낙관적 잠금 | 쓰지 않는다. 멤버 구성은 `study` 행 비관적 락으로 직렬화한다 (ADR-0004) |
 | `created_at` / `updated_at` | 모든 테이블에 `created_at`. 수정이 있는 테이블만 `updated_at` |
@@ -50,13 +51,13 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | id | BIGINT PK | |
 | nickname | VARCHAR(20) NULL | 온보딩에서 정한다. 탈퇴 시 비운다 (화면은 "탈퇴한 사용자") |
 | email | VARCHAR(255) NULL | 이메일 알림용. 소셜 공급자가 확인한 이메일만 저장하고, 없으면 `NULL`. 탈퇴 시 삭제 |
-| job_code | VARCHAR(30) NULL | 내 직군 (단일 선택). 온보딩에서 정한다 |
-| district_code | VARCHAR(20) NULL | 활동 지역(구). 온보딩에서 정한다 |
+| job_code | VARCHAR(30) NULL | 내 직군. 대분류 코드, 또는 세부 직무를 골랐으면 그 코드 하나. 온보딩에서 정한다 (대분류는 필수, 세부는 선택. PRD 4.1) |
+| district_code | VARCHAR(20) NULL | 활동 지역. **구** 단위 코드. 온보딩에서 정한다 |
 | role | VARCHAR(10) | `USER` / `ADMIN` |
 | status | VARCHAR(12) | `ACTIVE` / `WITHDRAWN` |
 | created_at, withdrawn_at | DATETIME(6) | |
 
-- 닉네임은 **중복 불허**(`UNIQUE (nickname)`, 확정). 온보딩 전과 탈퇴 후에는 값이 `NULL`이라 충돌하지 않는다.
+- 닉네임은 **중복 불허**(`UNIQUE (nickname)`, 확정). 온보딩 전과 탈퇴 후에는 값이 `NULL`이라 충돌하지 않는다. 비교는 컬럼 정렬 규칙(`utf8mb4_0900_ai_ci`)을 따라 영문 대소문자를 구분하지 않는다(`Mate`와 `mate`는 같은 닉네임). 형식은 2~20자의 한글(완성형)·영문·숫자·밑줄이다 (API 3장).
 - **온보딩 전 회원** (확정, 2026-11-17): 소셜 로그인으로 처음 들어오면 `nickname`·`job_code`·`district_code`가 `NULL`인 행을 만든다. 셋이 모두 채워져야 온보딩을 마친 것으로 본다(별도 컬럼을 두지 않는다).
 - **이메일** (확정, PLAN D-9): 구글은 `email_verified`가 참인 이메일, 카카오는 선택 동의 항목(`account_email`)으로 받은 이메일 중 유효·인증된 것만 저장한다. 동의하지 않았거나 확인되지 않은 이메일이면 `NULL`로 가입된다. 다시 로그인할 때 공급자가 확인된 이메일을 주면 그 값으로 맞추고, 주지 않으면 기존 값을 둔다.
 - 탈퇴: 개인정보 컬럼만 비우고 행과 `id`는 남긴다. 다른 테이블의 `user_id`는 그대로 둔다 (PRD 4.1, ARCHITECTURE 5장).
@@ -99,7 +100,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | title | VARCHAR(60) | |
 | description | TEXT | |
 | topic_code | VARCHAR(30) | |
-| district_code | VARCHAR(20) | |
+| district_code | VARCHAR(20) | **구** 단위 코드. 탐색의 시·도·시 필터는 이 코드의 상위 단계로 거른다 |
 | place_name | VARCHAR(100) | 카카오맵에서 고른 장소명 |
 | place_address | VARCHAR(200) | |
 | latitude, longitude | DECIMAL(9,6) | 체크인 거리 계산 기준 |
@@ -128,7 +129,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | study_id | BIGINT FK | |
-| job_code | VARCHAR(30) | 희망 직군. "직군 무관"은 코드 `ANY` 한 행 |
+| job_code | VARCHAR(30) | 희망 직군. 대분류 또는 세부 직무 코드. **행이 없으면 직군 무관**이다(`ANY` 같은 코드를 두지 않는다. PRD 4.2) |
 
 - PK `(study_id, job_code)`. 안내용이며 신청을 막지 않는다 (PRD 4.4).
 

@@ -1,12 +1,14 @@
 ---
 status: draft
-version: "0.5"
+version: "0.6"
 based_on:
-  - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.6
-  - docs/DATA-MODEL.md@0.3
+  - docs/PRD.md@0.7
+  - docs/ARCHITECTURE.md@0.7
+  - docs/DATA-MODEL.md@0.4
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
+  - backend/src/main/java/com/everystudy/user/web/**
+  - backend/src/main/java/com/everystudy/meta/web/**
 ---
 
 # API 명세
@@ -47,6 +49,7 @@ covers:
 | 403 | `FORBIDDEN` / `CSRF_INVALID` | 권한 없음 / CSRF 헤더 없음·불일치 (클라이언트는 CSRF 쿠키를 다시 읽어 1회 재시도) |
 | 403 | `USER_RESTRICTED` | 제재로 신청·개설 불가. `until` 포함 |
 | 404 | `NOT_FOUND` | 대상 없음 |
+| 409 | `NICKNAME_TAKEN` | 다른 회원이 쓰는 닉네임 (영문 대소문자 무시). 클라이언트는 닉네임 입력란에 안내한다 |
 | 409 | `STUDY_FULL` | 정원 참 → 클라이언트는 대기 안내 |
 | 409 | `STUDY_NOT_RECRUITING` | 종료·파투 상태이거나 체크인 오픈 이후 |
 | 409 | `ALREADY_JOINED` / `ALREADY_WAITING` | 중복 |
@@ -131,8 +134,8 @@ covers:
 
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
-| `GET /api/v1/me` | 회원 | 프로필, `onboarded` 여부, 이용 제한 현황 |
-| `PUT /api/v1/me/profile` | 회원 | 온보딩·수정: `nickname`, `jobCode`, `districtCode` |
+| `GET /api/v1/me` | 회원 | 프로필, `onboarded` 여부. 이용 제한 현황은 제재 작업(PLAN T-035a)에서 더한다 |
+| `PUT /api/v1/me/profile` | 회원 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
 | `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디가 있으면 규칙을 먼저 적용한 뒤 처리 |
 | `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past` | 회원 | 내 스터디 (마이페이지, 다가오는 모임) |
 | `GET /api/v1/me/attendance` | 회원 | 지난 출석 기록 (판정, 이의 가능 여부) |
@@ -140,6 +143,24 @@ covers:
 | `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off |
 | `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 웹 푸시 구독 등록·해지 |
 | `GET /api/v1/users/{id}` | 공개 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1) |
+
+**내 정보 응답** (`GET /me`, `PUT /me/profile`)
+```json
+{ "id": 42, "nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "SUWON_YEONGTONG",
+  "role": "USER", "onboarded": true, "joinedAt": "2026-11-17T05:00:00Z" }
+```
+- 온보딩 전에는 `nickname`·`jobCode`·`districtCode`가 `null`이고 `onboarded: false`다. 셋을 모두 저장하면 `true`가 된다.
+- 탈퇴한 회원은 액세스 토큰이 남아 있어도 `401 UNAUTHENTICATED`다.
+
+**온보딩·수정 요청** (`PUT /me/profile`) — 온보딩과 이후 수정이 같은 경로이고, 세 값을 모두 보낸다.
+
+| 필드 | 규칙 |
+|---|---|
+| `nickname` | 2~20자의 한글(완성형)·영문·숫자·밑줄(`_`). 앞뒤 공백은 서버가 잘라 낸다. 다른 회원이 쓰면 `409 NICKNAME_TAKEN` |
+| `jobCode` | 직군 대분류(필수), 또는 그 아래 세부 직무를 골랐으면 그 코드. `/meta/options`의 `jobs` 어느 단계의 코드든 된다 |
+| `districtCode` | 활동 지역. **구** 단위 코드만 (`/meta/options`의 `regions` 맨 아래 단계) |
+
+형식이 틀리면 `400 VALIDATION_FAILED`이고 `errors`에 필드가 담긴다.
 
 **출석 지표 응답** (PRD 4.7)
 ```json
@@ -151,21 +172,35 @@ covers:
 
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
-| `GET /api/v1/meta/options` | 공개 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정) |
-| `GET /api/v1/studies` | 공개 | 목록. 필터 `districtCode`, `topicCode`, `jobCode`, `recruiting=true`, 정렬 `sort=latest\|deadline`, 커서 |
+| `GET /api/v1/meta/options` | 공개 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정). 아래 응답 |
+| `GET /api/v1/studies` | 공개 | 목록. 필터 `regionCode`(시·도·시·구 어느 단계든, 생략하면 전체. "내 지역"은 클라이언트가 내 구의 시 코드로 부른다), `topicCode`, `jobCode`, `recruiting=true`, 정렬 `sort=latest\|deadline`, 커서 |
 | `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `403 USER_RESTRICTED` 가능 |
 | `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함 |
 | `PATCH /api/v1/studies/{id}` | 주최자 | 제목·소개는 항상 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없을 때만** 수정 가능하고, 있으면 `SCHEDULE_LOCKED`. 응답 상세의 `scheduleEditable`로 클라이언트가 입력란을 잠근다 |
 | `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소. 증액 시 대기자에게 알림 |
 
+**메타 옵션 응답** (`GET /meta/options`)
+```json
+{ "topics":  [{ "code": "JOB_PREP", "name": "취업준비", "children": [] }],
+  "jobs":    [{ "code": "IT", "name": "IT·개발",
+                "children": [{ "code": "IT_BACKEND", "name": "백엔드", "children": [] }] }],
+  "regions": [{ "code": "GYEONGGI", "name": "경기",
+                "children": [{ "code": "SUWON", "name": "수원시",
+                               "children": [{ "code": "SUWON_JANGAN", "name": "장안구", "children": [] }] }] }],
+  "study":   { "capacityMin": 2, "capacityMax": 6, "openableDays": 14 },
+  "checkin": { "radiusMeters": 150 } }
+```
+- 목록의 순서는 화면에 보일 순서다. 코드는 저장·요청에 쓰고, 화면에는 `name`을 쓴다.
+- 수치는 서버 설정값이라 바뀔 수 있다. 클라이언트는 값을 따로 갖지 않고 이 응답을 쓴다. 다른 설정값은 그 기능의 작업에서 더한다.
+
 **개설 요청**
 ```json
 { "title": "...", "description": "...", "topicCode": "...", "districtCode": "...",
-  "targetJobCodes": ["ANY"], "place": { "name": "...", "address": "...", "latitude": 37.26, "longitude": 127.03 },
+  "targetJobCodes": ["IT_BACKEND", "IT_FRONTEND"], "place": { "name": "...", "address": "...", "latitude": 37.26, "longitude": 127.03 },
   "startAt": "2026-11-25T05:00:00Z", "durationMin": 120, "capacity": 4,
   "minAttendanceRate": 70, "allowNewcomer": true }
 ```
-검증: 시작은 현재 이후이고 개설 가능 범위 안, 시작한 날(KST) 안에 끝남, 정원 범위(PRD 4.14), 입장 기준 형식.
+검증: 시작은 현재 이후이고 개설 가능 범위 안, 시작한 날(KST) 안에 끝남, 정원 범위(PRD 4.14), 입장 기준 형식. `districtCode`는 구 단위, `targetJobCodes`는 대분류·세부 직무 코드이고 빈 목록이면 직군 무관(PRD 4.2).
 
 **상세 응답 주요 필드**: 기본 정보, `status`, `recruiting`(파생), `memberCount`, `capacity`, `members[{userId, nickname, trust}]`, 주최자 요약, `entryCriteria`, `myState`(`NONE`/`MEMBER`/`WAITING`/`HOST`), 주최자에게만 `waitingCount`.
 

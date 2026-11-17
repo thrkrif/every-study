@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.6"
+version: "0.7"
 based_on:
-  - docs/PRD.md@0.6
+  - docs/PRD.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/common/**
   - frontend/src/lib/api/**
@@ -58,7 +58,8 @@ covers:
 | `notification` | 알림 생성·발송(푸시/이메일), 수신 설정 | 4.5 |
 | `chat` | 채팅방·메시지·읽음·공지·신고/차단, 스터디 종료 시 폐쇄와 메시지 삭제 | 4.12, 4.14 |
 | `admin` | 이의·신고 큐, 신고 조치(스터디 강제 종료, 메시지 삭제, 이용 정지), 제재 해제 (간단한 어드민) | 4.11 |
-| `common` | 시간(`Clock`), 예외·오류 응답, 설정 속성, 로그 마스킹, 요청 추적(traceId), 감사 로그 기록(여러 모듈이 기록하므로 `admin`이 아니라 여기에 둔다). 기능 모듈과 달리 `web/service/domain/repository`로 나누지 않고 역할별 하위 패키지(`time`, `error`, `logging`, `web`, `security`)를 둔다. `security`에는 모든 모듈의 컨트롤러가 받는 로그인 회원 주체(`LoginUser`)가 있다 | |
+| `meta` | 클라이언트용 코드 목록과 설정값(`GET /meta/options`). 다른 모듈의 설정 객체를 읽기만 하고, 다른 모듈은 `meta`를 참조하지 않는다 | 4.1~4.3 |
+| `common` | 시간(`Clock`), 예외·오류 응답, 설정 속성, 로그 마스킹, 요청 추적(traceId), 감사 로그 기록(여러 모듈이 기록하므로 `admin`이 아니라 여기에 둔다). 기능 모듈과 달리 `web/service/domain/repository`로 나누지 않고 역할별 하위 패키지(`time`, `error`, `logging`, `web`, `security`, `code`)를 둔다. `security`에는 모든 모듈의 컨트롤러가 받는 로그인 회원 주체(`LoginUser`)가, `code`에는 여러 모듈이 함께 쓰는 고정 목록(직군·지역·주제, DATA-MODEL 1장)과 그 검증 애너테이션이 있다 | |
 
 **패키지와 의존 방향 규칙**
 - 패키지 모양은 `com.everystudy.<모듈>.<계층>`이고 계층은 `web`, `service`, `domain`, `repository`, `event`다. `event`에는 다른 모듈이 받는 도메인 이벤트 클래스를 둔다.
@@ -134,6 +135,7 @@ covers:
 
 ### 4.9 정책 설정값 (제안)
 - MVP는 `@ConfigurationProperties`(YAML)로 **타입 있는 설정**을 둔다: 체크인 반경, 체크인 시간창, 출석·지각 경계, 취소 기준, 주최자 감점·제재 단계, 최근 N회, 신규 기준 등 (값은 PRD).
+- 설정 객체는 그 값을 쓰는 모듈의 `service` 패키지에 `everystudy.<모듈>` 접두사로 둔다(예: 정원 범위는 `study`, 체크인 반경은 `attendance`). 클라이언트가 알아야 하는 값은 `meta` 모듈이 이 객체들을 읽어 `GET /meta/options`로 내려준다. 클라이언트는 수치를 따로 갖지 않는다.
 - 코드 곳곳에서 숫자를 직접 쓰지 않고 설정 객체를 주입한다. 운영 중 무배포 변경이 필요해지면 DB 설정 테이블로 옮긴다 (그때 ADR 추가).
 
 ## 5. 데이터 설계 원칙 (제안)

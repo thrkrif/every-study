@@ -2,10 +2,10 @@
 status: draft
 version: "0.5"
 based_on:
-  - docs/PRD.md@0.6
-  - docs/ARCHITECTURE.md@0.6
-  - docs/DATA-MODEL.md@0.3
-  - docs/API.md@0.5
+  - docs/PRD.md@0.7
+  - docs/ARCHITECTURE.md@0.7
+  - docs/DATA-MODEL.md@0.4
+  - docs/API.md@0.6
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -103,7 +103,7 @@ based_on:
   - 완료: `/auth/refresh` 회전, 재사용 탐지 시 같은 `family_id` 전체 폐기와 401 · `/auth/logout` 폐기·쿠키 삭제 · CSRF 누락·불일치 시 `403 CSRF_INVALID` · 허용 외 `Origin` 거부, CORS는 프론트 오리진 하나 · 만료 액세스 토큰은 `401 UNAUTHENTICATED` · 각 경우 통합 테스트
   - 문서: API 1장 오류 표, ADR-0002와 구현 일치 확인
 
-- [ ] T-006 내 정보·온보딩 API와 메타 옵션
+- [x] T-006 내 정보·온보딩 API와 메타 옵션
   - 선행: T-005 · 결정 X-6
   - 참조: PRD 4.1, API 3장(`GET /me`, `PUT /me/profile`)·4장(`GET /meta/options`), DATA-MODEL 1장(고정 목록)·3장
   - 완료: 온보딩(닉네임·직군·지역) 저장 · 닉네임 중복은 X-6에서 정한 코드로 거부(테스트) · `onboarded` 여부 반환 · `/meta/options`가 코드 목록과 클라이언트용 설정값을 설정 객체에서 읽어 반환(설정을 바꾸면 응답이 바뀌는 테스트)
@@ -567,6 +567,7 @@ based_on:
 | D-17 | 감사 로그 기록 범위. PRD 8장·DATA-MODEL 9장은 점수 변동과 운영자 조치를 모두 기록하라고 하고, PRD 4.6은 "주최자의 수동 변경"을 기록하라고 하나 PRD 3장·4.6은 주최자가 출석을 바꿀 수 없다고 함. 권장안: 자동 감점·제재·판정 확정과 운영자 조치를 모두 기록하고, 4.6 문구는 "운영자 정정"으로 고친다 | PRD 4.6·8장, DATA-MODEL 9장 | T-019 |
 | D-18 | 알림 종류별 `expires_at` 기준(예: 일정 알림은 해당 시점 이후 무의미, 대기 알림은 체크인 오픈까지). 권장안: 일정 알림은 다음 알림 시각 또는 체크인 마감, 대기 알림은 체크인 오픈, 그 밖의 즉시 알림은 고정 기간(설정값). 기술 파라미터 기본값(락 대기·백오프·최대 횟수·배치 상한)은 결정 항목이 아니라 진행 규칙 9로 처리 | ARCHITECTURE 4.6, ADR-0005 | T-040 |
 | D-19 | **결정됨(2026-11-16, API 첫머리·ARCHITECTURE 9장)**: OpenAPI 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)는 개발용이라 운영(`prod`)에서는 끈다. `application-prod.yml`에서 끄므로 배포할 때 `SPRING_PROFILES_ACTIVE=prod`를 지정해야 한다 | API 첫머리, ARCHITECTURE 9장 | T-013 |
+| D-20 | **결정됨(2026-11-17, PRD 4.1~4.3 v0.7, DATA-MODEL 1장)**: 직군은 대분류 → 세부 직무 2단계다. 회원은 대분류 필수·세부 선택, 스터디 희망 직군은 대분류·세부를 여러 개 고를 수 있고 모두 선택이며 고르지 않으면 직군 무관(`ANY` 코드 없음). 지역은 시·도 → 시 → 구이고 회원·스터디는 구로 저장, 탐색은 어느 단계로든 거르며 "내 지역"은 내 구가 속한 시. 주제는 PRD 4.2의 6개. 목록은 `common/code`의 enum | PRD 4.1~4.3, DATA-MODEL 1장 | T-006, T-008, T-009 |
 
 ### 7.2 문서 간 불일치 (X) — PLAN에서 임의로 고치지 않음
 
@@ -577,7 +578,7 @@ based_on:
 | X-3 | **결정됨(해소)**: docs/README.md 1장 표와 계층도에 PLAN을 추가함 (PR #12) | - | - |
 | X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음 | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
 | X-5 | API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
-| X-6 | 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음 | `409 NICKNAME_TAKEN` 추가 | T-006 |
+| X-6 | **결정됨(2026-11-17, 오른쪽 제안대로. API 1장)**: 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음. 함께 정한 것: 닉네임은 2~20자의 한글(완성형)·영문·숫자·밑줄, 영문 대소문자는 구분하지 않고 중복으로 본다(API 3장) | `409 NICKNAME_TAKEN` 추가 | T-006 |
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |
 | X-8 | **결정됨(2026-11-16, 오른쪽 제안대로. ARCHITECTURE 3장, ADR-0003 후속 결정).** **이벤트→알림 트랜잭션 경계와 모듈 방향.** ARCHITECTURE 3장은 모듈 간 리스너를 `AFTER_COMMIT`으로 실행한다고 하나, 4.6과 ADR-0005는 아웃박스를 비즈니스 트랜잭션 안에서 기록한다고 함(`AFTER_COMMIT`에서 기록하면 커밋 후 실패 시 알림 유실). 또 `study`가 개설 시 `chat_room`을 만들고(PRD 4.12, API 4장) 종료 시 폐쇄하면 `study → chat` 의존이 생겨 3장의 `chat → study` 방향과 순환 | 알림은 `BEFORE_COMMIT` 동기 리스너 또는 `notification` 공개 서비스 직접 호출로 같은 트랜잭션에 기록하고, `AFTER_COMMIT`은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너(같은 트랜잭션)로 받아 방 생성·폐쇄를 하고, `study`는 `chat`을 참조하지 않는다. ARCHITECTURE 3장과 ADR-0003에 반영 | T-003, T-008, T-014, T-015 |
 | X-9 | DATA-MODEL 5장의 `UNIQUE (study_id, user_id, type)`와 재신청 허용(같은 행 재활성화, DATA-MODEL 11장 확정)이 충돌: 나가기→재신청→다시 나가기에서 `EARLY_CANCEL`·`LATE_CANCEL`이 중복되어 거부됨. MySQL은 부분 유일 인덱스가 없음 | 생성 컬럼(ADR-0001 "생성 컬럼으로 우회")으로 판정 종류(`ATTENDED`, `LATE`, `NO_SHOW_CANDIDATE`, `NO_SHOW`, `VOIDED`)일 때만 값을 갖고 취소 종류는 `NULL`인 키를 만들어 `UNIQUE (study_id, user_id, 그 키)`로 둔다. 취소 이벤트의 중복 방지는 `study` 락으로 충분 | T-018 |
@@ -589,3 +590,4 @@ based_on:
 | X-15 | **체크인과 자동 판정의 경쟁.** ADR-0004 결정 1은 멤버 구성을 바꾸는 작업만 `study` 행 락으로 직렬화한다. 체크인(T-027)과 주최자 미도착 무효·노쇼 후보 판정(T-031)은 락 대상이 아니어서, 마감 직전 체크인이 판정보다 늦게 커밋되면 출석과 노쇼 후보가 함께 남거나, 주최자가 체크인했는데 세션이 무효가 될 수 있음 | ADR-0004 결정 1의 대상에 "체크인, 일회용 코드 체크인, 세션 무효·노쇼 후보 판정"을 추가한다(보강 ADR 또는 ADR-0004 후속 결정). 체크인은 락을 잡은 뒤 서버 시각으로 시간창을 검사하고, 판정은 락을 잡은 뒤 대상 조건(`judged_at IS NULL`, 마감 경과)을 다시 확인한다 | T-027, T-031 |
 | X-16 | **체크인 오픈 시 대기 정리.** PRD 4.14와 DATA-MODEL 4장(`study_waiting`)은 체크인이 열리면 대기를 자동 해제(행 삭제)한다고 하나, ADR-0005·ARCHITECTURE 4.7 작업 목록과 DATA-MODEL 10장에는 그 시점에 도는 작업이 없음 | 체크인 오픈 이후의 대기 행은 조회(`myState`, `waitingCount`)와 알림 대상에서 걸러 내고, 행 삭제는 스터디 종료·파투 처리 때 한다. DATA-MODEL 4장 문구를 "체크인 오픈 이후에는 무효로 보고 종료 시 삭제"로 고친다 | T-017, T-030 |
 | X-17 | **결정됨(2026-11-16, API 1장)**: 서버 내부 오류는 `500 INTERNAL_ERROR`, 잘못된 본문·파라미터는 `VALIDATION_FAILED`, 405·415 등 HTTP 표준 오류는 `code` 없이 `status`로 구분한다. T-001에서 구현 | API 1장 | T-004 |
+| X-18 | 희망 직군이 2단계가 되면서(D-20) "내 직군이 희망 직군과 다르면 안내"(PRD 4.4)의 일치 기준이 정해지지 않음. 예: 희망이 `IT_BACKEND`이고 내 직군이 대분류 `IT`만인 경우 | 희망 직군이 없거나, 희망 목록에 내 직군 코드 또는 내 대분류가 있으면 일치. 위 예는 불일치(안내만 표시, 신청은 막지 않음) | T-009, T-024 |
