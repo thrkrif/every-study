@@ -38,7 +38,9 @@ spring:
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
-            scope: account_email   # 선택 동의. 동의하지 않으면 이메일 없이 가입된다 (PLAN D-9)
+            # scope 는 적지 않는다. 카카오는 scope 가 없으면 콘솔에 켜 둔 동의 항목만 묻는다.
+            # 이메일(account_email)은 비즈 앱에서만 켤 수 있고, 꺼져 있으면 이메일 없이 가입된다 (PLAN D-9).
+            # 여기에 account_email 을 적으면 항목이 꺼진 앱에서 로그인이 KOE205 로 실패한다.
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}

@@ -20,7 +20,7 @@ Spring Boot REST API. 구조와 규칙은 [ARCHITECTURE](../docs/ARCHITECTURE.md
 공급자 콘솔에 등록할 값:
 
 - 리다이렉트 URI: `http://localhost:8080/login/oauth2/code/kakao`, `http://localhost:8080/login/oauth2/code/google`
-- 카카오 동의 항목: 카카오계정(이메일) `account_email`을 **선택 동의**로 켠다. 켜지 않으면 카카오 로그인이 `KOE205` 오류로 실패한다. 이 항목을 쓰려면 앱을 비즈 앱으로 전환해야 할 수 있다(콘솔 안내를 따른다).
+- 카카오 동의 항목: 아무것도 켜지 않아도 로그인된다(식별에는 카카오 `id`만 쓴다). 이때 카카오 사용자는 이메일 없이 가입된다. 이메일을 받으려면 앱을 비즈 앱으로 전환한 뒤 카카오계정(이메일) `account_email`을 **선택 동의**로 켠다. 코드는 바꾸지 않아도 된다.
 - 구글 범위: `email` (`.../auth/userinfo.email`)
 
 로그인은 브라우저에서 `http://localhost:8080/oauth2/authorization/kakao`(또는 `/google`)로 시작한다. 성공하면 토큰 쿠키를 받고 `FRONTEND_URL`(기본 `http://localhost:3000`)로 이동한다. 쿠키 이름과 이동 경로는 [API 2장](../docs/API.md).
