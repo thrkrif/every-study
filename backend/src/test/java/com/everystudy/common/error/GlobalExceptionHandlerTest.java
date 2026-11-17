@@ -8,9 +8,14 @@ import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,8 +24,24 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @WebMvcTest(controllers = GlobalExceptionHandlerTest.ProbeController.class)
-@Import(GlobalExceptionHandlerTest.ProbeController.class)
+@Import({GlobalExceptionHandlerTest.ProbeController.class, GlobalExceptionHandlerTest.OpenSecurityConfig.class})
 class GlobalExceptionHandlerTest {
+
+    /**
+     * 이 테스트는 오류 응답의 모양만 본다. 웹 슬라이스는 앱의 보안 설정을 읽지 않아 기본값(전부 인증 필요)이 걸리므로,
+     * 요청이 컨트롤러까지 가도록 보안 필터를 열어 둔다. 인증·CSRF 동작은 통합 테스트가 검증한다.
+     */
+    @TestConfiguration(proxyBeanMethods = false)
+    static class OpenSecurityConfig {
+
+        @Bean
+        SecurityFilterChain openFilterChain(HttpSecurity http) throws Exception {
+            return http
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                    .csrf(AbstractHttpConfigurer::disable)
+                    .build();
+        }
+    }
 
     @RestController
     static class ProbeController {

@@ -1,9 +1,13 @@
 ---
 status: draft
-version: "0.2"
+version: "0.3"
 based_on:
   - docs/PRD.md@0.6
   - docs/ARCHITECTURE.md@0.6
+covers:
+  - backend/src/main/java/com/everystudy/user/**
+  - backend/src/main/java/com/everystudy/auth/**
+  - backend/src/main/resources/db/migration/**
 ---
 
 # 데이터 명세
@@ -44,15 +48,17 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | id | BIGINT PK | |
-| nickname | VARCHAR(20) | 탈퇴 시 비운다 (화면은 "탈퇴한 사용자") |
-| email | VARCHAR(255) NULL | 이메일 알림용. 탈퇴 시 삭제 |
-| job_code | VARCHAR(30) | 내 직군 (단일 선택) |
-| district_code | VARCHAR(20) | 활동 지역(구) |
+| nickname | VARCHAR(20) NULL | 온보딩에서 정한다. 탈퇴 시 비운다 (화면은 "탈퇴한 사용자") |
+| email | VARCHAR(255) NULL | 이메일 알림용. 소셜 공급자가 확인한 이메일만 저장하고, 없으면 `NULL`. 탈퇴 시 삭제 |
+| job_code | VARCHAR(30) NULL | 내 직군 (단일 선택). 온보딩에서 정한다 |
+| district_code | VARCHAR(20) NULL | 활동 지역(구). 온보딩에서 정한다 |
 | role | VARCHAR(10) | `USER` / `ADMIN` |
 | status | VARCHAR(12) | `ACTIVE` / `WITHDRAWN` |
 | created_at, withdrawn_at | DATETIME(6) | |
 
-- 닉네임은 **중복 불허**(`UNIQUE (nickname)`, 확정). 탈퇴 시 값을 비우므로(`NULL`) 충돌하지 않는다.
+- 닉네임은 **중복 불허**(`UNIQUE (nickname)`, 확정). 온보딩 전과 탈퇴 후에는 값이 `NULL`이라 충돌하지 않는다.
+- **온보딩 전 회원** (확정, 2026-11-17): 소셜 로그인으로 처음 들어오면 `nickname`·`job_code`·`district_code`가 `NULL`인 행을 만든다. 셋이 모두 채워져야 온보딩을 마친 것으로 본다(별도 컬럼을 두지 않는다).
+- **이메일** (확정, PLAN D-9): 구글은 `email_verified`가 참인 이메일, 카카오는 선택 동의 항목(`account_email`)으로 받은 이메일 중 유효·인증된 것만 저장한다. 동의하지 않았거나 확인되지 않은 이메일이면 `NULL`로 가입된다. 다시 로그인할 때 공급자가 확인된 이메일을 주면 그 값으로 맞추고, 주지 않으면 기존 값을 둔다.
 - 탈퇴: 개인정보 컬럼만 비우고 행과 `id`는 남긴다. 다른 테이블의 `user_id`는 그대로 둔다 (PRD 4.1, ARCHITECTURE 5장).
 
 ### `social_account`
@@ -71,8 +77,8 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| family_id | CHAR(36) | 로그인 한 번에 하나. 재사용 탐지 시 가족 전체를 폐기 |
-| token_hash | CHAR(64) UNIQUE | 토큰 원문은 저장하지 않고 해시만 |
+| family_id | CHAR(36) | 로그인 한 번에 하나(UUID). 재사용 탐지 시 가족 전체를 폐기 |
+| token_hash | CHAR(64) UNIQUE | 토큰 원문은 저장하지 않고 SHA-256 해시(16진수)만 |
 | expires_at | DATETIME(6) | |
 | used_at | DATETIME(6) NULL | 회전으로 소진된 시각 |
 | revoked_at | DATETIME(6) NULL | |
