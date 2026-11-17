@@ -1,0 +1,49 @@
+/* 휴대폰: 화면 하단 고정 */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
+  max-width: var(--form-max-width);
+  margin: 0 auto;
+  padding: var(--space-3) var(--page-gutter)
+    calc(var(--space-3) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-line);
+  background: var(--color-surface);
+}
+
+/* 태블릿·PC: 고정하지 않고 감싸는 카드 안 아래에 둔다 (DESIGN 6장 폭에 따른 배치) */
+@media (min-width: 768px) {
+  .bar {
+    position: static;
+    max-width: none;
+    margin-top: var(--space-8);
+    padding: 0;
+    border-top: 0;
+    background: transparent;
+  }
+}
+
+.note {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-ink-sub);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actions > * {
+  flex: 1;
+}
+
+/* 이전(보조) 은 좁게, 다음(주요) 은 넓게 */
+.actions > [data-variant="secondary"] {
+  flex: 0 0 96px;
+  height: var(--button-height);
+}

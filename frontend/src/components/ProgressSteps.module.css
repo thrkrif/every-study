@@ -1,0 +1,25 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.track {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-line);
+  overflow: hidden;
+}
+
+.fill {
+  height: 100%;
+  background: var(--color-primary);
+  transition: width var(--motion-base) ease-out;
+}
+
+.count {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+  color: var(--color-ink-sub);
+}

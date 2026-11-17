@@ -61,8 +61,10 @@
   /* 크기 */
   --touch-min: 44px;
   --button-height: 52px;
+  --header-height: 56px;
   --page-gutter: var(--space-4);
-  --page-max-width: 480px;
+  --content-max-width: 1120px;
+  --form-max-width: 480px;
 
   /* 그림자: 떠 있는 요소(토스트, 시트)에만 쓴다 */
   --shadow-float: 0 8px 24px rgb(31 41 55 / 16%);
@@ -70,4 +72,17 @@
   /* 움직임 */
   --motion-fast: 160ms;
   --motion-base: 240ms;
+}
+
+/* 폭에 따른 좌우 여백 (DESIGN 4장 간격·모양). 미디어 쿼리 경계는 768px, 1024px 두 개만 쓴다. */
+@media (min-width: 768px) {
+  :root {
+    --page-gutter: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --page-gutter: var(--space-8);
+  }
 }

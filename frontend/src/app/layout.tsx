@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "@/styles/globals.css";
+import { AppHeader } from "@/components/AppHeader";
 import { pretendard } from "./fonts";
 import { Providers } from "./providers";
 
@@ -19,7 +20,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ko" className={pretendard.variable}>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          <AppHeader />
+          {children}
+        </Providers>
       </body>
     </html>
   );

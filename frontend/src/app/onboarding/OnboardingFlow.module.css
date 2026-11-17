@@ -1,0 +1,51 @@
+/* 휴대폰: 화면 전체를 쓰고 이전/다음은 하단 고정 (DESIGN 6장) */
+.page {
+  max-width: var(--form-max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--page-gutter)
+    calc(var(--button-height) + var(--space-10) + env(safe-area-inset-bottom));
+}
+
+/* 태블릿·PC: 가운데 카드 안에 버튼까지 둔다 */
+@media (min-width: 768px) {
+  .page {
+    margin: var(--space-10) auto;
+    padding: var(--space-8);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+}
+
+.form {
+  margin-top: var(--space-8);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.question {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+}
+
+.help {
+  margin-top: calc(var(--space-3) * -1);
+  color: var(--color-ink-sub);
+}
+
+.fieldError,
+.notice {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  color: var(--color-bad);
+}
+
+.notice {
+  margin-top: var(--space-10);
+  text-align: center;
+}
