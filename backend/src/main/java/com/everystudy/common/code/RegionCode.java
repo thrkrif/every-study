@@ -53,6 +53,14 @@ public enum RegionCode {
         return Arrays.stream(values()).filter(region -> region.parent == this).toList();
     }
 
+    /** 이 지역에 속한 구 전부. 구면 자기 자신 하나다. 목록의 지역 필터가 쓴다. */
+    public List<RegionCode> districts() {
+        if (level() == Level.DISTRICT) {
+            return List.of(this);
+        }
+        return children().stream().flatMap(child -> child.districts().stream()).toList();
+    }
+
     public RegionCode parent() {
         return parent;
     }

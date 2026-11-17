@@ -2,7 +2,7 @@
 status: draft
 version: "0.6"
 based_on:
-  - docs/PRD.md@0.8
+  - docs/PRD.md@0.9
   - docs/ARCHITECTURE.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/user/**
@@ -121,7 +121,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 
 - "모집 중 / 마감"은 저장하지 않는다. `status='ACTIVE'`, 체크인 오픈 전, 현재 참여자 수 < `capacity`로 **계산**한다 (ARCHITECTURE 4.2).
 - 인덱스
-  - `(status, district_code, start_at)` 목록 탐색
+  - `(status, district_code, start_at)` 목록 탐색. 목록은 늘 `status = ACTIVE AND start_at > 현재`로 시작하고 지역은 구 코드 `IN`으로 거른다 (API 4장)
   - `(host_id, status)` 내 주최 스터디
   - `(status, session_date)` 종료 처리 작업 (`ACTIVE`이고 `session_date`가 오늘(KST) 이전)
   - `(status, judged_at, start_at)` 출석 판정 작업

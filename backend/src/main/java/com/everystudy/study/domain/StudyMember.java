@@ -44,6 +44,14 @@ public class StudyMember {
     protected StudyMember() {
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
+    public Instant getJoinedAt() {
+        return joinedAt;
+    }
+
     public static StudyMember join(long studyId, long userId, Instant now) {
         StudyMember member = new StudyMember();
         member.studyId = studyId;

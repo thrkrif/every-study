@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class MetaOptionsServiceTest {
 
     private static final StudyProperties DEFAULT_STUDY =
-            new StudyProperties(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100));
+            new StudyProperties(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100), 10, 30);
 
     private static MetaOptions options(StudyProperties study, AttendanceProperties attendance) {
         return new MetaOptionsService(study, attendance).options();
@@ -24,7 +24,7 @@ class MetaOptionsServiceTest {
     void numbersComeFromSettings() {
         MetaOptions defaults = options(DEFAULT_STUDY, new AttendanceProperties(150));
         MetaOptions changed = options(
-                new StudyProperties(3, 8, 7, 30, 15, 60, List.of(80, 90)), new AttendanceProperties(200));
+                new StudyProperties(3, 8, 7, 30, 15, 60, List.of(80, 90), 10, 30), new AttendanceProperties(200));
 
         assertThat(defaults.study())
                 .isEqualTo(new MetaOptions.Study(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100)));

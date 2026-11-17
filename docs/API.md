@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.8"
+version: "0.9"
 based_on:
-  - docs/PRD.md@0.8
+  - docs/PRD.md@0.9
   - docs/ARCHITECTURE.md@0.7
   - docs/DATA-MODEL.md@0.6
 covers:
@@ -176,9 +176,9 @@ covers:
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
 | `GET /api/v1/meta/options` | 공개 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정). 아래 응답 |
-| `GET /api/v1/studies` | 공개 | 목록. 필터 `regionCode`(시·도·시·구 어느 단계든, 생략하면 전체. "내 지역"은 클라이언트가 내 구의 시 코드로 부른다), `topicCode`, `jobCode`, `recruiting=true`, 정렬 `sort=latest\|deadline`, 커서 |
+| `GET /api/v1/studies` | 공개 | 목록. 기본은 모집 중만. 아래 "목록 조회" |
 | `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 제재 중이면 `403 USER_RESTRICTED`(T-035b에서 추가) |
-| `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함 |
+| `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함. 종료·파투된 스터디도 주소로 열면 보인다. 없으면 `404 NOT_FOUND` |
 | `PATCH /api/v1/studies/{id}` | 주최자 | 제목·소개는 항상 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없을 때만** 수정 가능하고, 있으면 `SCHEDULE_LOCKED`. 응답 상세의 `scheduleEditable`로 클라이언트가 입력란을 잠근다 |
 | `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소. 증액 시 대기자에게 알림 |
 
@@ -223,7 +223,50 @@ covers:
 
 개설하면 주최자가 `ACTIVE` 참여자로 들어가고 채팅방이 함께 만들어진다. 셋 중 하나라도 실패하면 아무것도 만들어지지 않는다.
 
-**상세 응답 주요 필드**: 기본 정보, `status`, `recruiting`(파생), `memberCount`, `capacity`, `members[{userId, nickname, trust}]`, 주최자 요약, `entryCriteria`, `myState`(`NONE`/`MEMBER`/`WAITING`/`HOST`), 주최자에게만 `waitingCount`.
+**목록 조회** (`GET /studies`) — 이미 시작했거나 끝난(종료·파투) 스터디는 어떤 조건에도 나오지 않는다 (PRD 4.3)
+
+| 파라미터 | 뜻 |
+|---|---|
+| `regionCode` | 시·도·시·구 어느 단계든. 그 아래 구의 스터디. 생략하면 전체. "내 지역"은 클라이언트가 내 구의 시 코드로 부른다 |
+| `topicCode` | 주제 |
+| `jobCode` | 직군 **대분류**. 그 직군이 희망 직군에 명시된 스터디만(직군 무관 스터디는 빠진다) |
+| `myJob=true` | 내 직군이 신청할 수 있는 스터디만: 희망 직군이 없거나 내 대분류가 있음. 로그인 필요(아니면 `401`), 직군이 없으면 `403 ONBOARDING_REQUIRED` |
+| `includeClosed=true` | 시작 전인 마감 스터디(정원 참, 체크인 오픈 후)도 함께. 기본은 모집 중만 |
+| `sort` | `latest`(기본, 개설 순의 역순) 또는 `deadline`(마감임박순 = 시작이 빠른 순, 같으면 `id` 순) |
+| `cursor`, `size` | 커서는 직전 응답의 `nextCursor`. 다른 `sort`의 커서는 `400`. `size`는 1~50, 기본 20 |
+
+잘못된 값은 `400 VALIDATION_FAILED`이고 `errors`에 파라미터 이름이 담긴다.
+
+```json
+{ "items": [{ "id": 1, "title": "모각코", "topicCode": "DEVELOPMENT", "districtCode": "SUWON_YEONGTONG",
+              "startAt": "2026-11-25T05:00:00Z", "durationMin": 120, "capacity": 4, "memberCount": 2,
+              "recruiting": true, "targetJobCodes": ["IT"],
+              "entryCriteria": { "minAttendanceRate": 70, "allowNewcomer": true },
+              "host": { "userId": 7, "nickname": "주최자",
+                        "stats": { "hostedCount": 0, "leftWithinWindowCount": 0, "showCountOnly": true } } }],
+  "nextCursor": null }
+```
+
+**상세 응답 필드** (`GET /studies/{id}`)
+
+| 필드 | 뜻 |
+|---|---|
+| `id`, `title`, `description`, `topicCode`, `districtCode`, `targetJobCodes`, `entryCriteria` | 개설 때 정한 값 |
+| `place` | `{ name, address, latitude, longitude }` |
+| `startAt`, `durationMin`, `sessionDate` | 일정. `sessionDate`는 KST 날짜 |
+| `status` | `ACTIVE` / `ENDED` / `CANCELLED` |
+| `recruiting` | 모집 중(파생): `ACTIVE`이고 체크인 오픈 전이고 정원에 여유가 있음 |
+| `capacity`, `memberCount` | 정원과 `ACTIVE` 참여자 수(주최자 포함) |
+| `host` | `{ userId, nickname, stats }`. 주최 지표 형식은 3장 |
+| `members` | `[{ userId, nickname, trust }]` 참여 순서대로, 주최자 포함. 출석 지표 형식은 3장 |
+| `myState` | `NONE` / `MEMBER` / `WAITING` / `HOST`. 비회원은 `NONE` |
+| `scheduleEditable` | 일정·장소를 고칠 수 있나: `ACTIVE`이고 시작 전이며 주최자 외 참여자가 없음 (PRD 4.2) |
+| `checkinOpensAt`, `checkinClosesAt` | 체크인 시간창 (PRD 4.6). 신청·대기는 `checkinOpensAt`에 닫힌다 |
+| `waitingCount` | **주최자에게만** 있는 필드. 다른 사람의 응답에는 아예 없다 |
+
+- 탈퇴한 회원의 `nickname`은 `null`이다. 화면은 "탈퇴한 사용자"로 표시한다.
+- 출석 집계(M3) 전까지 지표는 모두 신규(`isNewcomer: true`), 주최 지표는 0과 `showCountOnly: true`다.
+- 대기 기능(T-017) 전까지 `myState`에 `WAITING`이 나오지 않고 `waitingCount`는 0이다.
 
 `myState`는 클라이언트가 버튼을 정하는 근거다: `NONE`+모집 중 → "참여", `NONE`+정원 참 → "대기하기", `WAITING` → "대기 취소", `MEMBER` → "나가기".
 
@@ -233,7 +276,7 @@ covers:
 |---|---|---|
 | `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`. 오류 `STUDY_FULL`, `STUDY_NOT_RECRUITING`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4) |
 | `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소. 응답에 `cancelType`(`EARLY`/`LATE`). **주최자가 호출하면 주최 포기**로 승계·파투·감점 규칙 적용 (PRD 4.13), 응답에 `outcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`) |
-| `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표 |
+| `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표(상세의 `members`와 같은 형식). 그 스터디의 `ACTIVE` 참여자(주최자 포함)가 아니면 `403 FORBIDDEN` |
 | `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `STUDY_NOT_RECRUITING`, `ALREADY_WAITING` |
 | `DELETE /api/v1/studies/{id}/waiting/me` | 회원 | 대기 취소 |
 

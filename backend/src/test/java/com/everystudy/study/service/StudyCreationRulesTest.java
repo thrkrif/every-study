@@ -20,7 +20,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 class StudyCreationRulesTest {
 
     private static final StudyProperties PROPERTIES =
-            new StudyProperties(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100));
+            new StudyProperties(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100), 10, 30);
 
     /** 2026-11-11 (수) 10:00 KST. 개설 가능 범위의 마지막 날은 2026-11-25 (KST). */
     private static final Instant NOW = Instant.parse("2026-11-11T01:00:00Z");
