@@ -4,6 +4,7 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -50,6 +51,12 @@ class SecurityConfig {
             "/error",
     };
 
+    /** 비회원에게도 여는 조회 경로 (API 권한 표의 "공개"). 하나씩 적는다. */
+    private static final String[] PUBLIC_READ_PATHS = {
+            "/api/v1/studies",
+            "/api/v1/studies/{id}",
+    };
+
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -63,6 +70,8 @@ class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(tokenIgnoredPaths).permitAll()
+                        // 공개 API. 로그인했으면 액세스 쿠키를 읽어 그 회원에게 맞춘 값(myState 등)을 준다.
+                        .requestMatchers(HttpMethod.GET, PUBLIC_READ_PATHS).permitAll()
                         .anyRequest().authenticated())
                 // 로그인 상태는 쿠키의 토큰이 나타낸다. 서버 세션에 인증을 저장하지 않는다.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

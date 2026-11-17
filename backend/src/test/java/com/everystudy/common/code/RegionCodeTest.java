@@ -31,4 +31,13 @@ class RegionCodeTest {
     void everyCodeFitsColumn() {
         assertThat(RegionCode.values()).allSatisfy(region -> assertThat(region.name()).hasSizeLessThanOrEqualTo(20));
     }
+
+    @Test
+    @DisplayName("어느 단계든 그 아래의 구 전부로 펼친다. 구는 자기 자신이다")
+    void districts() {
+        assertThat(RegionCode.GYEONGGI.districts()).hasSize(4);
+        assertThat(RegionCode.SUWON.districts()).containsExactly(
+                RegionCode.SUWON_JANGAN, RegionCode.SUWON_GWONSEON, RegionCode.SUWON_PALDAL, RegionCode.SUWON_YEONGTONG);
+        assertThat(RegionCode.SUWON_PALDAL.districts()).containsExactly(RegionCode.SUWON_PALDAL);
+    }
 }

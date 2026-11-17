@@ -151,4 +151,52 @@ public class Study {
     public Long getHostId() {
         return hostId;
     }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getTopicCode() {
+        return topicCode;
+    }
+
+    public String getDistrictCode() {
+        return districtCode;
+    }
+
+    public Place getPlace() {
+        return new Place(placeName, placeAddress, latitude, longitude);
+    }
+
+    public Instant getStartAt() {
+        return startAt;
+    }
+
+    public int getDurationMin() {
+        return durationMin;
+    }
+
+    public LocalDate getSessionDate() {
+        return sessionDate;
+    }
+
+    public int getCapacity() {
+        return capacity;
+    }
+
+    public EntryCriteria getEntryCriteria() {
+        return new EntryCriteria(minAttendanceRate, allowNewcomer);
+    }
+
+    public StudyStatus getStatus() {
+        return status;
+    }
+
+    public Set<String> getTargetJobCodes() {
+        return Set.copyOf(targetJobCodes);
+    }
 }

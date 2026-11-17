@@ -2,10 +2,10 @@
 status: draft
 version: "0.5"
 based_on:
-  - docs/PRD.md@0.8
+  - docs/PRD.md@0.9
   - docs/ARCHITECTURE.md@0.7
   - docs/DATA-MODEL.md@0.6
-  - docs/API.md@0.8
+  - docs/API.md@0.9
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -128,7 +128,7 @@ based_on:
   - 완료: 개설 시 주최자를 `study_member` `ACTIVE`로 넣는다 · `chat_room`은 `study`가 직접 만들지 않고, `chat` 모듈이 X-8에서 정한 방식으로 `StudyCreated`를 받아 **같은 트랜잭션에서** 만든다(개설 롤백 시 채팅방 0건 테스트) · `session_date`는 KST 날짜 · 고정 `Clock`으로 개설 가능 범위 마지막 날, 자정을 넘기는 진행 시간, 과거 시작, 정원 범위 경계 테스트 · 개설 제한 제재 검사는 T-035b에서 추가
   - 문서: DATA-MODEL 4장, API 4장 확인, 머리말 `covers`에 `study/**`, `chat/**` 추가
 
-- [ ] T-009 스터디 목록·상세·참여자 목록 API
+- [x] T-009 스터디 목록·상세·참여자 목록 API
   - 선행: T-008
   - 참조: PRD 4.3·4.14(모집 중 파생), API 1장(커서)·4장(목록 필터·상세 필드·`myState`, `GET members`), DATA-MODEL 4장 인덱스
   - 완료: 공개 목록(지역·주제·직군·모집 중 필터, 최신순·마감임박순, 커서) · 상세(`recruiting` 파생, `memberCount`, `members`, `myState`, `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`, 주최자에게만 `waitingCount`) · `GET /studies/{id}/members`(참여자만) · 지표는 M3 전까지 신규로 응답 · 테스트: 비회원·회원·주최자별 필드 노출 차이, 비참여자의 참여자 목록 `403`
@@ -569,6 +569,7 @@ based_on:
 | D-19 | **결정됨(2026-11-16, API 첫머리·ARCHITECTURE 9장)**: OpenAPI 문서(`/v3/api-docs`)와 Swagger UI(`/swagger-ui/index.html`)는 개발용이라 운영(`prod`)에서는 끈다. `application-prod.yml`에서 끄므로 배포할 때 `SPRING_PROFILES_ACTIVE=prod`를 지정해야 한다 | API 첫머리, ARCHITECTURE 9장 | T-013 |
 | D-20 | **결정됨(2026-11-17, PRD 4.1~4.3 v0.7, DATA-MODEL 1장)**: 직군은 대분류 → 세부 직무 2단계다. 회원은 대분류 필수·세부 선택, 스터디 희망 직군은 대분류를 여러 개 고를 수 있고 선택이며 고르지 않으면 직군 무관(`ANY` 코드 없음). 희망 직군을 대분류로만 고르는 것과 참여 조건이라는 점은 X-18에서 정했다. 지역은 시·도 → 시 → 구이고 회원·스터디는 구로 저장, 탐색은 어느 단계로든 거르며 "내 지역"은 내 구가 속한 시. 주제는 PRD 4.2의 6개. 목록은 `common/code`의 enum | PRD 4.1~4.3, DATA-MODEL 1장 | T-006, T-008, T-009 |
 | D-21 | **결정됨(2026-11-17, API 1·4장)**: PRD에 없는 개설 입력 규칙. 제목 2~40자, 소개 10~2000자. 시작 시각은 10분 단위, 진행 시간은 30분 이상 10분 단위(자정에 끝나는 것까지). 최소 출석률은 없음 또는 50~100% 중 10% 단위. 단위·최소값·선택지는 설정값이고 `/meta/options`로 내려준다. 온보딩 전 회원의 개설은 `403 ONBOARDING_REQUIRED` | API 1·4장, `StudyProperties` | T-008, T-010 |
+| D-22 | **결정됨(2026-11-17, PRD 4.3 v0.9, API 4장)**: 탐색 목록은 기본이 모집 중만이고, `includeClosed=true`("마감된 스터디도 보기")면 시작 전 마감 스터디도 함께 보여 준다. 이미 시작했거나 끝난 스터디는 목록에 없다. 직군 필터(`jobCode`)는 명시된 직군만, `myJob=true`는 내 대분류가 신청할 수 있는 스터디만. 마감임박순은 시작이 빠른 순. 체크인 시간창(시작 10분 전~30분 뒤)은 `study` 설정값 | PRD 4.3, API 4장 | T-009, T-011 |
 
 ### 7.2 문서 간 불일치 (X) — PLAN에서 임의로 고치지 않음
 
@@ -578,7 +579,7 @@ based_on:
 | X-2 | ARCHITECTURE 4.7 작업 목록에 "체크인 오픈 알림" 작업이 따로 있으나, 4.6과 ADR-0005는 개설 시 아웃박스 예약으로 처리. 또 4.6은 "개설 시 예약"이라 하는데 알림 대상인 참여자는 개설 뒤에 생김 | 참여 확정 시 그 참여자의 일정 알림을 예약하고(나가기 시 취소), 4.7의 별도 작업은 지운다 | T-040 |
 | X-3 | **결정됨(해소)**: docs/README.md 1장 표와 계층도에 PLAN을 추가함 (PR #12) | - | - |
 | X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음 | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
-| X-5 | API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
+| X-5 | **결정됨(2026-11-17, 오른쪽 제안대로. API 4장 상세 응답 필드 표)**: API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
 | X-6 | **결정됨(2026-11-17, 오른쪽 제안대로. API 1장)**: 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음. 함께 정한 것: 닉네임은 2~20자의 한글(완성형)·영문·숫자·밑줄, 영문 대소문자는 구분하지 않고 중복으로 본다(API 3장) | `409 NICKNAME_TAKEN` 추가 | T-006 |
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |
 | X-8 | **결정됨(2026-11-16, 오른쪽 제안대로. ARCHITECTURE 3장, ADR-0003 후속 결정).** **이벤트→알림 트랜잭션 경계와 모듈 방향.** ARCHITECTURE 3장은 모듈 간 리스너를 `AFTER_COMMIT`으로 실행한다고 하나, 4.6과 ADR-0005는 아웃박스를 비즈니스 트랜잭션 안에서 기록한다고 함(`AFTER_COMMIT`에서 기록하면 커밋 후 실패 시 알림 유실). 또 `study`가 개설 시 `chat_room`을 만들고(PRD 4.12, API 4장) 종료 시 폐쇄하면 `study → chat` 의존이 생겨 3장의 `chat → study` 방향과 순환 | 알림은 `BEFORE_COMMIT` 동기 리스너 또는 `notification` 공개 서비스 직접 호출로 같은 트랜잭션에 기록하고, `AFTER_COMMIT`은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너(같은 트랜잭션)로 받아 방 생성·폐쇄를 하고, `study`는 `chat`을 참조하지 않는다. ARCHITECTURE 3장과 ADR-0003에 반영 | T-003, T-008, T-014, T-015 |

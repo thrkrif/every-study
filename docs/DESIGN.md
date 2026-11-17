@@ -2,7 +2,7 @@
 status: draft
 version: "0.1"
 based_on:
-  - docs/PRD.md@0.8
+  - docs/PRD.md@0.9
 ---
 
 # DESIGN — 화면 디자인 원칙과 토큰
