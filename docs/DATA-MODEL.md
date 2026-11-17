@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.6"
+version: "0.7"
 based_on:
-  - docs/PRD.md@0.9
+  - docs/PRD.md@0.10
   - docs/ARCHITECTURE.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/user/**
@@ -208,7 +208,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | type | 의미 | 지표 반영 (PRD 4.7) |
 |---|---|---|
 | `ATTENDED` | 출석 | 분자·분모 |
-| `LATE` | 지각 | 분자·분모 |
+| `LATE` | 지각 | 분자에 0.5, 분모에 1 |
 | `NO_SHOW_CANDIDATE` | 노쇼 후보 (통지, 이의 기간 시작) | 반영 안 함 |
 | `NO_SHOW` | 노쇼 확정 | 분모 |
 | `NO_SHOW_CLEARED` | 이의 인정으로 노쇼·지각 판정 취소 | 직전 판정을 무효화 |
@@ -242,7 +242,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | user_id | BIGINT PK | |
 | counted | SMALLINT | 집계 대상 세션 수 (최근 N회) |
 | attended, late, no_show, late_cancel | SMALLINT | |
-| rate | DECIMAL(5,2) NULL | 출석률. 신규 조건이면 `NULL` |
+| rate | DECIMAL(5,2) NULL | 출석률. 지각은 출석 0.5회로 계산한다(PRD 4.7). 신규 조건이면 `NULL` |
 | recalculated_at | DATETIME(6) | |
 
 - 원본은 `attendance_event`다. 이벤트가 쌓일 때 갱신하고, 정책이 바뀌면 전체 재계산한다 (PRD 4.7). 신규 여부는 `counted`가 기준 미만인지로 판단한다.
