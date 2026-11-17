@@ -30,6 +30,12 @@ class AuthCookies {
         add(response, REFRESH, tokens.refreshToken(), REFRESH_PATH, tokens.refreshTtl());
     }
 
+    /** 두 쿠키를 지운다. 브라우저는 이름·경로·도메인이 같아야 같은 쿠키로 보므로 쓸 때와 같은 속성으로 보낸다. */
+    void clear(HttpServletResponse response) {
+        add(response, ACCESS, "", ACCESS_PATH, Duration.ZERO);
+        add(response, REFRESH, "", REFRESH_PATH, Duration.ZERO);
+    }
+
     private void add(HttpServletResponse response, String name, String value, String path, Duration maxAge) {
         ResponseCookie.ResponseCookieBuilder cookie = ResponseCookie.from(name, value)
                 .httpOnly(true)

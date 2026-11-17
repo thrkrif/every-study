@@ -79,10 +79,11 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | user_id | BIGINT FK | |
 | family_id | CHAR(36) | 로그인 한 번에 하나(UUID). 재사용 탐지 시 가족 전체를 폐기 |
 | token_hash | CHAR(64) UNIQUE | 토큰 원문은 저장하지 않고 SHA-256 해시(16진수)만 |
-| expires_at | DATETIME(6) | |
-| used_at | DATETIME(6) NULL | 회전으로 소진된 시각 |
-| revoked_at | DATETIME(6) NULL | |
+| expires_at | DATETIME(6) | 발급 시각 + 리프레시 수명. 회전으로 생긴 토큰은 회전한 시각부터 다시 센다 |
+| used_at | DATETIME(6) NULL | 회전으로 소진된 시각. 값이 있는 토큰이 다시 오면 재사용이다 |
+| revoked_at | DATETIME(6) NULL | 폐기된 시각 (로그아웃, 재사용 탐지, 탈퇴한 회원의 갱신 시도). 계열 단위로 채운다 |
 
+- 쓸 수 있는 토큰은 `used_at`과 `revoked_at`이 모두 `NULL`이고 `expires_at` 전인 행이다. 계열 하나에 그런 행은 많아야 하나다.
 - 인덱스 `(user_id)`, `(family_id)`. 만료된 행은 스케줄러가 주기적으로 지운다 (스케줄러 작업 목록에 포함, ARCHITECTURE 4.7).
 
 ## 4. 스터디

@@ -58,7 +58,7 @@ covers:
 | `notification` | 알림 생성·발송(푸시/이메일), 수신 설정 | 4.5 |
 | `chat` | 채팅방·메시지·읽음·공지·신고/차단, 스터디 종료 시 폐쇄와 메시지 삭제 | 4.12, 4.14 |
 | `admin` | 이의·신고 큐, 신고 조치(스터디 강제 종료, 메시지 삭제, 이용 정지), 제재 해제 (간단한 어드민) | 4.11 |
-| `common` | 시간(`Clock`), 예외·오류 응답, 설정 속성, 로그 마스킹, 요청 추적(traceId), 감사 로그 기록(여러 모듈이 기록하므로 `admin`이 아니라 여기에 둔다). 기능 모듈과 달리 `web/service/domain/repository`로 나누지 않고 역할별 하위 패키지(`time`, `error`, `logging`, `web`)를 둔다 | |
+| `common` | 시간(`Clock`), 예외·오류 응답, 설정 속성, 로그 마스킹, 요청 추적(traceId), 감사 로그 기록(여러 모듈이 기록하므로 `admin`이 아니라 여기에 둔다). 기능 모듈과 달리 `web/service/domain/repository`로 나누지 않고 역할별 하위 패키지(`time`, `error`, `logging`, `web`, `security`)를 둔다. `security`에는 모든 모듈의 컨트롤러가 받는 로그인 회원 주체(`LoginUser`)가 있다 | |
 
 **패키지와 의존 방향 규칙**
 - 패키지 모양은 `com.everystudy.<모듈>.<계층>`이고 계층은 `web`, `service`, `domain`, `repository`, `event`다. `event`에는 다른 모듈이 받는 도메인 이벤트 클래스를 둔다.

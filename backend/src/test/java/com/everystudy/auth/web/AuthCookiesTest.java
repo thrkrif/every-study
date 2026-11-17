@@ -68,4 +68,23 @@ class AuthCookiesTest {
             assertThat(cookie.isHttpOnly()).isTrue();
         });
     }
+
+    @Test
+    @DisplayName("지울 때는 쓸 때와 같은 이름·경로·도메인에 수명 0 으로 보낸다")
+    void clearExpiresBothCookiesWithSameScope() {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        new AuthCookies(new AuthWebProperties("https://app.example.com", true, "example.com")).clear(response);
+
+        MockCookie access = (MockCookie) response.getCookie("access_token");
+        MockCookie refresh = (MockCookie) response.getCookie("refresh_token");
+        assertThat(access.getPath()).isEqualTo("/");
+        assertThat(refresh.getPath()).isEqualTo("/api/v1/auth");
+        assertThat(response.getCookies()).allSatisfy(cookie -> {
+            assertThat(cookie.getValue()).isEmpty();
+            assertThat(cookie.getMaxAge()).isZero();
+            assertThat(cookie.getDomain()).isEqualTo("example.com");
+            assertThat(cookie.isHttpOnly()).isTrue();
+            assertThat(cookie.getSecure()).isTrue();
+        });
+    }
 }
