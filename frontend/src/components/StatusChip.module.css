@@ -1,0 +1,32 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-chip);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  line-height: 1;
+}
+
+.chip[data-phase="RECRUITING"] {
+  background: var(--color-primary-tint);
+  color: var(--color-primary);
+}
+
+.chip[data-phase="WAITLIST"] {
+  background: var(--color-surface);
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+}
+
+.chip[data-phase="IN_PROGRESS"] {
+  background: var(--color-ok-bg);
+  color: var(--color-ok);
+}
+
+.chip[data-phase="CLOSED"],
+.chip[data-phase="ENDED"] {
+  background: var(--color-neutral-bg);
+  color: var(--color-ink-sub);
+}

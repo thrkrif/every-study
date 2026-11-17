@@ -35,8 +35,17 @@ CI는 `npm ci` → `npm run lint` → `npm test` → `npm run build` 순서로 �
 ```
 src/
   app/            화면(라우트). layout.tsx 가 Providers(TanStack Query)로 감싼다
+  app/design/     토큰·공통 컴포넌트 확인 화면 (개발 서버에서만 /design)
+  components/     공통 컴포넌트 (좌석 줄, 출석 기록 줄, 버튼, 상태 칩)
   lib/api/        백엔드 호출. client.ts(apiFetch), errors.ts(ApiError, 오류 코드)
+  styles/         tokens.css(디자인 토큰), globals.css(기본 스타일)
 ```
+
+## 스타일 규칙
+
+- 색·글자·간격은 `src/styles/tokens.css`의 CSS 변수만 쓴다. 원본은 [DESIGN 4장](../docs/DESIGN.md)이고, `tokens.test.ts`가 두 곳의 값이 같은지 확인한다.
+- 컴포넌트 스타일은 CSS Modules(`*.module.css`)로 대상 옆에 둔다.
+- 화면 PR마다 DESIGN 8장 점검 목록을 확인한다.
 
 ## API 호출 규칙
 
