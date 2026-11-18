@@ -17,3 +17,16 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* 로그아웃은 덜 중요한 동작이라 보조 글자색으로 둔다 */
+.sub {
+  border: 0;
+  background: none;
+  color: var(--color-ink-sub);
+  font-weight: var(--text-label-weight);
+  cursor: pointer;
+}
+
+.sub:disabled {
+  cursor: default;
+}
