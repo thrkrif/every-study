@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.8"
+version: "0.9"
 based_on:
   - docs/PRD.md@0.11
 covers:
@@ -210,7 +210,7 @@ covers:
 
 ## 9. 배포와 환경 (Docker 확정, 호스팅 업체는 미정)
 
-- 로컬: Docker Compose (MySQL). 소규모 확정이므로 Redis는 두지 않는다.
+- 로컬: Docker Compose (MySQL). 소규모 확정이므로 Redis는 두지 않는다. `bash tools/dev.sh` 하나로 MySQL을 켜고 백엔드(`localhost:8090`)와 프론트(`localhost:3000`)를 함께 띄운다(PLAN T-012, 실행 방법은 루트 README). 둘 다 `localhost`라 같은 사이트이고 토큰 쿠키가 그대로 오간다 (ADR-0002). 백엔드·프론트를 컨테이너로 만드는 것은 배포 작업(T-013)에서 한다.
 - 운영: **VM 1대 + Docker Compose** (백엔드, 프론트, 역프록시·TLS, MySQL 또는 관리형 DB). 컨테이너는 `restart: unless-stopped`로 장애 후 자동으로 다시 켠다. 호스팅 업체와 도메인은 **미결정**이다 (비용 확인 후).
 - 프론트와 백엔드는 같은 사이트(예: `app.<도메인>`, `api.<도메인>`)로 두어 쿠키 인증을 단순하게 유지한다.
 - 환경: `local`, `prod` (스테이징은 필요해질 때). `prod`는 Spring 프로파일(`SPRING_PROFILES_ACTIVE=prod`)로 켜고, 개발용 도구인 API 문서와 Swagger UI는 `prod`에서 끈다. DB 백업과 복구 절차는 배포 확정 시 정한다.

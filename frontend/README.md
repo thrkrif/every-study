@@ -8,6 +8,8 @@ Next.js(App Router) 웹 앱. 구조와 규칙은 [ARCHITECTURE 6장](../docs/ARC
   - nvm을 쓰면 이 디렉토리에서 `nvm install`(처음 한 번), 이후에는 `nvm use`로 맞춘다. `node -v`로 확인한다.
 - 저장소 루트의 `.env.example`을 `.env`로 복사한다. 프론트는 `NEXT_PUBLIC_API_BASE_URL`(백엔드 주소)을 쓴다.
 
+MySQL·백엔드까지 한 번에 띄우려면 저장소 루트에서 `bash tools/dev.sh` (루트 README "로컬에서 전체 실행").
+
 ## 명령 (이 디렉토리에서)
 
 | 하려는 일                           | 명령                 |

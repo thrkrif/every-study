@@ -13,6 +13,9 @@ loadEnvConfig(
   true,
 );
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  // 에이전트 규칙은 저장소 루트 AGENTS.md 한 곳에 둔다. next dev 가 frontend/AGENTS.md 를 만들지 않게 한다.
+  agentRules: false,
+};
 
 export default nextConfig;
