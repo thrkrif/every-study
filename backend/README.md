@@ -19,11 +19,11 @@ Spring Boot REST API. 구조와 규칙은 [ARCHITECTURE](../docs/ARCHITECTURE.md
 
 공급자 콘솔에 등록할 값:
 
-- 리다이렉트 URI: `http://localhost:8080/login/oauth2/code/kakao`, `http://localhost:8080/login/oauth2/code/google`
+- 리다이렉트 URI: `http://localhost:8090/login/oauth2/code/kakao`, `http://localhost:8090/login/oauth2/code/google`
 - 카카오 동의 항목: 아무것도 켜지 않아도 로그인된다(식별에는 카카오 `id`만 쓴다). 이때 카카오 사용자는 이메일 없이 가입된다. 이메일을 받으려면 앱을 비즈 앱으로 전환한 뒤 카카오계정(이메일) `account_email`을 **선택 동의**로 켠다. 코드는 바꾸지 않아도 된다.
 - 구글 범위: `email` (`.../auth/userinfo.email`)
 
-로그인은 브라우저에서 `http://localhost:8080/oauth2/authorization/kakao`(또는 `/google`)로 시작한다. 성공하면 토큰 쿠키를 받고 `FRONTEND_URL`(기본 `http://localhost:3000`)로 이동한다. 쿠키 이름과 이동 경로는 [API 2장](../docs/API.md).
+로그인은 브라우저에서 `http://localhost:8090/oauth2/authorization/kakao`(또는 `/google`)로 시작한다. 성공하면 토큰 쿠키를 받고 `FRONTEND_URL`(기본 `http://localhost:3000`)로 이동한다. 쿠키 이름과 이동 경로는 [API 2장](../docs/API.md).
 
 ## 명령 (이 디렉토리에서)
 
@@ -42,7 +42,7 @@ Spring Boot REST API. 구조와 규칙은 [ARCHITECTURE](../docs/ARCHITECTURE.md
 ```bash
 docker compose up -d                 # 저장소 루트에서. MySQL 시작
 cd backend
-./gradlew bootRun
+./gradlew bootRun                    # http://localhost:8090 (바꾸려면 환경변수 SERVER_PORT)
 ```
 
 앱은 `backend/`에서 실행하면 저장소 루트의 `.env`를 직접 읽는다(`application.yml`의 `spring.config.import`). 알아 둘 것:
@@ -53,7 +53,7 @@ cd backend
 
 실행 후 API 문서를 보는 주소:
 
-- Swagger UI: `http://localhost:8080/swagger-ui/index.html`
-- OpenAPI 문서(JSON): `http://localhost:8080/v3/api-docs`
+- Swagger UI: `http://localhost:8090/swagger-ui/index.html`
+- OpenAPI 문서(JSON): `http://localhost:8090/v3/api-docs`
 
 둘 다 개발용이다. 운영(`SPRING_PROFILES_ACTIVE=prod`)에서는 꺼져서 `404`가 된다.
