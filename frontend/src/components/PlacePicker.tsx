@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   KakaoMapUnavailableError,
-  loadKakaoMaps,
   searchPlaces,
   type PlaceResult,
 } from "@/lib/kakaoMap";
 import { Button } from "./Button";
+import { PlaceMap } from "./PlaceMap";
 import styles from "./PlacePicker.module.css";
 
 type PlacePickerProps = {
@@ -133,38 +133,5 @@ export function PlacePicker({
         </ul>
       )}
     </div>
-  );
-}
-
-/** 고른 장소를 지도에 표시한다. 지도를 불러오지 못해도 장소 선택은 그대로 된다. */
-function PlaceMap({ place }: { place: PlaceResult }) {
-  const container = useRef<HTMLDivElement>(null);
-  const [unavailable, setUnavailable] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    loadKakaoMaps()
-      .then((maps) => {
-        if (cancelled || !container.current) return;
-        const center = new maps.LatLng(place.latitude, place.longitude);
-        const map = new maps.Map(container.current, { center, level: 3 });
-        new maps.Marker({ position: center, map });
-      })
-      .catch(() => {
-        if (!cancelled) setUnavailable(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [place.latitude, place.longitude]);
-
-  if (unavailable) return null;
-  return (
-    <div
-      ref={container}
-      className={styles.map}
-      role="img"
-      aria-label={`${place.name} 위치 지도`}
-    />
   );
 }

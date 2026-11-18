@@ -1,0 +1,19 @@
+.item {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-control);
+  color: var(--color-primary);
+  font-size: var(--text-body-size);
+  font-weight: 600;
+}
+
+.item:hover {
+  background: var(--color-primary-tint);
+}
+
+.item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
