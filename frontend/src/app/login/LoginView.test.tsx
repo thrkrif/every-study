@@ -85,4 +85,22 @@ describe("LoginView", () => {
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/onboarding"));
   });
+
+  it("온보딩을 마친 회원은 첫 화면(목록)으로 보낸다", async () => {
+    fetchMock.mockImplementation(async () =>
+      json(200, {
+        id: 1,
+        nickname: "준비생",
+        jobCode: "IT",
+        districtCode: "SUWON_PALDAL",
+        role: "USER",
+        onboarded: true,
+        joinedAt: "2026-11-18T00:00:00Z",
+      }),
+    );
+
+    renderView();
+
+    await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
+  });
 });

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import "@/styles/globals.css";
 import { AppHeader } from "@/components/AppHeader";
+import { HeaderMenu } from "@/components/HeaderMenu";
 import { pretendard } from "./fonts";
 import { Providers } from "./providers";
 
@@ -21,7 +22,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="ko" className={pretendard.variable}>
       <body>
         <Providers>
-          <AppHeader />
+          <AppHeader actions={<HeaderMenu />} />
           {children}
         </Providers>
       </body>

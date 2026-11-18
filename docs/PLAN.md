@@ -134,7 +134,7 @@ based_on:
   - 완료: 공개 목록(지역·주제·직군·모집 중 필터, 최신순·마감임박순, 커서) · 상세(`recruiting` 파생, `memberCount`, `members`, `myState`, `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`, 주최자에게만 `waitingCount`) · `GET /studies/{id}/members`(참여자만) · 지표는 M3 전까지 신규로 응답 · 테스트: 비회원·회원·주최자별 필드 노출 차이, 비참여자의 참여자 목록 `403`
   - 문서: API 4장 상세 필드 목록에 실제 필드 반영 (X-5)
 
-- [ ] T-010 [프론트] 스터디 만들기 화면
+- [x] T-010 [프론트] 스터디 만들기 화면
   - 선행: T-007, T-008 · 사람 H-2
   - 참조: PRD 4.2·5장 화면 5, ARCHITECTURE 6장(카카오맵은 클라이언트에서만)
   - 완료: 카카오맵에서 장소를 고르면 좌표·장소명·주소가 채워진다 (실제 지도 확인은 H-2 보류로 운영 준비 때. 그 전까지는 예시 장소로 확인) · 입력 검증은 `/meta/options` 값 기준 · 테스트: 서버 `VALIDATION_FAILED`의 필드 오류가 해당 입력 아래 표시, 범위 밖 날짜 선택 불가 · 개설 후 상세로 이동

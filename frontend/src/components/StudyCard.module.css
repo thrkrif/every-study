@@ -1,0 +1,77 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+.card:hover {
+  border-color: var(--color-disabled);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.criteria {
+  color: var(--color-ink-sub);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--text-label-weight);
+  text-align: right;
+}
+
+/* 카드에서 가장 크게 읽히는 것은 시각이다 (DESIGN 6장 목록 카드) */
+.when {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 700;
+}
+
+.title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: var(--text-heading-size);
+  line-height: var(--text-heading-line);
+  font-weight: var(--text-heading-weight);
+}
+
+.meta,
+.host {
+  color: var(--color-ink-sub);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: 0;
+  list-style: none;
+}
+
+/* 조건 칩: 선택할 수 없는 정보라 윤곽선 없이 neutral-bg (DESIGN 5장) */
+.tag {
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-chip);
+  background: var(--color-neutral-bg);
+  color: var(--color-ink-sub);
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-line);
+}

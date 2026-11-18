@@ -77,14 +77,6 @@
   background: var(--color-surface);
 }
 
-.map {
-  height: 180px;
-  margin-top: var(--space-2);
-  border-radius: var(--radius-control);
-  background: var(--color-neutral-bg);
-  overflow: hidden;
-}
-
 .error {
   font-size: var(--text-label-size);
   line-height: var(--text-label-line);

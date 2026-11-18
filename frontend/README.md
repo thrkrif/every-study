@@ -39,6 +39,7 @@ src/
   components/     공통 컴포넌트 (좌석 줄, 출석 기록 줄, 버튼, 상태 칩)
   lib/api/        백엔드 호출. client.ts(apiFetch), errors.ts(ApiError, 오류 코드), me.ts, meta.ts
   lib/session.ts  로그인 상태(useSession)와 메타 옵션(useMetaOptions) 조회
+  lib/studyFormat.ts 스터디 목록·상세의 표시 규칙 (KST 시각, 상태 칩, 지표 문장)
   lib/kakaoMap.ts 카카오맵 SDK 로드와 장소 검색 (키 이름과 준비 방법은 루트의 키 목록 파일)
   lib/devPlaces.ts 개발 서버 전용 예시 장소. 지도를 불러오지 못하면 장소 검색이 이것을 준다 (PLAN H-2 보류)
 public/auth/      카카오·구글 로그인 버튼 로고 (각 공급자 배포 리소스, 바꾸지 않는다)
