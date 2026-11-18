@@ -3,7 +3,7 @@ status: draft
 version: "0.5"
 based_on:
   - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.9
+  - docs/ARCHITECTURE.md@0.10
   - docs/DATA-MODEL.md@0.7
   - docs/API.md@0.10
 ---
@@ -490,6 +490,7 @@ based_on:
   - 선행: T-013 · 결정 D-3
   - 참조: ARCHITECTURE 9장, AGENTS.md 5장
   - 완료: 운영 Compose에 `restart: unless-stopped`, 운영 도메인 TLS · DB 백업을 D-3에서 정한 주기로 수행하고 복구를 한 번 실제로 수행 · 배포·복구 절차 문서화
+  - 메모(2026-11-19, 확정 아님. 이 작업에서 결정): 관측은 외부 무료 플랜(예: Grafana Cloud)에 보내고 서버에는 수집기(예: Grafana Alloy)만 둔다. 2GB VM에 Prometheus·Loki·Grafana를 함께 띄우면 메모리가 모자란다. 백엔드 지표는 Actuator·Micrometer. MAU·기능 사용량은 우선 DB 질의로 보고, 화면 단위 분석 도구(PostHog·GA4 등)를 붙이면 개인정보 처리방침(T-066)에 반영한다. 새벽 시간대 인스턴스 중지는 예약 알림(ADR-0005)이 빠질 수 있어 알림 발송(M4) 뒤에 판단한다
   - 문서: ARCHITECTURE 9장·11장 1번 갱신
 
 - [ ] T-066 개인정보 처리방침과 위치 정보 고지
@@ -519,7 +520,7 @@ based_on:
 | 번호 | 내용 | 필요한 작업 |
 |---|---|---|
 | H-1 | 카카오·구글 OAuth 앱 등록(로컬 리다이렉트 URI), JWT 서명 키. 등록할 값과 환경변수 이름은 `backend/README.md` "소셜 로그인 준비" | T-004 |
-| H-2 | 카카오맵 JavaScript 키와 로컬 도메인 제한. **일부 보류(2026-11-18)**: 키와 JavaScript SDK 도메인은 등록했고, 카카오맵 사용 설정은 운영 준비 때 켠다. 그 전까지 개발 서버(`next dev`)는 지도 대신 예시 장소를 보여 준다(`frontend/src/lib/devPlaces.ts`) | T-010 |
+| H-2 | 카카오맵 JavaScript 키와 로컬 도메인 제한. **일부 보류(2026-11-18)**: 키와 JavaScript SDK 도메인은 등록했고, 카카오맵 사용 설정은 운영 준비 때 켠다. 그 전까지 개발 서버(`next dev`)와 `NEXT_PUBLIC_SAMPLE_PLACES=true`로 빌드한 임시 배포는 지도 대신 예시 장소를 보여 준다(`frontend/src/lib/devPlaces.ts`) | T-010 |
 | H-3 | VAPID 키 쌍 | T-042 |
 | H-4 | **확인됨(2026-11-16)**: GitHub 룰셋으로 main·develop에 PR 필수, 필수 검사 `CI 통과`, 삭제·force push 금지를 적용 (저장소 공개 전환) | T-001 |
 | H-5 | SMTP 계정과 발신 주소 | T-041 |
@@ -550,7 +551,7 @@ based_on:
 |---|---|---|---|
 | D-1 | **결정됨(2026-11-16, ADR-0001)**: Spring Boot 4.1.x, JDK 21, Gradle 9.x, Next.js 16.x, Node 24(CI 반영), ESLint·Prettier, Vitest 5·Testing Library. 패치 버전은 T-001·T-002에서 최신 안정 버전을 확인하고, JUnit·Testcontainers는 Boot 4.1이 관리하는 버전을 T-001에서 확정한다 | ADR-0001, ci.yml | T-001, T-002 |
 | D-2 | **결정됨(2026-11-16, ADR-0003 후속 결정)**: 모듈 경계 검사 도구는 ArchUnit 1.5.1(코어만 사용). T-003에서 함께 정한 것: 모듈의 공개 면은 `service`·`event` 패키지, `web`은 같은 모듈의 `domain` 타입을 쓸 수 있고 `repository`는 못 쓴다 | ADR-0003 | T-003 |
-| D-3 | 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
+| D-3 | **일부 결정(2026-11-18, ARCHITECTURE 9장)**: M1 배포는 클라우드 VM 1대 + 도메인 + Caddy(HTTPS), MySQL은 같은 VM의 컨테이너, 이미지는 SSH로 전달(`deploy/`). 임시 호스트·터널은 쓰지 않는다. 남은 것: 업체·도메인 이름(사람), 백업(T-065). 원래 항목: 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
 | D-4 | 신고 사유 분류 목록 | DATA-MODEL 11장 1번 | T-053 |
 | D-5 | 호출 제한 수치 (대상은 API 9장 1번에 있음) | API 9장 1번 | T-064 |
 | D-6 | 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 / `SKIPPED` 추가) | DATA-MODEL 11장 2번 | T-043 |

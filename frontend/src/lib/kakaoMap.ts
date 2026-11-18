@@ -104,13 +104,17 @@ export function loadKakaoMaps(): Promise<KakaoMaps> {
 /**
  * 키워드로 장소를 찾는다. 결과가 없으면 빈 배열.
  * 개발 서버(next dev)에서 SDK 를 불러오지 못하면(키 없음, 카카오맵 사용 설정 꺼짐 등) 예시 장소를 준다.
+ * 운영 빌드에서는 NEXT_PUBLIC_SAMPLE_PLACES=true 로 빌드한 임시 환경(PLAN T-013)에서만 준다.
  */
 export async function searchPlaces(keyword: string): Promise<PlaceResult[]> {
   let maps: KakaoMaps;
   try {
     maps = await loadKakaoMaps();
   } catch (error) {
-    if (process.env.NODE_ENV === "development") {
+    if (
+      process.env.NODE_ENV === "development" ||
+      process.env.NEXT_PUBLIC_SAMPLE_PLACES === "true"
+    ) {
       const { devSamplePlaces } = await import("./devPlaces");
       return devSamplePlaces(keyword);
     }

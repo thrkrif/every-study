@@ -107,7 +107,7 @@ export function PlacePicker({
       )}
       {results?.some((place) => place.sample) && (
         <p className={styles.address}>
-          지도를 불러오지 못해 개발 서버에서만 보이는 예시 장소를 보여 줘요.
+          지도를 불러오지 못해 시험용 예시 장소를 보여 줘요.
         </p>
       )}
       {results && results.length > 0 && (

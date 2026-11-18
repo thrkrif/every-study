@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.9"
+version: "0.10"
 based_on:
   - docs/PRD.md@0.11
 covers:
@@ -211,7 +211,9 @@ covers:
 ## 9. 배포와 환경 (Docker 확정, 호스팅 업체는 미정)
 
 - 로컬: Docker Compose (MySQL). 소규모 확정이므로 Redis는 두지 않는다. `bash tools/dev.sh` 하나로 MySQL을 켜고 백엔드(`localhost:8090`)와 프론트(`localhost:3000`)를 함께 띄운다(PLAN T-012, 실행 방법은 루트 README). 둘 다 `localhost`라 같은 사이트이고 토큰 쿠키가 그대로 오간다 (ADR-0002). 백엔드·프론트를 컨테이너로 만드는 것은 배포 작업(T-013)에서 한다.
-- 운영: **VM 1대 + Docker Compose** (백엔드, 프론트, 역프록시·TLS, MySQL 또는 관리형 DB). 컨테이너는 `restart: unless-stopped`로 장애 후 자동으로 다시 켠다. 호스팅 업체와 도메인은 **미결정**이다 (비용 확인 후).
+- 운영: **VM 1대 + Docker Compose** (백엔드, 프론트, 역프록시·TLS, MySQL 또는 관리형 DB). 컨테이너는 `restart: unless-stopped`로 장애 후 자동으로 다시 켠다. 호스팅 업체와 도메인 이름은 **사람이 고른다** (비용 확인 후, PLAN H-6).
+- 배포 형태 (PLAN D-3, 2026-11-18 결정, T-013): 클라우드 VM 1대와 사람이 산 도메인. 임시 호스트·터널은 쓰지 않는다. Caddy가 Let's Encrypt 인증서로 HTTPS를 끝내고 `app.<도메인>` → 프론트, `api.<도메인>` → 백엔드로 보낸다. MySQL은 같은 VM의 컨테이너(볼륨)이고 백업·복구는 T-065에서 정한다. 이미지는 개발자 컴퓨터에서 빌드해 SSH로 서버에 보내고(레지스트리 없음), 백엔드와 프론트를 따로 배포할 수 있다. 파일과 절차는 `deploy/README.md`.
+- 역프록시 뒤라 `prod`는 `X-Forwarded-*`를 읽는다(`server.forward-headers-strategy: native`). 쿠키 `Domain`은 등록 도메인으로 둬서 프론트 JS가 CSRF 쿠키를 읽는다 (ADR-0002).
 - 프론트와 백엔드는 같은 사이트(예: `app.<도메인>`, `api.<도메인>`)로 두어 쿠키 인증을 단순하게 유지한다.
 - 환경: `local`, `prod` (스테이징은 필요해질 때). `prod`는 Spring 프로파일(`SPRING_PROFILES_ACTIVE=prod`)로 켜고, 개발용 도구인 API 문서와 Swagger UI는 `prod`에서 끈다. DB 백업과 복구 절차는 배포 확정 시 정한다.
 
@@ -229,7 +231,7 @@ covers:
 **2026-11-13 확정**: 루트 패키지 `com.everystudy`, JWT 액세스 15분·리프레시 14일(회전)·같은 사이트 배포와 `SameSite=Lax`(ADR-0002), 배포는 Docker(VM 1대 + Compose), 프론트 npm과 TanStack Query, ADR-0002~0005 확정. 데이터·API 명세의 작은 항목도 함께 확정했다 (닉네임 중복 불허, 재신청 허용, 이의 증빙은 텍스트만, 대기는 정원이 찼을 때만, 참여자가 있으면 일정·장소 수정 불가, 숨김 조치 삭제, 리프레시 토큰 정리 작업 추가).
 
 **남은 항목** (구현하며 정한다)
-1. 호스팅 업체·도메인·DB 운영 방식과 백업 (9장)
+1. 호스팅 업체·도메인 이름과 DB 백업 (9장). 배포 형태는 D-3에서 정했다
 2. 신고 사유 분류 목록, 호출 제한 수치, 수신 설정으로 건너뛴 알림의 상태 표기 (DATA-MODEL, API 끝 항목)
 3. 서버 장애 구간의 체크인 구제 (PRD 9장 운영 후 과제)
 
