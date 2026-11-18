@@ -4,8 +4,8 @@ version: "0.5"
 based_on:
   - docs/PRD.md@0.11
   - docs/ARCHITECTURE.md@0.9
-  - docs/DATA-MODEL.md@0.7
-  - docs/API.md@0.10
+  - docs/DATA-MODEL.md@0.8
+  - docs/API.md@0.11
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -162,7 +162,7 @@ based_on:
 
 ### M2 참여·정원·대기
 
-- [ ] T-014 알림 기반: 아웃박스·알림 센터
+- [x] T-014 알림 기반: 아웃박스·알림 센터
   - 선행: T-006 · 결정 X-8, X-10
   - 참조: ADR-0005 알림, ARCHITECTURE 4.6, DATA-MODEL 7장(`notification`, `notification_outbox`), API 3장(`/me/notifications`)
   - 완료: `notification` 모듈의 공개 서비스로 알림과 채널별 아웃박스 행을 **호출한 쪽 트랜잭션 안에서** 기록 · `dedupe_key`로 중복 생성 방지 · 채널 발송은 인터페이스와 테스트용 가짜 구현만(실제 워커는 T-038) · 알림 센터 조회(커서)·읽음·모두 읽음 API, 예약 건 노출은 X-10 결정대로 · 테스트: 원 트랜잭션 커밋 시 아웃박스 행 존재, 원 트랜잭션 롤백 시 아웃박스 0건, 같은 `dedupe_key` 두 번 기록 시 1건
@@ -585,7 +585,7 @@ based_on:
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |
 | X-8 | **결정됨(2026-11-16, 오른쪽 제안대로. ARCHITECTURE 3장, ADR-0003 후속 결정).** **이벤트→알림 트랜잭션 경계와 모듈 방향.** ARCHITECTURE 3장은 모듈 간 리스너를 `AFTER_COMMIT`으로 실행한다고 하나, 4.6과 ADR-0005는 아웃박스를 비즈니스 트랜잭션 안에서 기록한다고 함(`AFTER_COMMIT`에서 기록하면 커밋 후 실패 시 알림 유실). 또 `study`가 개설 시 `chat_room`을 만들고(PRD 4.12, API 4장) 종료 시 폐쇄하면 `study → chat` 의존이 생겨 3장의 `chat → study` 방향과 순환 | 알림은 `BEFORE_COMMIT` 동기 리스너 또는 `notification` 공개 서비스 직접 호출로 같은 트랜잭션에 기록하고, `AFTER_COMMIT`은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너(같은 트랜잭션)로 받아 방 생성·폐쇄를 하고, `study`는 `chat`을 참조하지 않는다. ARCHITECTURE 3장과 ADR-0003에 반영 | T-003, T-008, T-014, T-015 |
 | X-9 | DATA-MODEL 5장의 `UNIQUE (study_id, user_id, type)`와 재신청 허용(같은 행 재활성화, DATA-MODEL 11장 확정)이 충돌: 나가기→재신청→다시 나가기에서 `EARLY_CANCEL`·`LATE_CANCEL`이 중복되어 거부됨. MySQL은 부분 유일 인덱스가 없음 | 생성 컬럼(ADR-0001 "생성 컬럼으로 우회")으로 판정 종류(`ATTENDED`, `LATE`, `NO_SHOW_CANDIDATE`, `NO_SHOW`, `VOIDED`)일 때만 값을 갖고 취소 종류는 `NULL`인 키를 만들어 `UNIQUE (study_id, user_id, 그 키)`로 둔다. 취소 이벤트의 중복 방지는 `study` 락으로 충분 | T-018 |
-| X-10 | 일정 알림을 미리 예약하면(ARCHITECTURE 4.6) 아웃박스가 `notification` 행을 FK로 참조하므로, 발송 전 예약 알림이 알림 센터(`/me/notifications`)에 미리 보임 | `notification`에 `visible_at`을 두고 알림 센터는 `visible_at <= now`만 보여 준다 (또는 센터는 발송된 건만) | T-014, T-040 |
+| X-10 | **결정됨(2026-11-19, 오른쪽 첫 제안 `visible_at`. DATA-MODEL 7장, API 3장).** 일정 알림을 미리 예약하면(ARCHITECTURE 4.6) 아웃박스가 `notification` 행을 FK로 참조하므로, 발송 전 예약 알림이 알림 센터(`/me/notifications`)에 미리 보임 | `notification`에 `visible_at`을 두고 알림 센터는 `visible_at <= now`만 보여 준다 (또는 센터는 발송된 건만) | T-014, T-040 |
 | X-11 | **결정됨(2026-11-16, 오른쪽 제안대로, 감사 로그는 `common`. ARCHITECTURE 3장, ADR-0003 후속 결정).** 모듈 소속: ARCHITECTURE 3장에 `schedule` 모듈(일정 변경, 세션 무효)이 있으나 일정은 `study` 테이블에 있음(ARCHITECTURE 5장). `attendance_event`는 `trust` 소속인데 체크인·자동 판정은 `attendance` 소속. 감사 로그 소속 모듈도 없음 | 일정 수정은 `study`, 세션 무효·노쇼 후보 판정은 `attendance`, 이벤트 기록·집계는 `trust`(공개 서비스), 감사 로그는 `common`(여러 모듈이 기록하므로 `admin`에 두면 모두 `admin`에 의존하게 됨)으로 정하고 `schedule` 모듈을 지운다. ARCHITECTURE 3장 갱신 | T-003, T-022, T-031 |
 | X-12 | 지각 판정에 대한 이의가 인정되면(`NO_SHOW_CLEARED`, "직전 판정을 무효화") 출석으로 볼지 집계에서 뺄지 정의가 없음 | 이의 인정은 "판정이 틀렸음"이므로 출석으로 집계하는 정정 이벤트(`ATTENDED`)를 추가 | T-032, T-056 |
 | X-13 | 주최자가 시작 후 나가면(`LEFT_AFTER_START`) `study_member` 상태, `host_id`, 이미 한 체크인과 출석 집계 처리가 정의되지 않음 | `study_member`는 `LEFT`, `host_id`와 체크인은 그대로 두어 세션은 진행되고(PRD 4.13A 마지막 항목), 취소 이벤트는 만들지 않는다. 체크인 전이었다면 미도착 규칙(T-031)으로 처리 | T-020, T-046 |
