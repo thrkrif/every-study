@@ -20,13 +20,13 @@ import java.util.List;
 /**
  * 스터디 개설 요청 (API 4장). 여기서는 형식만 본다. 시각·정원·입장 기준 값의 범위는 서비스가 설정값으로 검사한다.
  *
+ * @param description    소개. 선택이고, 생략하거나 공백만 쓰면 빈 문자열로 저장한다 (PRD 4.2)
  * @param targetJobCodes 희망 직군 대분류. 생략하거나 비우면 직군 무관. 세부 직무 코드는 받지 않는다 (PRD 4.2)
  * @param allowNewcomer  신규 허용. 생략하면 허용 (PRD 4.7 기본값)
  */
 record CreateStudyRequest(
         @NotBlank(message = "필수 값입니다") @Size(min = 2, max = 40, message = "2~40자여야 합니다") String title,
-        @NotBlank(message = "필수 값입니다") @Size(min = 10, max = 2000, message = "10~2000자여야 합니다")
-        String description,
+        @Size(max = 2000, message = "2000자 이하여야 합니다") String description,
         @NotBlank(message = "필수 값입니다") @KnownTopicCode String topicCode,
         @NotBlank(message = "필수 값입니다") @DistrictCode String districtCode,
         List<@NotBlank(message = "필수 값입니다") @JobCategoryCode String> targetJobCodes,
@@ -39,7 +39,7 @@ record CreateStudyRequest(
 
     CreateStudyRequest {
         title = strip(title);
-        description = strip(description);
+        description = description == null ? "" : description.strip();
         targetJobCodes = targetJobCodes == null ? List.of() : targetJobCodes;
     }
 
