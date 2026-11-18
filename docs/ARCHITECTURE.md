@@ -2,7 +2,7 @@
 status: draft
 version: "0.8"
 based_on:
-  - docs/PRD.md@0.10
+  - docs/PRD.md@0.11
 covers:
   - backend/src/main/java/com/everystudy/common/**
   - frontend/src/lib/api/**

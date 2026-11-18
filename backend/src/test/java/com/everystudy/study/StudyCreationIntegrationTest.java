@@ -152,6 +152,22 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("소개는 선택이다. 생략하거나 공백만 쓰면 빈 문자열로 저장하고, 2000자를 넘으면 400 이다")
+    void descriptionIsOptional() {
+        String base = body(kstAt(2, LocalTime.of(10, 0)), 60, "[]");
+        String sample = "\"description\": \"같이 공부해요. 조용히 집중하는 모임입니다.\",";
+        assertThat(base).contains(sample); // 바꿔치기가 조용히 빗나가지 않게 한다
+
+        assertThat(create(base.replace(sample, ""))).hasStatus(201);
+        assertThat(create(base.replace(sample, "\"description\": \"   \","))).hasStatus(201);
+        MvcTestResult tooLong = create(base.replace(sample, "\"description\": \"" + "가".repeat(2001) + "\","));
+
+        assertThat(jdbc.queryForList("SELECT description FROM study", String.class)).containsExactly("", "");
+        assertThat(tooLong).hasStatus(400).bodyJson().extractingPath("$.errors[*].field").asArray()
+                .containsExactly("description");
+    }
+
+    @Test
     @DisplayName("개설 중 실패하면 이미 만든 채팅방까지 모두 롤백된다")
     void failureRollsBackChatRoom() {
         FAIL_AFTER_CREATION.set(true);

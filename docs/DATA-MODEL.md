@@ -2,7 +2,7 @@
 status: draft
 version: "0.7"
 based_on:
-  - docs/PRD.md@0.10
+  - docs/PRD.md@0.11
   - docs/ARCHITECTURE.md@0.8
 covers:
   - backend/src/main/java/com/everystudy/user/**
@@ -100,7 +100,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | host_id | BIGINT FK(user) | 현재 주최자. 승계되면 바뀜 |
 | kind | VARCHAR(10) | `OFFLINE` 고정. 이후 비대면 추가를 위한 필드 (PRD 4.2) |
 | title | VARCHAR(60) | 입력은 2~40자 (API 4장). 컬럼은 여유를 둔다 |
-| description | TEXT | |
+| description | TEXT | 소개는 선택이라 비우면 빈 문자열 (API 4장) |
 | topic_code | VARCHAR(30) | |
 | district_code | VARCHAR(20) | **구** 단위 코드. 탐색의 시·도·시 필터는 이 코드의 상위 단계로 거른다 |
 | place_name | VARCHAR(100) | 카카오맵에서 고른 장소명 |
