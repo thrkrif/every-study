@@ -1,15 +1,16 @@
 ---
 status: draft
-version: "0.8"
+version: "0.9"
 based_on:
   - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.10
+  - docs/ARCHITECTURE.md@0.11
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
   - backend/src/main/java/com/everystudy/study/**
   - backend/src/main/java/com/everystudy/chat/**
   - backend/src/main/java/com/everystudy/notification/**
+  - backend/src/main/java/com/everystudy/trust/**
   - backend/src/main/resources/db/migration/**
 ---
 
@@ -246,7 +247,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | rate | DECIMAL(5,2) NULL | 출석률. 지각은 출석 0.5회로 계산한다(PRD 4.7). 신규 조건이면 `NULL` |
 | recalculated_at | DATETIME(6) | |
 
-- 원본은 `attendance_event`다. 이벤트가 쌓일 때 갱신하고, 정책이 바뀌면 전체 재계산한다 (PRD 4.7). 신규 여부는 `counted`가 기준 미만인지로 판단한다.
+- 원본은 `attendance_event`다. 이벤트가 쌓일 때 갱신하고, 정책이 바뀌면 전체 재계산한다 (PRD 4.7). 신규 여부는 `counted`가 기준 미만인지로 판단한다. **행이 없으면(출석 기록이 아직 없으면) 신규**다. `rate`가 `NULL`이어도 신규로 본다.
 
 ### `host_penalty_event`
 | 컬럼 | 타입 | 설명 |
@@ -272,7 +273,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | revoked_at | DATETIME(6) NULL | 운영자 해제 |
 | created_by | BIGINT NULL FK(user) | 수동 조치자 |
 
-- 신청·개설 시점에 `starts_at <= now < ends_at AND revoked_at IS NULL`인 행이 있는지 검사한다. 경고 단계는 제재가 아니라 알림이므로 행을 만들지 않는다.
+- 신청·개설 시점에 `starts_at <= now < ends_at AND revoked_at IS NULL`인 행이 있는지 검사한다. 참여 신청을 막는 것은 `JOIN_RESTRICT`와 `SUSPEND`이고, 여럿이면 가장 늦은 `ends_at`을 `USER_RESTRICTED`의 `until`로 준다. 경고 단계는 제재가 아니라 알림이므로 행을 만들지 않는다.
 - 인덱스 `(user_id, kind, ends_at)`.
 
 ## 7. 알림

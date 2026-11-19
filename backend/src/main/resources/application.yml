@@ -83,8 +83,13 @@ everystudy:
     # 체크인 시간창 (PRD 4.6). 신청·대기는 체크인 오픈에 닫힌다 (PRD 4.14)
     checkin-opens-before-minutes: 10
     checkin-closes-after-minutes: 30
+    # study 행 락 대기 시간 (ADR-0004 결정 5, 기본값의 원본은 ARCHITECTURE 4.2). 넘으면 409 LOCK_TIMEOUT
+    lock:
+      timeout: 3s
   attendance:
     checkin-radius-meters: 150   # PRD 4.6
+  trust:
+    newcomer-below-sessions: 3   # PRD 4.7 신규 배지: 집계 대상 세션이 3회 미만
 
 # Swagger UI 에서 상태 변경 요청을 보낼 때 CSRF 쿠키 값을 헤더로 붙이게 한다 (개발용. 운영에서는 Swagger UI 가 꺼져 있다).
 springdoc:

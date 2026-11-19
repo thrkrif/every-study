@@ -3,12 +3,15 @@ package com.everystudy.common.error;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import jakarta.validation.Valid;
+import java.time.Instant;
+import java.util.Map;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -66,6 +69,17 @@ class GlobalExceptionHandlerTest {
         void constraint(@RequestParam @Min(1) int size) {
         }
 
+        @GetMapping("/probe/business-with-properties")
+        void businessWithProperties() {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN, null,
+                    Map.of("until", Instant.parse("2026-11-25T05:00:00Z")));
+        }
+
+        @GetMapping("/probe/lock-timeout")
+        void lockTimeout() {
+            throw new CannotAcquireLockException("Lock wait timeout exceeded");
+        }
+
         @GetMapping("/probe/unexpected")
         void unexpected() {
             throw new IllegalStateException("jdbc:mysql://internal-host/secret-table");
@@ -90,6 +104,33 @@ class GlobalExceptionHandlerTest {
                     assertThat(json).extractingPath("$.title").asString().isNotBlank();
                     assertThat(json).extractingPath("$.detail").isEqualTo("스터디 42 없음");
                     assertThat(json).extractingPath("$.traceId").asString().isNotBlank();
+                });
+    }
+
+    @Test
+    @DisplayName("비즈니스 예외의 추가 값은 응답 최상위 필드로 나가고, 시각은 ISO-8601 UTC 문자열이다")
+    void businessExceptionPropertiesAreExposed() {
+        assertThat(mvc.get().uri("/probe/business-with-properties"))
+                .hasStatus(403)
+                .bodyJson()
+                .satisfies(json -> {
+                    assertThat(json).extractingPath("$.code").isEqualTo("FORBIDDEN");
+                    assertThat(json).extractingPath("$.until").isEqualTo("2026-11-25T05:00:00Z");
+                    assertThat(json).doesNotHavePath("$.detail");
+                });
+    }
+
+    @Test
+    @DisplayName("락을 얻지 못한 예외(대기 초과·교착)는 재시도할 수 있는 409 LOCK_TIMEOUT 으로 응답한다")
+    void lockFailureBecomesLockTimeout() {
+        assertThat(mvc.get().uri("/probe/lock-timeout"))
+                .hasStatus(409)
+                .hasContentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON)
+                .bodyJson()
+                .satisfies(json -> {
+                    assertThat(json).extractingPath("$.code").isEqualTo("LOCK_TIMEOUT");
+                    // 원인 메시지는 응답에 넣지 않는다.
+                    assertThat(json).doesNotHavePath("$.detail");
                 });
     }
 

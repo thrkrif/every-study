@@ -41,6 +41,11 @@ public class StudyMember {
     @Column(name = "left_at")
     private Instant leftAt;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "cancel_type", length = 10)
+    private CancelType cancelType;
+
     protected StudyMember() {
     }
 
@@ -52,6 +57,10 @@ public class StudyMember {
         return joinedAt;
     }
 
+    public boolean isActive() {
+        return status == MemberStatus.ACTIVE;
+    }
+
     public static StudyMember join(long studyId, long userId, Instant now) {
         StudyMember member = new StudyMember();
         member.studyId = studyId;
@@ -59,5 +68,19 @@ public class StudyMember {
         member.status = MemberStatus.ACTIVE;
         member.joinedAt = now;
         return member;
+    }
+
+    /**
+     * 나갔던 참여자가 다시 신청하면 같은 행을 되살린다 (DATA-MODEL 4장, 유일 제약 {@code (study_id, user_id)}).
+     * 참여 순서는 다시 들어온 시각을 따른다. 나간 이력은 {@code attendance_event} 에 남는다.
+     */
+    public void rejoin(Instant now) {
+        if (isActive()) {
+            throw new IllegalStateException("이미 참여 중인 행은 되살릴 수 없습니다");
+        }
+        status = MemberStatus.ACTIVE;
+        joinedAt = now;
+        leftAt = null;
+        cancelType = null;
     }
 }

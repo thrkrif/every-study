@@ -5,6 +5,7 @@ import com.everystudy.common.code.KnownRegionCode;
 import com.everystudy.common.code.KnownTopicCode;
 import com.everystudy.common.security.LoginUser;
 import com.everystudy.study.service.StudyCreationService;
+import com.everystudy.study.service.StudyJoinService;
 import com.everystudy.study.service.StudyQueryService;
 import com.everystudy.study.service.StudyViews;
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import java.net.URI;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,10 +32,12 @@ class StudyController {
 
     private final StudyCreationService creation;
     private final StudyQueryService queries;
+    private final StudyJoinService joining;
 
-    StudyController(StudyCreationService creation, StudyQueryService queries) {
+    StudyController(StudyCreationService creation, StudyQueryService queries, StudyJoinService joining) {
         this.creation = creation;
         this.queries = queries;
+        this.joining = joining;
     }
 
     /**
@@ -77,6 +81,13 @@ class StudyController {
             @Valid @RequestBody CreateStudyRequest request) {
         long id = creation.create(user.userId(), request.toCommand());
         return ResponseEntity.created(URI.create("/api/v1/studies/" + id)).body(new CreatedStudy(id));
+    }
+
+    /** 참여 신청. 승인 없이 바로 확정되어 {@code 201}, 본문은 없다. 결과는 상세의 {@code myState} 로 본다. */
+    @PostMapping("/{id}/members")
+    ResponseEntity<Void> join(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
+        joining.join(id, user.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     private static Long viewerId(LoginUser user) {

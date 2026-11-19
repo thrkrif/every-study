@@ -3,9 +3,9 @@ status: draft
 version: "0.5"
 based_on:
   - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.10
-  - docs/DATA-MODEL.md@0.8
-  - docs/API.md@0.11
+  - docs/ARCHITECTURE.md@0.11
+  - docs/DATA-MODEL.md@0.9
+  - docs/API.md@0.12
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -168,7 +168,7 @@ based_on:
   - 완료: `notification` 모듈의 공개 서비스로 알림과 채널별 아웃박스 행을 **호출한 쪽 트랜잭션 안에서** 기록 · `dedupe_key`로 중복 생성 방지 · 채널 발송은 인터페이스와 테스트용 가짜 구현만(실제 워커는 T-038) · 알림 센터 조회(커서)·읽음·모두 읽음 API, 예약 건 노출은 X-10 결정대로 · 테스트: 원 트랜잭션 커밋 시 아웃박스 행 존재, 원 트랜잭션 롤백 시 아웃박스 0건, 같은 `dedupe_key` 두 번 기록 시 1건
   - 문서: DATA-MODEL 7장(X-10 반영), API 3장 확인, 머리말 `covers`에 `notification/**` 추가
 
-- [ ] T-015 참여 신청 API
+- [x] T-015 참여 신청 API
   - 선행: T-009 · 결정 X-8
   - 참조: PRD 4.4·4.7(입장 기준)·4.8, ADR-0004 결정 1~3·5, ARCHITECTURE 4.2, DATA-MODEL 4장(`study_member`)·6장(`user_sanction`, `user_trust_summary`), API 4장 참여
   - 완료: `study` 행 비관적 락 안에서 PRD 4.4 순서대로 검사하고 즉시 확정 · `user_sanction`·`user_trust_summary` 테이블을 만들고 이용 제한·입장 기준 검사(지표 데이터가 없으면 신규로 취급) · 나간 사용자의 재신청은 같은 행 재활성화 · 희망 직군에 내 대분류가 없으면 `JOB_NOT_ALLOWED`(X-18) · 체크인 오픈 이후 `STUDY_NOT_RECRUITING` · 락 대기 초과 시 `409 LOCK_TIMEOUT` · 테스트: 오류 코드별 1건씩, 여러 조건이 동시에 어긋날 때 PRD 4.4 순서상 앞선 오류가 나옴
@@ -595,3 +595,4 @@ based_on:
 | X-16 | **체크인 오픈 시 대기 정리.** PRD 4.14와 DATA-MODEL 4장(`study_waiting`)은 체크인이 열리면 대기를 자동 해제(행 삭제)한다고 하나, ADR-0005·ARCHITECTURE 4.7 작업 목록과 DATA-MODEL 10장에는 그 시점에 도는 작업이 없음 | 체크인 오픈 이후의 대기 행은 조회(`myState`, `waitingCount`)와 알림 대상에서 걸러 내고, 행 삭제는 스터디 종료·파투 처리 때 한다. DATA-MODEL 4장 문구를 "체크인 오픈 이후에는 무효로 보고 종료 시 삭제"로 고친다 | T-017, T-030 |
 | X-17 | **결정됨(2026-11-16, API 1장)**: 서버 내부 오류는 `500 INTERNAL_ERROR`, 잘못된 본문·파라미터는 `VALIDATION_FAILED`, 405·415 등 HTTP 표준 오류는 `code` 없이 `status`로 구분한다. T-001에서 구현 | API 1장 | T-004 |
 | X-18 | **결정됨(2026-11-17, PRD 4.2·4.4 v0.8)**: 희망 직군은 안내용이 아니라 **참여 조건**이고, 지금은 대분류로만 고른다. 희망 직군이 없거나 내 직군의 대분류가 희망 목록에 있으면 신청할 수 있고, 아니면 `409 JOB_NOT_ALLOWED`. 세부 직무 단위 스터디(그 세부 직무만 신청 가능)는 PRD 9장 운영 후 과제. 직군을 바꿔 들어오는 것은 막지 않는다 | (처음 권장안: 일치하지 않으면 안내만) | T-009, T-015, T-024 |
+| X-19 | **결정됨(2026-11-19, 오른쪽 제안대로. API 4장, ARCHITECTURE 4.2).** 온보딩(닉네임·직군·지역)을 마치지 않은 회원의 참여 신청 처리가 없음. 개설은 `403 ONBOARDING_REQUIRED`인데 API 4장의 참여 신청 오류 목록에는 없어, 희망 직군이 없는 스터디에 닉네임 없는 참여자가 들어갈 수 있음 | 개설과 같이 `403 ONBOARDING_REQUIRED`. 스터디 규칙이 아니라 신청자의 전제 조건이라 PRD 4.4 검증보다 먼저(락을 잡기 전에) 확인한다 | T-015, T-024 |
