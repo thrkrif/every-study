@@ -3,7 +3,7 @@ status: draft
 version: "0.10"
 based_on:
   - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.9
+  - docs/ARCHITECTURE.md@0.10
   - docs/DATA-MODEL.md@0.7
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**

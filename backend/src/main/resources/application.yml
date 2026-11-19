@@ -68,6 +68,8 @@ everystudy:
       frontend-url: ${FRONTEND_URL:http://localhost:3000}
       # HTTPS 가 아닌 로컬에서 쿠키가 저장되지 않는 브라우저(Safari)를 쓸 때만 false 로 둔다.
       cookie-secure: ${AUTH_COOKIE_SECURE:true}
+      # 쿠키의 Domain. 로컬은 비운다. 배포에서 app.·api. 를 나누면 등록 도메인(예: example.com)을 넣어 프론트 JS 가 CSRF 쿠키를 읽게 한다 (ADR-0002)
+      cookie-domain: ${AUTH_COOKIE_DOMAIN:}
   # 정책 설정값 (ARCHITECTURE 4.9). 값의 원본은 PRD 다. 클라이언트는 GET /api/v1/meta/options 로 받는다.
   study:
     capacity-min: 2      # PRD 4.2 정원(주최자 포함)
