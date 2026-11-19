@@ -1,15 +1,16 @@
 ---
 status: draft
-version: "0.10"
+version: "0.11"
 based_on:
   - docs/PRD.md@0.11
   - docs/ARCHITECTURE.md@0.10
-  - docs/DATA-MODEL.md@0.7
+  - docs/DATA-MODEL.md@0.8
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
   - backend/src/main/java/com/everystudy/meta/web/**
   - backend/src/main/java/com/everystudy/study/web/**
+  - backend/src/main/java/com/everystudy/notification/web/**
 ---
 
 # API 명세
@@ -142,7 +143,7 @@ covers:
 | `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디가 있으면 규칙을 먼저 적용한 뒤 처리 |
 | `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past` | 회원 | 내 스터디 (마이페이지, 다가오는 모임) |
 | `GET /api/v1/me/attendance` | 회원 | 지난 출석 기록 (판정, 이의 가능 여부) |
-| `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` |
+| `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
 | `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off |
 | `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 웹 푸시 구독 등록·해지 |
 | `GET /api/v1/users/{id}` | 공개 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1) |
@@ -164,6 +165,16 @@ covers:
 | `districtCode` | 활동 지역. **구** 단위 코드만 (`/meta/options`의 `regions` 맨 아래 단계) |
 
 형식이 틀리면 `400 VALIDATION_FAILED`이고 `errors`에 필드가 담긴다.
+
+**알림 센터** (`GET /me/notifications?cursor=&size=20`, size 1~50)
+```json
+{ "items": [ { "id": 7, "type": "CHECKIN_OPEN", "studyId": 3, "title": "체크인이 열렸어요",
+               "body": "장소에 도착하면 체크인해 주세요", "read": false, "notifiedAt": "2026-11-25T04:30:00Z" } ],
+  "nextCursor": null }
+```
+- 보이기 시작한 시각(`notifiedAt`)이 지난 내 알림만, 최근 것부터 준다. 미리 예약된 일정 알림은 그 시각 전에는 보이지 않는다 (PLAN X-10, DATA-MODEL 7장). `studyId`는 없으면 `null`.
+- `POST /me/notifications/{id}/read`: `204`. 이미 읽었어도 `204`. 남의 알림, 아직 보이지 않는 알림, 없는 알림은 `404 NOT_FOUND`.
+- `POST /me/notifications/read-all`: 보이는 내 알림을 모두 읽음으로 바꾸고 `204`.
 
 **출석 지표 응답** (PRD 4.7)
 ```json

@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.7"
+version: "0.8"
 based_on:
   - docs/PRD.md@0.11
   - docs/ARCHITECTURE.md@0.10
@@ -9,6 +9,7 @@ covers:
   - backend/src/main/java/com/everystudy/auth/**
   - backend/src/main/java/com/everystudy/study/**
   - backend/src/main/java/com/everystudy/chat/**
+  - backend/src/main/java/com/everystudy/notification/**
   - backend/src/main/resources/db/migration/**
 ---
 
@@ -281,13 +282,17 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | 예: `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE` |
-| study_id | BIGINT NULL | 연결 대상 |
-| title, body | VARCHAR | 중복을 견디는 문장 (ADR-0005) |
+| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`. 종류를 더하면 `CHECK`도 고친다 |
+| study_id | BIGINT NULL FK | 연결 대상 |
+| title | VARCHAR(100) | 중복을 견디는 문장 (ADR-0005) |
+| body | VARCHAR(300) | 같음 |
+| dedupe_key | VARCHAR(100) UNIQUE | 예: `CHECKIN_OPEN:{studyId}:{userId}`. 같은 키로 두 번 기록하면 한 건만 남는다(알림·아웃박스 모두) |
+| visible_at | DATETIME(6) | 알림 센터에 보이기 시작하는 시각 = 발송 예정 시각. 바로 보내는 알림은 기록 시각 (PLAN X-10) |
 | read_at | DATETIME(6) NULL | |
 | created_at | DATETIME(6) | |
 
-- 인덱스 `(user_id, id DESC)`.
+- 알림 센터는 `visible_at <= now`인 건만 `visible_at DESC, id DESC`로 보여 준다. 아직 보이지 않는 예약 알림은 읽음 처리도 할 수 없다(`404`). 인덱스 `(user_id, visible_at, id)`.
+- 알림과 아웃박스는 변경을 일으킨 쪽 트랜잭션에서 `notification` 공개 서비스로 함께 기록한다 (ARCHITECTURE 3장). 중복 확인 뒤 기록하므로 같은 키를 동시에 기록하는 쪽은 키의 대상(예: `study` 행)을 잠근다.
 
 ### `notification_outbox` (ADR-0005)
 채널별로 한 행이다.
@@ -297,14 +302,15 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | id | BIGINT PK | |
 | notification_id | BIGINT FK | |
 | channel | VARCHAR(10) | `PUSH` / `EMAIL` |
-| dedupe_key | VARCHAR(100) UNIQUE | 예: `CHECKIN_OPEN:{studyId}:{userId}:PUSH`. 같은 알림이 두 번 만들어지지 않게 한다 |
+| dedupe_key | VARCHAR(100) UNIQUE | 알림의 키에 `:{채널}`을 붙인 값. 예: `CHECKIN_OPEN:{studyId}:{userId}:PUSH` |
 | status | VARCHAR(10) | `PENDING` / `SENT` / `FAILED` / `CANCELLED` |
-| scheduled_at | DATETIME(6) | 예정 발송 시각 (일정 알림은 미리 기록) |
-| attempts | TINYINT | |
-| next_attempt_at | DATETIME(6) | 백오프 |
-| expires_at | DATETIME(6) | 유효 기한. 이 시각이 지난 `PENDING` 건은 발송하지 않고 `CANCELLED`로 바꾼다 (서버 중단 후 늦은 알림 방지, ARCHITECTURE 4.6) |
+| scheduled_at | DATETIME(6) | 예정 발송 시각 (일정 알림은 미리 기록). 알림의 `visible_at`과 같다 |
+| attempts | TINYINT | 처음 0 |
+| next_attempt_at | DATETIME(6) | 백오프. 처음은 `scheduled_at` |
+| expires_at | DATETIME(6) | 유효 기한(`scheduled_at` 이상). 이 시각이 지난 `PENDING` 건은 발송하지 않고 `CANCELLED`로 바꾼다 (서버 중단 후 늦은 알림 방지, ARCHITECTURE 4.6) |
 | last_error | VARCHAR(300) NULL | |
 | sent_at | DATETIME(6) NULL | |
+| created_at | DATETIME(6) | |
 
 - 워커는 `status='PENDING' AND next_attempt_at <= now`를 한 번에 상한 건수만큼 읽는다. 인덱스 `(status, next_attempt_at)`.
 - 스터디가 취소되면 해당 스터디의 미발송 일정 알림 행을 `CANCELLED`로 바꾼다. 주최자 혼자일 때 일정을 수정하면 미발송 행을 취소하고 새로 만든다 (ARCHITECTURE 4.6).
