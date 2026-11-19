@@ -1,0 +1,15 @@
+# 역프록시와 HTTPS (PLAN T-013). APP_DOMAIN·ACME_EMAIL 은 compose 가 환경변수로 넘긴다.
+# 프론트와 API 를 같은 등록 도메인 아래에 둬서 로그인 쿠키를 first-party 로 유지한다 (ADR-0002).
+{
+	email {$ACME_EMAIL}
+}
+
+app.{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy frontend:3000
+}
+
+api.{$APP_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy backend:8090
+}

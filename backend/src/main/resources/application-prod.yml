@@ -1,5 +1,10 @@
 # 운영(prod) 전용 설정. SPRING_PROFILES_ACTIVE=prod 일 때만 읽는다 (ARCHITECTURE 9장).
 
+# 역프록시(Caddy)가 HTTPS 를 끝내고 X-Forwarded-Proto·Host 를 붙인다. 이를 읽어야 OAuth 리다이렉트 주소가 https://api.<도메인> 이 된다.
+# 믿는 프록시는 Tomcat 기본값(사설 IP 대역, Docker 네트워크 포함)이다.
+server:
+  forward-headers-strategy: native
+
 # API 문서와 Swagger UI 는 개발용이라 운영에서는 열지 않는다 (PLAN D-19).
 springdoc:
   api-docs:

@@ -14,6 +14,8 @@ loadEnvConfig(
 );
 
 const nextConfig: NextConfig = {
+  // 운영 이미지(frontend/Dockerfile)는 .next/standalone 의 최소 서버만 옮긴다 (PLAN T-013)
+  output: "standalone",
   // 에이전트 규칙은 저장소 루트 AGENTS.md 한 곳에 둔다. next dev 가 frontend/AGENTS.md 를 만들지 않게 한다.
   agentRules: false,
 };

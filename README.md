@@ -8,6 +8,7 @@
 | `frontend/` | Next.js 웹 앱 ([frontend/README.md](frontend/README.md))      |
 | `docs/`     | 기능 명세, 설계, 작업 계획                                    |
 | `tools/`    | 로컬 실행과 검사 스크립트                                     |
+| `deploy/`   | 운영 배포 (Compose, Caddy, 배포 스크립트)                     |
 
 ## 로컬에서 전체 실행 (PLAN T-012)
 
@@ -38,6 +39,10 @@ bash tools/dev.sh
 2. 헤더의 "로그인"에서 카카오나 구글로 로그인하고, 온보딩에서 닉네임·직군·지역을 입력한다.
 3. "스터디 만들기"에서 장소를 고르고 날짜·시간·정원을 입력해 개설하면 상세로 간다.
 4. "로그아웃" 뒤 비회원으로 목록과 상세에서 그 스터디를 본다.
+
+## 배포
+
+VM 1대에 HTTPS로 배포하는 방법은 [deploy/README.md](deploy/README.md) (PLAN T-013).
 
 ## 검사
 
