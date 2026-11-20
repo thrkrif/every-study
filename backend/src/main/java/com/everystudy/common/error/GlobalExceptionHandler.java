@@ -3,6 +3,7 @@ package com.everystudy.common.error;
 import com.everystudy.common.web.TraceIdFilter;
 import java.util.List;
 import org.slf4j.MDC;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -31,7 +32,19 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     ResponseEntity<Object> handleBusiness(BusinessException ex, WebRequest request) {
         ProblemDetail body = problem(ex.errorCode(), ex.detail());
+        ex.properties().forEach(body::setProperty);
         return handleExceptionInternal(ex, body, new HttpHeaders(), ex.errorCode().status(), request);
+    }
+
+    /**
+     * 비관적 락을 정해진 시간 안에 얻지 못했거나 교착으로 밀려난 경우 (ADR-0004 결정 5). 재시도할 수 있으므로
+     * {@code 409 LOCK_TIMEOUT} 으로 응답한다. 원인 메시지(SQL 등)는 응답에 넣지 않는다.
+     */
+    @ExceptionHandler(PessimisticLockingFailureException.class)
+    ResponseEntity<Object> handleLockFailure(PessimisticLockingFailureException ex, WebRequest request) {
+        logger.warn("락을 얻지 못함: " + ex.getClass().getSimpleName());
+        ProblemDetail body = problem(CommonErrorCode.LOCK_TIMEOUT, null);
+        return handleExceptionInternal(ex, body, new HttpHeaders(), CommonErrorCode.LOCK_TIMEOUT.status(), request);
     }
 
     /** 서비스가 검사한 입력 오류 (현재 시각·설정값에 따라 달라지는 규칙). 형식 오류와 같은 응답이다. */

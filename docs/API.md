@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.11"
+version: "0.12"
 based_on:
   - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.10
-  - docs/DATA-MODEL.md@0.8
+  - docs/ARCHITECTURE.md@0.11
+  - docs/DATA-MODEL.md@0.9
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -285,7 +285,7 @@ covers:
 
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
-| `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`. 오류 `STUDY_FULL`, `STUDY_NOT_RECRUITING`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4) |
+| `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`, 본문 없음(결과는 상세의 `myState`). 오류 `STUDY_NOT_RECRUITING`, `STUDY_FULL`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4). 그 밖에 온보딩 전이면 `403 ONBOARDING_REQUIRED`(검증보다 먼저, PLAN X-19), 스터디가 없으면 `404 NOT_FOUND`, 락 대기 초과면 `409 LOCK_TIMEOUT`(재시도) |
 | `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소. 응답에 `cancelType`(`EARLY`/`LATE`). **주최자가 호출하면 주최 포기**로 승계·파투·감점 규칙 적용 (PRD 4.13), 응답에 `outcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`) |
 | `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표(상세의 `members`와 같은 형식). 그 스터디의 `ACTIVE` 참여자(주최자 포함)가 아니면 `403 FORBIDDEN` |
 | `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `STUDY_NOT_RECRUITING`, `ALREADY_WAITING` |
