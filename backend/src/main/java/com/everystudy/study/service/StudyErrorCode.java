@@ -13,7 +13,8 @@ public enum StudyErrorCode implements ErrorCode {
     JOB_NOT_ALLOWED(HttpStatus.CONFLICT, "희망 직군에 내 직군이 없습니다"),
     ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여 중인 스터디입니다"),
     STUDY_NOT_FULL(HttpStatus.CONFLICT, "정원에 여유가 있어 대기할 수 없습니다. 바로 참여해 주세요"),
-    ALREADY_WAITING(HttpStatus.CONFLICT, "이미 대기 중인 스터디입니다");
+    ALREADY_WAITING(HttpStatus.CONFLICT, "이미 대기 중인 스터디입니다"),
+    SESSION_STARTED(HttpStatus.CONFLICT, "이미 시작했거나 종료·파투된 스터디라 나갈 수 없습니다");
 
     private final HttpStatus status;
     private final String title;

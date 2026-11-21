@@ -1,6 +1,5 @@
 package com.everystudy.study.service;
 
-import com.everystudy.common.code.JobCode;
 import com.everystudy.common.error.BusinessException;
 import com.everystudy.common.error.CommonErrorCode;
 import com.everystudy.common.time.TimeProvider;
@@ -11,11 +10,8 @@ import com.everystudy.study.repository.StudyMemberRepository;
 import com.everystudy.study.repository.StudyRepository;
 import com.everystudy.trust.service.AttendanceStandingService;
 import com.everystudy.trust.service.SanctionService;
-import com.everystudy.user.service.PublicUser;
 import com.everystudy.user.service.UserAccountService;
-import com.everystudy.user.service.UserDirectory;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -28,7 +24,7 @@ public class StudyJoinService {
     private final StudyRepository studies;
     private final StudyMemberRepository members;
     private final UserAccountService accounts;
-    private final UserDirectory users;
+    private final ApplicantEligibility eligibility;
     private final SanctionService sanctions;
     private final AttendanceStandingService standings;
     private final StudyProperties properties;
@@ -36,12 +32,12 @@ public class StudyJoinService {
     private final TimeProvider time;
 
     StudyJoinService(StudyRepository studies, StudyMemberRepository members, UserAccountService accounts,
-            UserDirectory users, SanctionService sanctions, AttendanceStandingService standings,
+            ApplicantEligibility eligibility, SanctionService sanctions, AttendanceStandingService standings,
             StudyProperties properties, StudyLockProperties lock, TimeProvider time) {
         this.studies = studies;
         this.members = members;
         this.accounts = accounts;
-        this.users = users;
+        this.eligibility = eligibility;
         this.sanctions = sanctions;
         this.standings = standings;
         this.properties = properties;
@@ -76,18 +72,10 @@ public class StudyJoinService {
                 Math.toIntExact(members.countByStudyIdAndStatus(studyId, MemberStatus.ACTIVE)),
                 sanctions.joinRestrictedUntil(userId, now).orElse(null),
                 standings.standingOf(userId),
-                study.getEntryCriteria(), study.getTargetJobCodes(), jobCategoryOf(userId),
+                study.getEntryCriteria(), study.getTargetJobCodes(), eligibility.jobCategoryOf(userId),
                 existing.filter(StudyMember::isActive).isPresent()), now, properties);
 
         existing.ifPresentOrElse(member -> member.rejoin(now),
                 () -> members.save(StudyMember.join(studyId, userId, now)));
-    }
-
-    /** 온보딩을 마친 회원이므로 직군이 있다. 세부 직무면 그 대분류로 판단한다 (PRD 4.4). */
-    private String jobCategoryOf(long userId) {
-        PublicUser user = users.findPublic(List.of(userId)).get(userId);
-        return JobCode.find(user.jobCode())
-                .map(job -> job.category().name())
-                .orElseThrow(() -> new IllegalStateException("온보딩을 마친 회원의 직군 코드가 목록에 없습니다"));
     }
 }

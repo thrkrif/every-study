@@ -61,6 +61,16 @@ public class StudyMember {
         return status == MemberStatus.ACTIVE;
     }
 
+    /** 나간다: 행은 지우지 않고 {@code LEFT} 로 바꾼다. 나간 이력은 {@code attendance_event} 에도 남는다. */
+    public void leave(Instant now, CancelType type) {
+        if (!isActive()) {
+            throw new IllegalStateException("참여 중이 아닌 행은 나갈 수 없습니다");
+        }
+        status = MemberStatus.LEFT;
+        leftAt = now;
+        cancelType = type;
+    }
+
     public static StudyMember join(long studyId, long userId, Instant now) {
         StudyMember member = new StudyMember();
         member.studyId = studyId;

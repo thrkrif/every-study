@@ -31,6 +31,10 @@ public class StudyWaiting {
     protected StudyWaiting() {
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
     public static StudyWaiting of(long studyId, long userId, Instant now) {
         StudyWaiting waiting = new StudyWaiting();
         waiting.studyId = studyId;

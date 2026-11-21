@@ -19,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
  * @param minAttendanceRateOptions 입장 기준 "최소 출석률"로 고를 수 있는 값(%). 기준 없음은 따로 고른다 (PRD 4.7)
  * @param checkinOpensBeforeMinutes 체크인 오픈 = 시작 몇 분 전. 신청과 대기도 이때 닫힌다 (PRD 4.6·4.14)
  * @param checkinClosesAfterMinutes 체크인 마감 = 시작 몇 분 뒤 (PRD 4.6)
+ * @param lateCancelWithinMinutes  시작 몇 분 전부터 나가면 직전 취소인가. 그 전까지는 사전 취소 (PRD 4.6)
  */
 @Validated
 @ConfigurationProperties("everystudy.study")
@@ -31,5 +32,6 @@ public record StudyProperties(
         @Min(1) @DefaultValue("30") int durationMinMinutes,
         @NotEmpty @DefaultValue({"50", "60", "70", "80", "90", "100"}) List<Integer> minAttendanceRateOptions,
         @Min(0) @DefaultValue("10") int checkinOpensBeforeMinutes,
-        @Min(1) @DefaultValue("30") int checkinClosesAfterMinutes) {
+        @Min(1) @DefaultValue("30") int checkinClosesAfterMinutes,
+        @Min(1) @DefaultValue("180") int lateCancelWithinMinutes) {
 }

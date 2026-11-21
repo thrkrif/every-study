@@ -6,6 +6,7 @@ import com.everystudy.common.code.KnownTopicCode;
 import com.everystudy.common.security.LoginUser;
 import com.everystudy.study.service.StudyCreationService;
 import com.everystudy.study.service.StudyJoinService;
+import com.everystudy.study.service.StudyLeaveService;
 import com.everystudy.study.service.StudyQueryService;
 import com.everystudy.study.service.StudyViews;
 import com.everystudy.study.service.StudyWaitingService;
@@ -36,9 +37,11 @@ class StudyController {
     private final StudyQueryService queries;
     private final StudyJoinService joining;
     private final StudyWaitingService waiting;
+    private final StudyLeaveService leaving;
 
     StudyController(StudyCreationService creation, StudyQueryService queries, StudyJoinService joining,
-            StudyWaitingService waiting) {
+            StudyWaitingService waiting, StudyLeaveService leaving) {
+        this.leaving = leaving;
         this.waiting = waiting;
         this.creation = creation;
         this.queries = queries;
@@ -93,6 +96,18 @@ class StudyController {
     ResponseEntity<Void> join(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
         joining.join(id, user.userId());
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /** 나가기 = 참여 취소. 사전/직전 취소 판정을 본문({@code cancelType})으로 알려 준다. */
+    @DeleteMapping("/{id}/members/me")
+    StudyLeaveService.Left leave(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
+        return leaving.leave(id, user.userId());
+    }
+
+    /** 나가기 확인용 사전 조회. 아무것도 바꾸지 않는다. */
+    @GetMapping("/{id}/leave-preview")
+    StudyLeaveService.Preview leavePreview(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
+        return leaving.preview(id, user.userId());
     }
 
     /** 대기 등록. 정원이 차 있을 때만 가능하다. {@code 201}, 본문은 없다. */
