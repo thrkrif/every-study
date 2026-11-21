@@ -47,6 +47,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 - 브랜치 이름: 소문자·숫자·`.`·`-`·`_` (예: `feature/study-create`, `release/0.1.0`). 문서 작업도 `feature/` 를 쓴다.
 - **에이전트는** main 에 직접 commit/push 하지 않고, main 대상 PR 을 만들지 않으며, PR 을 병합하지 않는다. PR 은 항상 `--base develop`.
 - **MVP 모드(한시)**: 사람이 MVP 훅을 설치했을 때만(`docs/guides/agent-hooks.md` 2장) 에이전트가 자기 PR 을 병합할 수 있다. 이때도 develop 대상 PR 이고 `gh pr checks <번호>` 에서 `CI 통과` 가 성공일 때만 `gh pr merge <번호> --merge` 로 병합하며(대기 중이면 기다린다), `--admin` 은 쓰지 않는다. 운영용 훅이면 병합하지 않는다. MVP 가 끝나면 사람이 운영용 훅으로 되돌린다.
+- **연속 진행(MVP 모드, 한시)**: 작업 시작 전에 PLAN 2장 10번의 결정 게이트(막는 결정 D·X)를 확인해 **걸리는 결정이 없는 작업은 사람에게 묻지 않고 커밋 → push → PR → CI 통과 확인 → 병합까지 이어서 진행**한다. 결정을 묻는 작업은 결정을 받은 뒤 같은 방식으로 진행한다. 아래 경우에는 멈추고 사용자에게 알린다: ① 결정 게이트에 걸림 ② 테스트·CI 실패(원인을 고쳐도 같은 실패가 두 번 반복되면) ③ 훅 차단·`hook-error` ④ Docker 등 환경 문제 ⑤ 명세와 코드가 어긋나 정책을 새로 정해야 함. 병합 뒤 **다음 작업은 사용자가 "다음 작업 진행"이라고 할 때** 시작한다. 구현 중 내가 정한 세부 결정은 같은 PR 의 문서(PRD·PLAN 결정표·API 등)에 반드시 남긴다. 컨텍스트가 길어지면 병합 뒤 `/clear` 를 안내한다.
 - force push, `git reset --hard`, `git clean -f` 는 사용하지 않는다.
 - GitHub 쪽 **Branch Protection**(main/develop: PR 필수, 직접 push 금지)을 반드시 함께 설정한다. 로컬 훅은 이를 대체하지 못한다.
 
