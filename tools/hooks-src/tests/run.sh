@@ -80,6 +80,15 @@ b 2 $F 'gh pr create -B main --fill'
 b 2 $F 'gh pr create --base=master'
 b 0 $F 'gh pr create --base develop --fill'
 b 2 $F 'gh pr merge 3'
+# MVP 모드 가드(guard-bash-mvp): 병합만 허용, --admin 과 나머지 규칙은 그대로 (설치본에 있을 때만 검사)
+if [ -f "$HOOKS_DIR/guard-bash-mvp.sh" ]; then
+  bm() { guard "$HOOKS_DIR" guard-bash-mvp "$(jq -nc --arg c "$3" --arg d "$2" '{tool_name:"Bash",cwd:$d,tool_input:{command:$c}}')"; expect "$1" "mvp[$(basename "$2")] $3"; }
+  bm 0 $F 'gh pr merge 3 --merge'
+  bm 2 $F 'gh pr merge 3 --merge --admin'
+  bm 2 $F 'gh pr create --base main --fill'
+  bm 2 $M 'git commit -m "x"'
+  bm 2 $F 'git push --force origin feature/a'
+fi
 b 2 $F 'git checkout -b fix-login'
 b 2 $F 'git switch -c Feature/Foo'
 b 0 $F 'git checkout -b feature/login'

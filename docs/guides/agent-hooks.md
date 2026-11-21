@@ -41,6 +41,13 @@ covers:
 
 **Fail-Closed**: 훅이 고장 나도 도구 호출은 통과되지 않는다. 대신 정책 위반(🚫)과 훅 고장(⛔ `hook-error`)을 구분해 원인과 복구 명령을 알려 준다.
 
+### 운영용 훅과 MVP 훅
+
+- 기본(운영용) `guard-bash.sh` 는 `gh pr merge` 를 차단한다. MVP 를 만드는 동안만 `guard-bash-mvp.sh` 를 쓴다. 둘은 `gh pr merge` 처리만 다르고(MVP 는 허용하되 `--admin` 은 차단) 나머지는 같다. `guard-bash.sh` 를 고치면 `guard-bash-mvp.sh` 도 함께 고친다.
+- 전환은 사람이 한다: `! HOOKS_MODE=mvp bash tools/hooks-ctl.sh install` (MVP), `! bash tools/hooks-ctl.sh install` (운영용 복귀). 설정 원본은 `settings.template.json`(운영) / `settings.mvp.template.json`(MVP).
+- **복귀를 잊지 않게 하는 장치**: main 대상 PR(release/hotfix)에서 `.claude/settings.json` 에 `guard-bash-mvp` 가 있으면 CI `policy` job 이 실패한다(`check_no_mvp_hook`, `tools/git-policy.sh`). 복귀는 PLAN 의 H-8 / T-068 에도 적혀 있다.
+- MVP 모드에서 병합 전 CI 확인은 에이전트 규칙(`AGENTS.md` 3장)이다. GitHub Branch Protection 으로 develop 에 `CI 통과` 필수 검사를 걸어 두면 CI 가 실패한 PR 은 서버가 막는다 (권장).
+
 ### 사람용 명령 (`!` 접두사 = 훅을 거치지 않고 실행)
 
 | 명령 | 동작 |

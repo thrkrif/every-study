@@ -73,3 +73,18 @@ check_no_secret_files() {
   done
   return "$bad"
 }
+
+# main 대상 PR 에 MVP 용 에이전트 훅(guard-bash-mvp)이 남아 있으면 막는다.
+#   MVP 동안만 에이전트의 PR 병합을 허용하는 훅이라, 배포 PR 이 되기 전에 운영용으로 돌려놔야 한다.
+#   인자: <설정 파일 경로> <PR 대상 브랜치>
+check_no_mvp_hook() {
+  local settings="$1" base="$2"
+  [ "$base" = main ] || return 0
+  [ -f "$settings" ] || return 0
+  if grep -q 'guard-bash-mvp' "$settings"; then
+    gp_err "MVP 용 에이전트 훅(guard-bash-mvp)이 설치된 채로 main 대상 PR 을 만들 수 없음" \
+           "사람이 '! bash tools/hooks-ctl.sh install' 로 운영용 훅으로 되돌리고 .claude/ 변경을 커밋하세요."
+    return 1
+  fi
+  return 0
+}

@@ -34,6 +34,7 @@ jobs:
           . tools/git-policy.sh
           check_branch_name "$HEAD_REF"
           check_pr_base "$HEAD_REF" "$BASE_REF"
+          check_no_mvp_hook .claude/settings.json "$BASE_REF"
 
       - name: 커밋 메시지 (Conventional Commits)
         env:
