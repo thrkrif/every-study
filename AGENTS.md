@@ -46,6 +46,7 @@ AI 에이전트(Claude Code 등)와 사람 모두가 따르는 프로젝트 규�
 
 - 브랜치 이름: 소문자·숫자·`.`·`-`·`_` (예: `feature/study-create`, `release/0.1.0`). 문서 작업도 `feature/` 를 쓴다.
 - **에이전트는** main 에 직접 commit/push 하지 않고, main 대상 PR 을 만들지 않으며, PR 을 병합하지 않는다. PR 은 항상 `--base develop`.
+- **MVP 모드(한시)**: 사람이 MVP 훅을 설치했을 때만(`docs/guides/agent-hooks.md` 2장) 에이전트가 자기 PR 을 병합할 수 있다. 이때도 develop 대상 PR 이고 `gh pr checks <번호>` 에서 `CI 통과` 가 성공일 때만 `gh pr merge <번호> --merge` 로 병합하며(대기 중이면 기다린다), `--admin` 은 쓰지 않는다. 운영용 훅이면 병합하지 않는다. MVP 가 끝나면 사람이 운영용 훅으로 되돌린다.
 - force push, `git reset --hard`, `git clean -f` 는 사용하지 않는다.
 - GitHub 쪽 **Branch Protection**(main/develop: PR 필수, 직접 push 금지)을 반드시 함께 설정한다. 로컬 훅은 이를 대체하지 못한다.
 

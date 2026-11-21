@@ -31,6 +31,13 @@ expect 1 "PR feature->feature"  check_pr_base feature/x feature/y
 expect 0 "시크릿 파일 없음"       bash -c ". '$ROOT/tools/git-policy.sh'; printf 'src/A.java\n.env.example\nREADME.md\n' | check_no_secret_files"
 expect 1 "시크릿 파일 있음"       bash -c ". '$ROOT/tools/git-policy.sh'; printf 'src/A.java\nbackend/.env\n' | check_no_secret_files"
 
+printf '{"hooks":"run-guard.sh guard-bash-mvp"}' > "$T/mvp.json"
+printf '{"hooks":"run-guard.sh guard-bash"}' > "$T/prod.json"
+expect 1 "MVP 훅 + main 대상 PR 차단"     check_no_mvp_hook "$T/mvp.json" main
+expect 0 "MVP 훅 + develop 대상 PR 허용"  check_no_mvp_hook "$T/mvp.json" develop
+expect 0 "운영용 훅 + main 대상 PR 허용"   check_no_mvp_hook "$T/prod.json" main
+expect 0 "설정 파일 없음 + main 허용"      check_no_mvp_hook "$T/none.json" main
+
 echo "== ② 훅 동작 (임시 저장소)"
 HP="$ROOT/.githooks"
 mk() { # <dir> <branch>

@@ -22,7 +22,7 @@ LOG="$CDIR/hooks.log"
 STAGE_DIR=""
 cleanup() { [ -n "$STAGE_DIR" ] && rm -rf "$STAGE_DIR"; return 0; }
 trap cleanup EXIT
-FILES=(_lib.sh guard-bash.sh guard-files.sh run-guard.sh)
+FILES=(_lib.sh guard-bash.sh guard-bash-mvp.sh guard-files.sh run-guard.sh)
 
 say()  { printf '%s\n' "$*"; }
 ok()   { printf '  ✅ %s\n' "$*"; }
@@ -39,7 +39,10 @@ preflight() {
     command -v "$c" >/dev/null 2>&1 && ok "의존성: $c" || { bad "의존성 없음: $c"; [ "$c" = jq ] && note "brew install jq"; fail=1; }
   done
   [ -n "$SUM" ] && ok "의존성: ${SUM%% *}" || { bad "shasum/sha256sum 없음"; fail=1; }
-  for f in "${FILES[@]}" settings.template.json tests/run.sh; do
+  # HOOKS_MODE=mvp 이면 MVP 용 설정(PR 병합 허용)을 반영한다. 기본은 운영용.
+  TEMPLATE=settings.template.json
+  [ "${HOOKS_MODE:-}" = mvp ] && TEMPLATE=settings.mvp.template.json
+    for f in "${FILES[@]}" settings.template.json settings.mvp.template.json tests/run.sh; do
     [ -f "$SRC/$f" ] && ok "원본: $f" || { bad "원본 없음: tools/hooks-src/$f"; fail=1; }
   done
   jq -e . "$SRC/settings.template.json" >/dev/null 2>&1 && ok "settings.template.json 유효" || { bad "settings.template.json JSON 오류"; fail=1; }
@@ -64,7 +67,7 @@ merge_settings() { # $1=출력 파일
     jq -e . "$SETTINGS" >/dev/null 2>&1 || { bad "기존 .claude/settings.json 이 유효한 JSON 이 아님 — 덮어쓰지 않고 중단"; return 1; }
     base="$(cat "$SETTINGS")"
   fi
-  jq -n --argjson cur "$base" --slurpfile tpl "$SRC/settings.template.json" '
+  jq -n --argjson cur "$base" --slurpfile tpl "$SRC/$TEMPLATE" '
     $tpl[0] as $t
     | $cur
     | .permissions.deny = (((.permissions.deny // []) + $t.permissions.deny) | unique)

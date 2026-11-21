@@ -25,7 +25,7 @@ broken() {
 }
 
 case "$name" in
-  guard-bash|guard-files) ;;
+  guard-bash|guard-bash-mvp|guard-files) ;;
   *) broken "알 수 없는 가드 이름: '$name'" ;;
 esac
 
