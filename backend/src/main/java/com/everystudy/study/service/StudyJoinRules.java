@@ -40,17 +40,28 @@ final class StudyJoinRules {
         if (facts.memberCount() >= facts.capacity()) {
             throw new BusinessException(StudyErrorCode.STUDY_FULL);
         }
-        if (facts.restrictedUntil() != null) {
-            throw new BusinessException(StudyErrorCode.USER_RESTRICTED, null, Map.of("until", facts.restrictedUntil()));
-        }
-        if (!meetsEntryCriteria(facts.standing(), facts.entryCriteria())) {
-            throw new BusinessException(StudyErrorCode.ENTRY_CRITERIA_NOT_MET);
-        }
-        if (!facts.targetJobCodes().isEmpty() && !facts.targetJobCodes().contains(facts.myJobCategory())) {
-            throw new BusinessException(StudyErrorCode.JOB_NOT_ALLOWED);
-        }
+        checkApplicant(facts.restrictedUntil(), facts.standing(), facts.entryCriteria(), facts.targetJobCodes(),
+                facts.myJobCategory());
         if (facts.alreadyMember()) {
             throw new BusinessException(StudyErrorCode.ALREADY_JOINED);
+        }
+    }
+
+    /**
+     * 신청자 자격 검사: 이용 제한 → 입장 기준 → 희망 직군. 참여 신청과 대기 등록이 같은 규칙을 쓴다 (PLAN X-20).
+     *
+     * @throws BusinessException 처음 어긋난 조건의 오류. {@code USER_RESTRICTED} 는 {@code until} 을 함께 담는다
+     */
+    static void checkApplicant(Instant restrictedUntil, AttendanceStanding standing, Study.EntryCriteria criteria,
+            Set<String> targetJobCodes, String myJobCategory) {
+        if (restrictedUntil != null) {
+            throw new BusinessException(StudyErrorCode.USER_RESTRICTED, null, Map.of("until", restrictedUntil));
+        }
+        if (!meetsEntryCriteria(standing, criteria)) {
+            throw new BusinessException(StudyErrorCode.ENTRY_CRITERIA_NOT_MET);
+        }
+        if (!targetJobCodes.isEmpty() && !targetJobCodes.contains(myJobCategory)) {
+            throw new BusinessException(StudyErrorCode.JOB_NOT_ALLOWED);
         }
     }
 

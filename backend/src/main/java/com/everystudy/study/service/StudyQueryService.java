@@ -15,6 +15,7 @@ import com.everystudy.study.repository.StudySearchCondition;
 import com.everystudy.study.repository.StudySearchCondition.Sort;
 import com.everystudy.study.repository.StudySearchRepository;
 import com.everystudy.study.repository.StudySummaryRow;
+import com.everystudy.study.repository.StudyWaitingRepository;
 import com.everystudy.user.service.PublicUser;
 import com.everystudy.user.service.UserDirectory;
 import com.everystudy.user.service.UserErrorCode;
@@ -32,15 +33,17 @@ public class StudyQueryService {
 
     private final StudyRepository studies;
     private final StudyMemberRepository members;
+    private final StudyWaitingRepository waiting;
     private final StudySearchRepository search;
     private final UserDirectory users;
     private final StudyProperties properties;
     private final TimeProvider time;
 
-    StudyQueryService(StudyRepository studies, StudyMemberRepository members, StudySearchRepository search,
-            UserDirectory users, StudyProperties properties, TimeProvider time) {
+    StudyQueryService(StudyRepository studies, StudyMemberRepository members, StudyWaitingRepository waiting,
+            StudySearchRepository search, UserDirectory users, StudyProperties properties, TimeProvider time) {
         this.studies = studies;
         this.members = members;
+        this.waiting = waiting;
         this.search = search;
         this.users = users;
         this.properties = properties;
@@ -111,7 +114,10 @@ public class StudyQueryService {
         Map<Long, PublicUser> people = peopleOf(study, active);
         Instant now = time.now();
 
-        StudyViews.MyState myState = myState(study, active, viewerId);
+        // 체크인이 열린 뒤에 남은 대기 행은 무효다. 삭제는 종료 처리에서 한다 (PLAN X-16).
+        boolean waitingValid = study.getStatus() == StudyStatus.ACTIVE
+                && now.isBefore(StudyTimeline.checkinOpensAt(study.getStartAt(), properties));
+        StudyViews.MyState myState = myState(study, active, viewerId, waitingValid);
         boolean isHost = myState == StudyViews.MyState.HOST;
         int others = (int) active.stream().filter(member -> !member.getUserId().equals(study.getHostId())).count();
 
@@ -138,7 +144,7 @@ public class StudyQueryService {
                 StudyTimeline.isScheduleEditable(study.getStatus(), study.getStartAt(), others, now),
                 StudyTimeline.checkinOpensAt(study.getStartAt(), properties),
                 StudyTimeline.checkinClosesAt(study.getStartAt(), properties),
-                isHost ? 0 : null);
+                isHost ? (waitingValid ? (int) waiting.countByStudyId(studyId) : 0) : null);
     }
 
     /**
@@ -207,16 +213,18 @@ public class StudyQueryService {
                 .toList();
     }
 
-    private static StudyViews.MyState myState(Study study, List<StudyMember> active, Long viewerId) {
+    private StudyViews.MyState myState(Study study, List<StudyMember> active, Long viewerId, boolean waitingValid) {
         if (viewerId == null) {
             return StudyViews.MyState.NONE;
         }
         if (viewerId.equals(study.getHostId())) {
             return StudyViews.MyState.HOST;
         }
-        // WAITING 은 대기 기능(T-017)에서 더한다.
-        return active.stream().anyMatch(member -> member.getUserId().equals(viewerId))
-                ? StudyViews.MyState.MEMBER
+        if (active.stream().anyMatch(member -> member.getUserId().equals(viewerId))) {
+            return StudyViews.MyState.MEMBER;
+        }
+        return waitingValid && waiting.existsByStudyIdAndUserId(study.getId(), viewerId)
+                ? StudyViews.MyState.WAITING
                 : StudyViews.MyState.NONE;
     }
 }

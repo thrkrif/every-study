@@ -11,7 +11,9 @@ public enum StudyErrorCode implements ErrorCode {
     USER_RESTRICTED(HttpStatus.FORBIDDEN, "제재 중이라 신청할 수 없습니다"),
     ENTRY_CRITERIA_NOT_MET(HttpStatus.CONFLICT, "입장 기준을 충족하지 않습니다"),
     JOB_NOT_ALLOWED(HttpStatus.CONFLICT, "희망 직군에 내 직군이 없습니다"),
-    ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여 중인 스터디입니다");
+    ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여 중인 스터디입니다"),
+    STUDY_NOT_FULL(HttpStatus.CONFLICT, "정원에 여유가 있어 대기할 수 없습니다. 바로 참여해 주세요"),
+    ALREADY_WAITING(HttpStatus.CONFLICT, "이미 대기 중인 스터디입니다");
 
     private final HttpStatus status;
     private final String title;

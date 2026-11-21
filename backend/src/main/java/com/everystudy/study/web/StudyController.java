@@ -8,6 +8,7 @@ import com.everystudy.study.service.StudyCreationService;
 import com.everystudy.study.service.StudyJoinService;
 import com.everystudy.study.service.StudyQueryService;
 import com.everystudy.study.service.StudyViews;
+import com.everystudy.study.service.StudyWaitingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -17,6 +18,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,8 +35,11 @@ class StudyController {
     private final StudyCreationService creation;
     private final StudyQueryService queries;
     private final StudyJoinService joining;
+    private final StudyWaitingService waiting;
 
-    StudyController(StudyCreationService creation, StudyQueryService queries, StudyJoinService joining) {
+    StudyController(StudyCreationService creation, StudyQueryService queries, StudyJoinService joining,
+            StudyWaitingService waiting) {
+        this.waiting = waiting;
         this.creation = creation;
         this.queries = queries;
         this.joining = joining;
@@ -88,6 +93,20 @@ class StudyController {
     ResponseEntity<Void> join(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
         joining.join(id, user.userId());
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /** 대기 등록. 정원이 차 있을 때만 가능하다. {@code 201}, 본문은 없다. */
+    @PostMapping("/{id}/waiting")
+    ResponseEntity<Void> wait(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
+        waiting.register(id, user.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    /** 대기 취소. 대기 중이 아니어도 {@code 204} 다. */
+    @DeleteMapping("/{id}/waiting/me")
+    ResponseEntity<Void> cancelWaiting(@AuthenticationPrincipal LoginUser user, @PathVariable long id) {
+        waiting.cancel(id, user.userId());
+        return ResponseEntity.noContent().build();
     }
 
     private static Long viewerId(LoginUser user) {
