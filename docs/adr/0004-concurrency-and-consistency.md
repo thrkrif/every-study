@@ -1,8 +1,8 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.11
+  - docs/PRD.md@0.12
+  - docs/ARCHITECTURE.md@0.12
 ---
 
 # ADR-0004: 정원·승계 동시성과 정합성

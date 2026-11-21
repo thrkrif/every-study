@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.5"
+version: "0.6"
 based_on:
-  - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.11
-  - docs/DATA-MODEL.md@0.9
-  - docs/API.md@0.12
+  - docs/PRD.md@0.12
+  - docs/ARCHITECTURE.md@0.12
+  - docs/DATA-MODEL.md@0.10
+  - docs/API.md@0.13
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -180,16 +180,16 @@ based_on:
   - 완료: Testcontainers MySQL에서 (a) 정원보다 많은 수(정원 + 여유, 테스트 설정값)의 사용자가 마지막 1자리에 동시 신청해도 확정은 정원만큼, (c) 같은 사용자의 동시 중복 신청은 1건만 확정 · 각 시나리오를 반복 실행(`@RepeatedTest`, 횟수는 테스트 설정값)해 전부 통과 · CI에서 실행
   - 문서: ARCHITECTURE 8장 확인, 락 대기 시간 기본값을 ARCHITECTURE 4.2에 기록(진행 규칙 9)
 
-- [ ] T-017 대기 등록·취소 API
+- [x] T-017 대기 등록·취소 API
   - 선행: T-015 · 결정 X-16
   - 참조: PRD 4.14(정원과 대기), API 4장(`waiting`), DATA-MODEL 4장(`study_waiting`)
-  - 완료: 정원이 찼을 때만 대기 · 취소는 행 삭제 · 체크인 오픈 이후 등록은 `STUDY_NOT_RECRUITING` · 체크인 오픈 이후 남은 대기 행의 처리는 X-16 결정대로(권장안: 조회·알림 대상에서 걸러 내고 종료 처리 T-030에서 삭제) · 상세의 `myState=WAITING`, 주최자에게만 대기 인원 수 · 테스트: `STUDY_NOT_FULL`, `ALREADY_WAITING`, `STUDY_NOT_RECRUITING` 각 1건, 비주최자 응답에 `waitingCount` 없음, 체크인 오픈 후 대기했던 사용자의 `myState`가 `WAITING`이 아니고 `waitingCount`에서 빠짐
+  - 완료: 정원이 찼을 때만 대기 · 취소는 행 삭제 · 체크인 오픈 이후 등록은 `STUDY_NOT_RECRUITING` · 체크인 오픈 이후 남은 대기 행의 처리는 X-16 결정대로(권장안: 조회·알림 대상에서 걸러 내고 종료 처리 T-030에서 삭제) · 상세의 `myState=WAITING`, 주최자에게만 대기 인원 수 · 테스트: `STUDY_NOT_FULL`, `ALREADY_WAITING`, `STUDY_NOT_RECRUITING`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED` 각 1건, 비주최자 응답에 `waitingCount` 없음, 체크인 오픈 후 대기했던 사용자의 `myState`가 `WAITING`이 아니고 `waitingCount`에서 빠짐
   - 문서: DATA-MODEL 4장, API 4장 확인
 
 - [ ] T-018 나가기(참여 취소) API와 사전 조회
   - 선행: T-014, T-017 · 결정 X-9
   - 참조: PRD 4.4 5항·4.6(사전/직전 취소)·4.12(나가기 의미)·4.14, API 4장(`DELETE members/me`, `leave-preview`), DATA-MODEL 4장·5장(`attendance_event`)
-  - 완료: 락 안에서 `LEFT` 처리, `cancel_type` 판정과 `attendance_event`(`EARLY_CANCEL`/`LATE_CANCEL`) 기록(X-9 결정대로 재신청 후 재취소가 가능) · `leave-preview`가 같은 판정 로직 사용 · 자리가 나면 대기자 전원에게 대기 알림을 같은 트랜잭션에서 아웃박스에 기록 · 테스트: 고정 `Clock`으로 취소 기준 시각(PRD 4.6) 직전·직후, 나가기→재신청→재나가기
+  - 완료: 락 안에서 `LEFT` 처리, `cancel_type` 판정과 `attendance_event`(`EARLY_CANCEL`/`LATE_CANCEL`) 기록(X-9 결정대로 재신청 후 재취소가 가능) · `leave-preview`가 같은 판정 로직 사용 · 자리가 나면 **자격이 남은** 대기자(이용 제한·입장 기준·희망 직군 재검사, X-20)에게 대기 알림을 같은 트랜잭션에서 아웃박스에 기록 · 테스트: 대기 뒤 제재를 받거나 출석률이 기준 아래로 떨어진 대기자는 알림이 기록되지 않음, 고정 `Clock`으로 취소 기준 시각(PRD 4.6) 직전·직후, 나가기→재신청→재나가기
   - 문서: DATA-MODEL 5장(X-9 반영), API 4장 확인 (`attendance_event`는 `trust` 모듈 소속, X-11)
 
 - [ ] T-019 감사 로그 기록 기능
@@ -213,7 +213,7 @@ based_on:
 - [ ] T-022 정원 변경과 스터디 수정 API
   - 선행: T-014, T-017 · 결정 X-11
   - 참조: PRD 4.2(일정 수정 불가 조건)·4.14, API 4장(`PATCH`, `PUT capacity`), ADR-0004 결정 1
-  - 완료: 정원 변경은 락 안에서, 상한은 설정값, 증액 시 대기 알림을 아웃박스에 기록 · 제목·소개는 항상 수정, 일정·장소는 주최자 외 참여자가 있으면 `SCHEDULE_LOCKED` · 일정 수정 코드는 X-11에서 정한 모듈에 둔다 · 테스트: `CAPACITY_BELOW_MEMBERS`, `SCHEDULE_LOCKED`, 비주최자 `403`, 상한 초과 `VALIDATION_FAILED`
+  - 완료: 정원 변경은 락 안에서, 상한은 설정값, 증액 시 자격이 남은 대기자에게만 대기 알림을 아웃박스에 기록(T-018과 같은 재검사, X-20) · 제목·소개는 항상 수정, 일정·장소는 주최자 외 참여자가 있으면 `SCHEDULE_LOCKED` · 일정 수정 코드는 X-11에서 정한 모듈에 둔다 · 테스트: `CAPACITY_BELOW_MEMBERS`, `SCHEDULE_LOCKED`, 비주최자 `403`, 상한 초과 `VALIDATION_FAILED`
   - 문서: API 4장 확인, X-11 결과에 따라 해당 모듈 `covers` 추가
 
 - [ ] T-023 내 스터디 조회 API
@@ -596,3 +596,4 @@ based_on:
 | X-17 | **결정됨(2026-11-16, API 1장)**: 서버 내부 오류는 `500 INTERNAL_ERROR`, 잘못된 본문·파라미터는 `VALIDATION_FAILED`, 405·415 등 HTTP 표준 오류는 `code` 없이 `status`로 구분한다. T-001에서 구현 | API 1장 | T-004 |
 | X-18 | **결정됨(2026-11-17, PRD 4.2·4.4 v0.8)**: 희망 직군은 안내용이 아니라 **참여 조건**이고, 지금은 대분류로만 고른다. 희망 직군이 없거나 내 직군의 대분류가 희망 목록에 있으면 신청할 수 있고, 아니면 `409 JOB_NOT_ALLOWED`. 세부 직무 단위 스터디(그 세부 직무만 신청 가능)는 PRD 9장 운영 후 과제. 직군을 바꿔 들어오는 것은 막지 않는다 | (처음 권장안: 일치하지 않으면 안내만) | T-009, T-015, T-024 |
 | X-19 | **결정됨(2026-11-19, 오른쪽 제안대로. API 4장, ARCHITECTURE 4.2).** 온보딩(닉네임·직군·지역)을 마치지 않은 회원의 참여 신청 처리가 없음. 개설은 `403 ONBOARDING_REQUIRED`인데 API 4장의 참여 신청 오류 목록에는 없어, 희망 직군이 없는 스터디에 닉네임 없는 참여자가 들어갈 수 있음 | 개설과 같이 `403 ONBOARDING_REQUIRED`. 스터디 규칙이 아니라 신청자의 전제 조건이라 PRD 4.4 검증보다 먼저(락을 잡기 전에) 확인한다 | T-015, T-024 |
+| X-20 | **결정됨(2026-11-21, 사용자 지시와 T-017 구현 중 정한 세부. PRD 4.14 v0.12, API 4장).** PRD 4.14는 대기의 자격 검사를 말하지 않았고 API 4장은 대기 오류를 3개만 적어, 입장 기준을 못 맞추는 사람이 대기해 알림만 받을 수 있었음 | ① 대기도 참여 신청과 같은 자격 검사(이용 제한→입장 기준→희망 직군)를 받는다. 대기 검사 순서는 스터디 상태→이미 참여→정원 여유→이용 제한→입장 기준→희망 직군→이미 대기. 정원 여유가 먼저라 여유 있는 스터디는 자격과 무관하게 `STUDY_NOT_FULL`. ② 이미 참여 중인 사람의 대기는 `ALREADY_JOINED`. ③ 대기 취소는 대기 중이 아니어도 `204`(멱등). ④ 대기 등록 뒤에 지표·제재가 바뀌어 자격을 잃어도 대기 행은 지우지 않는다(실제 신청 때도 다시 검사). ⑤ **자리 알림은 알림을 만드는 시점에 대기자마다 같은 자격 검사(`StudyJoinRules.checkApplicant`)를 다시 해서, 통과한 대기자에게만 아웃박스에 기록한다.** 체크인 오픈 이후 행은 X-16대로 제외. 대기자가 소수라 조회 비용은 문제 삼지 않는다(사용자 확인 2026-11-21) | T-017, T-018, T-022, T-024 |

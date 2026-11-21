@@ -60,7 +60,7 @@ public final class StudyViews {
     /**
      * 상세 (PRD 4.3, API 4장).
      *
-     * @param waitingCount 주최자에게만 값이 있다. 대기 기능(T-017) 전까지는 0
+     * @param waitingCount 주최자에게만 값이 있다. 체크인 오픈 이후의 대기 행은 세지 않는다 (PLAN X-16)
      */
     public record Detail(
             long id,

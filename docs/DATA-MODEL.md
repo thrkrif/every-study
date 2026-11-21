@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.9"
+version: "0.10"
 based_on:
-  - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.11
+  - docs/PRD.md@0.12
+  - docs/ARCHITECTURE.md@0.12
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -159,8 +159,8 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | user_id | BIGINT FK | |
 | created_at | DATETIME(6) | |
 
-- PK `(study_id, user_id)`. 대기 취소는 **행 삭제**, 스터디가 종료·파투되거나 체크인이 열리면 해당 스터디의 행을 지운다 (PRD 4.14). 대기 순번은 없다.
-- 자리가 났을 때 알림 대상은 이 테이블의 해당 스터디 행 전부이다 (ARCHITECTURE 11장).
+- PK `(study_id, user_id)`. 대기 취소는 **행 삭제**. 체크인이 열린 뒤의 행은 무효로 보고(조회·알림에서 걸러 냄) 스터디 종료·파투 처리 때 지운다 (PRD 4.14, PLAN X-16). 대기 순번은 없다.
+- 자리가 났을 때 알림 대상은 이 테이블의 해당 스터디 행 중 **그 시점에 신청 자격(이용 제한·입장 기준·희망 직군)이 남은 사람**이다 (PRD 4.14, PLAN X-20). 자격을 잃은 사람의 행은 지우지 않는다.
 
 ### `host_transfer`
 | 컬럼 | 타입 | 설명 |
