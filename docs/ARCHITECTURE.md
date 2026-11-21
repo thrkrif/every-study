@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.12"
+version: "0.13"
 based_on:
-  - docs/PRD.md@0.12
+  - docs/PRD.md@0.13
 covers:
   - backend/src/main/java/com/everystudy/common/**
   - frontend/src/lib/api/**
@@ -91,6 +91,7 @@ covers:
 - 참여는 **승인 단계가 없다**. 참여 상태는 `ACTIVE`(참여 중) / `LEFT`(취소·나감) 정도로 단순하다.
 - `study`의 저장 상태는 `ACTIVE` / `ENDED` / `CANCELLED` 세 가지다 (PRD 4.14). "모집 중·마감"은 정원 여유로 **계산하는 파생 값**이며 저장하지 않는다. 주최자에게 모집 마감 스위치가 없으므로 이 값을 직접 바꾸는 경로가 없다.
 - **대기 등록도 같은 `study` 행 락** 안에서 한다. "정원이 찼는지"와 "이미 대기 중인지"를 신청·나가기와 같은 기준으로 보기 위해서다. 검사 순서는 스터디 상태 → 이미 참여 → 정원 여유 → 이용 제한 → 입장 기준 → 희망 직군 → 이미 대기이고, 자격 검사는 참여 신청과 같은 코드(`StudyJoinRules.checkApplicant`)를 쓴다 (PRD 4.14, PLAN X-20). 대기 취소는 행 삭제뿐이라 락이 필요 없다.
+- **나가기(참여 취소)도 같은 `study` 행 락** 안에서 한다. 같은 트랜잭션에서 `LEFT` 처리, 사전/직전 판정(`everystudy.study.late-cancel-within-minutes`, PRD 4.6), `attendance_event` 기록(`trust.service`), 그리고 **새로 자리가 났을 때만**(나가기 직전 참여자 수가 정원 이상) 대기자 알림 기록을 한다. 시작 후·종료·파투면 `SESSION_STARTED`, 주최자는 T-020 전까지 `403` (PLAN X-21). 사전 조회(`leave-preview`)는 같은 판정 코드를 쓰되 락 없이 읽기만 한다.
 - **정원 변경(증액·감소)도 같은 `study` 행 락** 안에서 한다. 감소는 현재 `ACTIVE` 참여자 수 미만으로 못 내린다.
 - 자리가 생기거나(참여자 나감) 정원이 늘면 대기 중인 사용자 가운데 그 시점에 신청 자격이 남은 사람(`StudyJoinRules.checkApplicant` 재검사, PLAN X-20)에게 보낼 알림을 같은 트랜잭션에서 아웃박스에 기록한다 (3장, 4.6. 자동 참여는 없고 신청은 선착순이라 위 락과 정원 검사가 그대로 경쟁을 정리한다).
 
