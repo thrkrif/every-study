@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.12"
+version: "0.13"
 based_on:
-  - docs/PRD.md@0.11
-  - docs/ARCHITECTURE.md@0.11
-  - docs/DATA-MODEL.md@0.9
+  - docs/PRD.md@0.12
+  - docs/ARCHITECTURE.md@0.12
+  - docs/DATA-MODEL.md@0.10
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -49,7 +49,7 @@ covers:
 | 400 | `VALIDATION_FAILED` | 입력 오류(본문 필드, 쿼리·경로 파라미터의 형식·누락·제약 위반, 읽을 수 없는 JSON 본문). `errors: [{field, message}]` 포함. 어느 필드인지 알 수 없으면(깨진 JSON) 빈 배열 |
 | 401 | `UNAUTHENTICATED` | 로그인 필요, 액세스 토큰 만료·위조 (클라이언트는 `/auth/refresh` 후 1회 재시도). `/auth/refresh`가 이 코드를 주면 다시 로그인해야 한다 |
 | 403 | `FORBIDDEN` / `CSRF_INVALID` | 권한 없음 / CSRF 헤더 없음·불일치 (클라이언트는 CSRF 쿠키를 다시 읽어 1회 재시도) |
-| 403 | `USER_RESTRICTED` | 제재로 신청·개설 불가. `until` 포함 |
+| 403 | `USER_RESTRICTED` | 제재로 신청·대기·개설 불가. `until` 포함 |
 | 403 | `ONBOARDING_REQUIRED` | 온보딩(닉네임·직군·지역)을 마치지 않아 쓸 수 없는 기능 (스터디 개설 등). 클라이언트는 온보딩 화면으로 보낸다 |
 | 404 | `NOT_FOUND` | 대상 없음 |
 | 409 | `NICKNAME_TAKEN` | 다른 회원이 쓰는 닉네임 (영문 대소문자 무시). 클라이언트는 닉네임 입력란에 안내한다 |
@@ -191,7 +191,7 @@ covers:
 | `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 제재 중이면 `403 USER_RESTRICTED`(T-035b에서 추가) |
 | `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함. 종료·파투된 스터디도 주소로 열면 보인다. 없으면 `404 NOT_FOUND` |
 | `PATCH /api/v1/studies/{id}` | 주최자 | 제목·소개는 항상 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없을 때만** 수정 가능하고, 있으면 `SCHEDULE_LOCKED`. 응답 상세의 `scheduleEditable`로 클라이언트가 입력란을 잠근다 |
-| `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소. 증액 시 대기자에게 알림 |
+| `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소. 증액 시 자격이 남은 대기자에게 알림 |
 
 **메타 옵션 응답** (`GET /meta/options`)
 ```json
@@ -277,7 +277,7 @@ covers:
 
 - 탈퇴한 회원의 `nickname`은 `null`이다. 화면은 "탈퇴한 사용자"로 표시한다.
 - 출석 집계(M3) 전까지 지표는 모두 신규(`isNewcomer: true`), 주최 지표는 0과 `showCountOnly: true`다.
-- 대기 기능(T-017) 전까지 `myState`에 `WAITING`이 나오지 않고 `waitingCount`는 0이다.
+- 체크인 오픈 이후에는 남은 대기 행이 `myState`(`WAITING`)와 `waitingCount`에 반영되지 않는다 (PLAN X-16).
 
 `myState`는 클라이언트가 버튼을 정하는 근거다: `NONE`+모집 중 → "참여", `NONE`+정원 참 → "대기하기", `WAITING` → "대기 취소", `MEMBER` → "나가기".
 
@@ -288,8 +288,8 @@ covers:
 | `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`, 본문 없음(결과는 상세의 `myState`). 오류 `STUDY_NOT_RECRUITING`, `STUDY_FULL`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4). 그 밖에 온보딩 전이면 `403 ONBOARDING_REQUIRED`(검증보다 먼저, PLAN X-19), 스터디가 없으면 `404 NOT_FOUND`, 락 대기 초과면 `409 LOCK_TIMEOUT`(재시도) |
 | `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소. 응답에 `cancelType`(`EARLY`/`LATE`). **주최자가 호출하면 주최 포기**로 승계·파투·감점 규칙 적용 (PRD 4.13), 응답에 `outcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`) |
 | `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표(상세의 `members`와 같은 형식). 그 스터디의 `ACTIVE` 참여자(주최자 포함)가 아니면 `403 FORBIDDEN` |
-| `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `STUDY_NOT_RECRUITING`, `ALREADY_WAITING` |
-| `DELETE /api/v1/studies/{id}/waiting/me` | 회원 | 대기 취소 |
+| `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록 → `201`, 본문 없음. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_RECRUITING`, `ALREADY_JOINED`, `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`(참여 신청과 같은 자격 검사, PRD 4.14), `ALREADY_WAITING` (이 순서로 검사). 그 밖에 `ONBOARDING_REQUIRED`, `NOT_FOUND`, `LOCK_TIMEOUT` |
+| `DELETE /api/v1/studies/{id}/waiting/me` | 회원 | 대기 취소 → `204`. 대기 중이 아니어도 `204`(멱등) |
 
 - 나가기 확인용 사전 조회: `GET /api/v1/studies/{id}/leave-preview` → `{ cancelType, hostOutcome, penaltyApplies }`. 클라이언트가 "직전 취소는 기록에 반영됩니다" 같은 안내를 띄우는 데 쓴다.
 - 모집 마감 토글 API는 **없다** (PRD 4.14). 강퇴 API도 없다 (PRD 7장).
@@ -363,7 +363,7 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 |---|---|---|
 | `STUDY_CANCELLED` | 참여자 | 스터디 취소(파투, 강제 종료) |
 | `CHECKIN_REMINDER_DAY`, `_HOUR`, `CHECKIN_OPEN` | 참여자 | 전날, 1시간 전, 체크인 오픈 (PRD 4.5) |
-| `WAITING_OPENED` | 대기자 | 자리 발생, 정원 증액 (PRD 4.14) |
+| `WAITING_OPENED` | 대기자 | 자리 발생, 정원 증액. 알림 시점에 신청 자격이 남은 대기자만 (PRD 4.14, PLAN X-20) |
 | `HOST_ASSIGNED` | 새 주최자 | 승계 |
 | `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 |
 | `APPEAL_RESULT` | 신청자 | 이의 결정 |
