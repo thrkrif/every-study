@@ -18,6 +18,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 참여 신청 (PRD 4.4, API 4장). 승인 단계 없이 검사를 통과하면 바로 확정한다. */
@@ -54,11 +55,15 @@ public class StudyJoinService {
      *
      * <p>온보딩 확인은 스터디 규칙이 아니라 신청자의 전제 조건이라 락을 잡기 전에 한다 (PLAN X-19).
      *
+     * <p>격리 수준은 {@code READ COMMITTED} 다 (ADR-0004 결정 2). MySQL 기본값 {@code REPEATABLE READ} 에서는 첫 조회
+     * (여기서는 락 전의 온보딩 확인) 때 읽기 시점이 고정되어, 락을 기다리는 동안 앞 트랜잭션이 커밋한 참여 행이 락을 잡은
+     * 뒤에도 보이지 않는다. 그러면 정원을 넘겨 확정하거나 중복 신청이 유일 제약 오류로 끝난다.
+     *
      * @throws BusinessException 온보딩 전이면 {@code ONBOARDING_REQUIRED}, 스터디가 없으면 {@code NOT_FOUND},
      *                           검사에 어긋나면 {@link StudyJoinRules} 의 오류
      * @throws org.springframework.dao.PessimisticLockingFailureException 락 대기 시간 초과 ({@code LOCK_TIMEOUT})
      */
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     public void join(long studyId, long userId) {
         accounts.requireOnboarded(userId);
         Study study = studies.findByIdForUpdate(studyId, lock.timeout())
