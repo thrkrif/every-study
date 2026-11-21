@@ -21,7 +21,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 class StudyJoinRulesTest {
 
     private static final StudyProperties PROPERTIES =
-            new StudyProperties(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100), 10, 30);
+            new StudyProperties(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100), 10, 30, 180);
     private static final Instant START = Instant.parse("2026-11-20T10:00:00Z");
     /** 체크인 오픈(09:50) 전. */
     private static final Instant NOW = Instant.parse("2026-11-20T09:00:00Z");

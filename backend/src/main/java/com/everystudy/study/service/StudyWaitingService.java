@@ -10,14 +10,8 @@ import com.everystudy.study.domain.StudyWaiting;
 import com.everystudy.study.repository.StudyMemberRepository;
 import com.everystudy.study.repository.StudyRepository;
 import com.everystudy.study.repository.StudyWaitingRepository;
-import com.everystudy.common.code.JobCode;
-import com.everystudy.trust.service.AttendanceStandingService;
-import com.everystudy.trust.service.SanctionService;
-import com.everystudy.user.service.PublicUser;
 import com.everystudy.user.service.UserAccountService;
-import com.everystudy.user.service.UserDirectory;
 import java.time.Instant;
-import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,23 +24,18 @@ public class StudyWaitingService {
     private final StudyMemberRepository members;
     private final StudyWaitingRepository waiting;
     private final UserAccountService accounts;
-    private final UserDirectory users;
-    private final SanctionService sanctions;
-    private final AttendanceStandingService standings;
+    private final ApplicantEligibility eligibility;
     private final StudyProperties properties;
     private final StudyLockProperties lock;
     private final TimeProvider time;
 
     StudyWaitingService(StudyRepository studies, StudyMemberRepository members, StudyWaitingRepository waiting,
-            UserAccountService accounts, UserDirectory users, SanctionService sanctions,
-            AttendanceStandingService standings, StudyProperties properties, StudyLockProperties lock, TimeProvider time) {
+            UserAccountService accounts, ApplicantEligibility eligibility, StudyProperties properties, StudyLockProperties lock, TimeProvider time) {
         this.studies = studies;
         this.members = members;
         this.waiting = waiting;
         this.accounts = accounts;
-        this.users = users;
-        this.sanctions = sanctions;
-        this.standings = standings;
+        this.eligibility = eligibility;
         this.properties = properties;
         this.lock = lock;
         this.time = time;
@@ -82,9 +71,7 @@ public class StudyWaitingService {
         if (members.countByStudyIdAndStatus(studyId, MemberStatus.ACTIVE) < study.getCapacity()) {
             throw new BusinessException(StudyErrorCode.STUDY_NOT_FULL);
         }
-        StudyJoinRules.checkApplicant(sanctions.joinRestrictedUntil(userId, now).orElse(null),
-                standings.standingOf(userId), study.getEntryCriteria(), study.getTargetJobCodes(),
-                jobCategoryOf(userId));
+        eligibility.verify(study, userId, now);
         if (waiting.existsByStudyIdAndUserId(studyId, userId)) {
             throw new BusinessException(StudyErrorCode.ALREADY_WAITING);
         }
@@ -95,13 +82,5 @@ public class StudyWaitingService {
     @Transactional
     public void cancel(long studyId, long userId) {
         waiting.deleteByStudyIdAndUserId(studyId, userId);
-    }
-
-    /** 온보딩을 마친 회원이므로 직군이 있다. 세부 직무면 그 대분류로 판단한다 (PRD 4.4). */
-    private String jobCategoryOf(long userId) {
-        PublicUser user = users.findPublic(List.of(userId)).get(userId);
-        return JobCode.find(user.jobCode())
-                .map(job -> job.category().name())
-                .orElseThrow(() -> new IllegalStateException("온보딩을 마친 회원의 직군 코드가 목록에 없습니다"));
     }
 }

@@ -83,6 +83,8 @@ everystudy:
     # 체크인 시간창 (PRD 4.6). 신청·대기는 체크인 오픈에 닫힌다 (PRD 4.14)
     checkin-opens-before-minutes: 10
     checkin-closes-after-minutes: 30
+    # 사전/직전 취소 기준 (PRD 4.6): 시작 3시간 전까지는 사전 취소, 그 뒤부터 시작 전까지는 직전 취소
+    late-cancel-within-minutes: 180
     # study 행 락 대기 시간 (ADR-0004 결정 5, 기본값의 원본은 ARCHITECTURE 4.2). 넘으면 409 LOCK_TIMEOUT
     lock:
       timeout: 3s

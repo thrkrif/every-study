@@ -2,7 +2,7 @@
 status: draft
 version: "0.6"
 based_on:
-  - docs/PRD.md@0.12
+  - docs/PRD.md@0.13
 covers:
   - frontend/src/styles/**
   - frontend/src/components/**

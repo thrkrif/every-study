@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.10"
+version: "0.11"
 based_on:
-  - docs/PRD.md@0.12
-  - docs/ARCHITECTURE.md@0.12
+  - docs/PRD.md@0.13
+  - docs/ARCHITECTURE.md@0.13
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -219,7 +219,8 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | `VOIDED` | 주최자 귀책(세션 무효, 주최자 포기)·파투로 진행 안 됨 | 분모 제외 |
 
 - **현재 판정은 (study_id, user_id)의 가장 최근 이벤트**다. 이의 인정 시 정정 이벤트를 **추가**한다 (ARCHITECTURE 4.5).
-- `UNIQUE (study_id, user_id, type)`로 판정 작업을 재실행해도 중복이 생기지 않게 한다. 단 정정이 여러 번 필요한 경우를 위해 `NO_SHOW_CLEARED`는 예외로 하고 `appeal` 쪽에서 1회를 보장한다 (이의는 판정당 1회).
+- 판정 작업을 재실행해도 중복이 생기지 않게 **`UNIQUE (study_id, user_id, verdict_key)`**를 둔다 (PLAN X-9, 마이그레이션 V7). `verdict_key`는 `type`이 `ATTENDED`·`LATE`·`NO_SHOW_CANDIDATE`·`NO_SHOW`·`VOIDED`일 때만 그 값을 갖고, 그 밖(`NO_SHOW_CLEARED`, `EARLY_CANCEL`, `LATE_CANCEL`)은 `NULL`인 **생성 컬럼**이다. MySQL은 부분 유일 인덱스가 없어, `NULL`은 중복을 허용하는 유일 키의 성질을 쓴다. 그래서 나가기→재신청→재나가기의 취소 이벤트는 여러 번 쌓이고, 정정(`NO_SHOW_CLEARED`)은 `appeal` 쪽에서 1회를 보장한다 (이의는 판정당 1회). 취소 이벤트의 중복 방지는 `study` 락으로 충분하다.
+- `EARLY_CANCEL`·`LATE_CANCEL`은 나가기(T-018)가 `study_member.cancel_type`과 같은 트랜잭션에서 기록한다. 테이블은 `trust` 모듈 소속이고 `study`는 `trust.service`로만 기록한다.
 - 인덱스 `(user_id, occurred_at)` 최근 N회 집계.
 
 ### `appeal`
