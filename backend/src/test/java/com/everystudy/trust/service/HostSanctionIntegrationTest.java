@@ -83,8 +83,9 @@ class HostSanctionIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("90일이 지난 감점은 합계에서 빠진다")
     void oldPenaltiesExpire() {
-        penalize(NOW.minus(Duration.ofDays(100)));
-        penalize(NOW.minus(Duration.ofDays(95)));
+        // 과거 감점은 그 당시의 판정과 무관하게 이력만 심는다.
+        oldPenalty(NOW.minus(Duration.ofDays(100)));
+        oldPenalty(NOW.minus(Duration.ofDays(95)));
         penalize(NOW);
 
         assertThat(sanctionRows()).isZero();
@@ -106,6 +107,11 @@ class HostSanctionIntegrationTest extends IntegrationTestSupport {
         }
         assertThat(sanctionRows()).isZero();
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM host_penalty_event", Integer.class)).isEqualTo(2);
+    }
+
+    private void oldPenalty(Instant at) {
+        jdbc.update("INSERT INTO host_penalty_event (host_id, study_id, points, reason, occurred_at) "
+                + "VALUES (?, ?, 1, 'ABSENT', ?)", hostId, study(), java.sql.Timestamp.from(at));
     }
 
     private void penalize(Instant at) {
