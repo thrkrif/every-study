@@ -52,4 +52,20 @@ public class AttendanceEvent {
         event.occurredAt = occurredAt;
         return event;
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Long getStudyId() {
+        return studyId;
+    }
+
+    public AttendanceEventType getType() {
+        return type;
+    }
+
+    public Instant getOccurredAt() {
+        return occurredAt;
+    }
 }

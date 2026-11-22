@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.16"
+version: "0.17"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.17
-  - docs/DATA-MODEL.md@0.17
+  - docs/DATA-MODEL.md@0.18
   - docs/API.md@0.19
 ---
 
@@ -274,11 +274,12 @@ based_on:
   - 완료: 스터디마다 `study` 행 락을 잡은 뒤 대상 조건을 다시 확인하고 판정한다(X-15) · 주최자 미체크인 세션 무효(`voided_at`, 참여자 `VOIDED`, 참여자가 있을 때만 주최자 `ABSENT` 감점과 감사 로그) · 체크인 마감 후 미체크인 참여자 `NO_SHOW_CANDIDATE`와 노쇼 후보 통지 알림 · 파투 스터디(주최자 포기·운영자 강제 종료 모두)의 참여자 `VOIDED`는 이 작업이 유일하게 기록 · `judged_at`으로 멱등 · 작업의 소속 모듈은 X-11 결정대로 · 테스트: 고정 `Clock` 경계, 재실행 시 이벤트·알림 중복 0건, 이벤트 유일 제약(X-9) 위반은 오류가 아니라 "이미 처리됨"으로 넘기고 다음 스터디를 계속 처리, Testcontainers로 마감 경계에서 체크인과 판정을 동시에 실행하면 결과가 하나(체크인 성공이면 그 사용자에게 노쇼 후보 없음, 주최자 체크인 성공이면 무효 아님)
   - 문서: DATA-MODEL 4·5·10장 확인 — 10장의 두 작업(무효 처리·노쇼 후보 판정)을 한 판정 작업으로 합친 결정을 반영(X-30), ARCHITECTURE 4.4·4.7 반영
 
-- [ ] T-032 출석 지표 집계와 재계산
+- [x] T-032 출석 지표 집계와 재계산
   - 선행: T-031 · 결정 X-12
   - 참조: PRD 4.7, ARCHITECTURE 4.5, DATA-MODEL 5장(현재 판정 규칙)·6장(`user_trust_summary`)
   - 완료: 이벤트가 쌓일 때 `user_trust_summary` 갱신, 이벤트로부터 전체 재계산 기능 · 테스트: PRD 4.7의 분자·분모 포함·제외 규칙을 이벤트 종류별로 1건씩(지각은 분자 0.5), 신규 기준 경계, 최근 N회 창 밖 이벤트 제외, 재계산 결과가 증분 갱신 결과와 같음 · 입장 기준 검사(T-015)가 실제 지표로 동작
-  - 문서: DATA-MODEL 6장 확인
+  - 결과: `trust.service.TrustSummaryService`(`refresh`·`recalculateAll`)와 순수 계산 `AttendanceTally` · `AttendanceEventRecorder`가 출석률에 영향을 주는 이벤트(출석·지각·사전/직전 취소·세션 무효)를 남길 때 같은 트랜잭션에서 집계 갱신(노쇼 후보는 지표에 반영되지 않아 갱신 안 함) · 집계 행은 `INSERT ... ON DUPLICATE KEY UPDATE` 한 문장으로 써서 첫 집계의 동시 삽입이 호출 트랜잭션을 깨지 않게 함 · 새 설정 `everystudy.trust.recent-sessions`(기본 10) · 노쇼 확정(T-035a)과 이의 정정(T-056)은 이벤트를 남긴 뒤 `TrustSummaryService.refresh`를 부른다
+  - 문서: DATA-MODEL 6장에 집계 규칙(최근 10회의 기준, 제외 판정, 동시성 한계) 추가(v0.18)
 
 - [ ] T-033 공개 프로필과 주최 지표
   - 선행: T-032
@@ -589,7 +590,7 @@ based_on:
 | X-9 | DATA-MODEL 5장의 `UNIQUE (study_id, user_id, type)`와 재신청 허용(같은 행 재활성화, DATA-MODEL 11장 확정)이 충돌: 나가기→재신청→다시 나가기에서 `EARLY_CANCEL`·`LATE_CANCEL`이 중복되어 거부됨. MySQL은 부분 유일 인덱스가 없음 | 생성 컬럼(ADR-0001 "생성 컬럼으로 우회")으로 판정 종류(`ATTENDED`, `LATE`, `NO_SHOW_CANDIDATE`, `NO_SHOW`, `VOIDED`)일 때만 값을 갖고 취소 종류는 `NULL`인 키를 만들어 `UNIQUE (study_id, user_id, 그 키)`로 둔다. 취소 이벤트의 중복 방지는 `study` 락으로 충분 | T-018 |
 | X-10 | **결정됨(2026-11-19, 오른쪽 첫 제안 `visible_at`. DATA-MODEL 7장, API 3장).** 일정 알림을 미리 예약하면(ARCHITECTURE 4.6) 아웃박스가 `notification` 행을 FK로 참조하므로, 발송 전 예약 알림이 알림 센터(`/me/notifications`)에 미리 보임 | `notification`에 `visible_at`을 두고 알림 센터는 `visible_at <= now`만 보여 준다 (또는 센터는 발송된 건만) | T-014, T-040 |
 | X-11 | **결정됨(2026-11-16, 오른쪽 제안대로, 감사 로그는 `common`. ARCHITECTURE 3장, ADR-0003 후속 결정).** 모듈 소속: ARCHITECTURE 3장에 `schedule` 모듈(일정 변경, 세션 무효)이 있으나 일정은 `study` 테이블에 있음(ARCHITECTURE 5장). `attendance_event`는 `trust` 소속인데 체크인·자동 판정은 `attendance` 소속. 감사 로그 소속 모듈도 없음 | 일정 수정은 `study`, 세션 무효·노쇼 후보 판정은 `attendance`, 이벤트 기록·집계는 `trust`(공개 서비스), 감사 로그는 `common`(여러 모듈이 기록하므로 `admin`에 두면 모두 `admin`에 의존하게 됨)으로 정하고 `schedule` 모듈을 지운다. ARCHITECTURE 3장 갱신 | T-003, T-022, T-031 |
-| X-12 | 지각 판정에 대한 이의가 인정되면(`NO_SHOW_CLEARED`, "직전 판정을 무효화") 출석으로 볼지 집계에서 뺄지 정의가 없음 | 이의 인정은 "판정이 틀렸음"이므로 출석으로 집계하는 정정 이벤트(`ATTENDED`)를 추가 | T-032, T-056 |
+| X-12 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 6장).** 지각 판정에 대한 이의가 인정되면(`NO_SHOW_CLEARED`, "직전 판정을 무효화") 출석으로 볼지 집계에서 뺄지 정의가 없음 | 이의 인정은 "판정이 틀렸음"이므로 출석으로 집계하는 정정 이벤트(`ATTENDED`)를 추가 | T-032, T-056 |
 | X-13 | **결정됨(2026-11-22, 사용자 확인. ARCHITECTURE 4.3, DATA-MODEL 4장, API 4장).** 주최자가 시작 후 나가면(`LEFT_AFTER_START`) `study_member` 상태, `host_id`, 이미 한 체크인과 출석 집계 처리가 정의되지 않았음 | `study_member`는 `LEFT`, `host_id`와 체크인은 그대로 두어 세션은 진행되고(PRD 4.13A 마지막 항목), 취소 이벤트는 만들지 않는다. 체크인 전이었다면 미도착 규칙(T-031)으로 처리. **T-020에서 함께 정한 세부:** ① 주최자의 나가기 응답은 `outcome`만 담고 `cancelType`은 없다(주최 포기는 참여 취소가 아니라 `study_member.cancel_type`도 `NULL`). ② 종료·파투된 스터디에서는 주최자도 `409 SESSION_STARTED`, 진행 중(`ACTIVE`)이면 시작 후에도 나갈 수 있다. ③ 감점은 **승계로 이어질 때만**(남은 참여자가 있을 때) 부과한다. 기준 시각은 참여자 직전 취소와 같게 시작 3시간 전 정각까지는 감점 없음, 1초라도 넘기면 감점. 기준 시간·점수는 설정값(`everystudy.trust.host-leave-window-minutes` 180, `host-leave-penalty-points` 1). ④ 감점의 감사 로그는 `HOST_PENALTY`, 대상 `STUDY`, 행위자 `NULL`. ⑤ 알림: 새 주최자에게 `HOST_ASSIGNED`(만료는 일정 종료 시각), 파투면 대기자에게만 `STUDY_CANCELLED`(만료는 시작 시각)를 보내고 대기 행은 지운다. 승계 뒤에는 대기 행을 그대로 두고, 정원이 찼던 스터디면 T-018과 같은 규칙으로 자격이 남은 대기자에게 자리 알림을 보낸다. ⑥ 파투는 같은 트랜잭션에서 `StudyCancelled` 이벤트를 발행하고 채팅방 폐쇄는 T-049가 한다 | T-020, T-046 |
 | X-14 | `APPEAL_CLOSED`(API 5장)가 API 1장 오류 표에 없음 | API 1장 표에 `409 APPEAL_CLOSED` 추가 | T-034 |
 | X-15 | **결정됨(2026-11-22, 사용자 확인. ADR-0004 결정 1, ARCHITECTURE 4.4).** **체크인과 자동 판정의 경쟁.** ADR-0004 결정 1은 멤버 구성을 바꾸는 작업만 `study` 행 락으로 직렬화한다. 체크인(T-027)과 주최자 미도착 무효·노쇼 후보 판정(T-031)은 락 대상이 아니어서, 마감 직전 체크인이 판정보다 늦게 커밋되면 출석과 노쇼 후보가 함께 남거나, 주최자가 체크인했는데 세션이 무효가 될 수 있음 | ADR-0004 결정 1의 대상에 "체크인, 일회용 코드 체크인, 세션 무효·노쇼 후보 판정"을 추가한다(보강 ADR 또는 ADR-0004 후속 결정). 체크인은 락을 잡은 뒤 서버 시각으로 시간창을 검사하고, 판정은 락을 잡은 뒤 대상 조건(`judged_at IS NULL`, 마감 경과)을 다시 확인한다 | T-027, T-031 |

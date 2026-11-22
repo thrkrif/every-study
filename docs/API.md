@@ -4,7 +4,7 @@ version: "0.19"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.17
-  - docs/DATA-MODEL.md@0.17
+  - docs/DATA-MODEL.md@0.18
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**

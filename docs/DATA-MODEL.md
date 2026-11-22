@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.17"
+version: "0.18"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.17
@@ -251,7 +251,9 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | rate | DECIMAL(5,2) NULL | 출석률. 지각은 출석 0.5회로 계산한다(PRD 4.7). 신규 조건이면 `NULL` |
 | recalculated_at | DATETIME(6) | |
 
-- 원본은 `attendance_event`다. 이벤트가 쌓일 때 갱신하고, 정책이 바뀌면 전체 재계산한다 (PRD 4.7). 신규 여부는 `counted`가 기준 미만인지로 판단한다. **행이 없으면(출석 기록이 아직 없으면) 신규**다. `rate`가 `NULL`이어도 신규로 본다.
+- 원본은 `attendance_event`다. 이벤트가 쌓일 때 갱신하고, 정책이 바뀌면 전체 재계산한다 (PRD 4.7).
+- **집계 규칙 (T-032, X-12)**: 세션마다 현재 판정(가장 최근 이벤트, 발생 시각이 같으면 나중에 쌓인 것) 하나만 본다. 분모에 드는 판정(`ATTENDED`, `LATE`, `NO_SHOW`, `LATE_CANCEL`) 중 **판정 발생 시각이 가장 최근인 10회**(`everystudy.trust.recent-sessions`)가 `counted`다. 노쇼 후보·`NO_SHOW_CLEARED`·사전 취소·세션 무효는 세지 않고 창도 차지하지 않는다. 지각 이의가 인정되면 `NO_SHOW_CLEARED`와 함께 `ATTENDED` 정정 이벤트를 추가해 출석으로 센다(X-12, T-056). `counted`가 신규 기준 미만이면 `rate`는 `NULL`이다.
+- 갱신은 이벤트를 남기는 같은 트랜잭션에서 그 사용자의 집계를 이벤트로 다시 만드는 방식이다(`trust.service.TrustSummaryService`). 같은 계산으로 전체 재계산(`recalculateAll`)도 하므로 두 결과가 같다. 같은 사용자의 이벤트가 동시에 두 트랜잭션에서 쌓이면 나중에 커밋한 쪽이 이른 쪽의 이벤트를 못 본 채 덮어쓸 수 있으니, 이상이 보이면 전체 재계산으로 바로잡는다(MVP). 신규 여부는 `counted`가 기준 미만인지로 판단한다. **행이 없으면(출석 기록이 아직 없으면) 신규**다. `rate`가 `NULL`이어도 신규로 본다.
 
 ### `host_penalty_event`
 | 컬럼 | 타입 | 설명 |
