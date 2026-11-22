@@ -55,6 +55,7 @@ class SecurityConfig {
     private static final String[] PUBLIC_READ_PATHS = {
             "/api/v1/studies",
             "/api/v1/studies/{id}",
+            "/api/v1/users/{id}",
     };
 
     @Bean

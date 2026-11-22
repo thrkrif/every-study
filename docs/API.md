@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.19"
+version: "0.20"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.17
@@ -149,7 +149,7 @@ covers:
 | `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
 | `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off |
 | `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 웹 푸시 구독 등록·해지 |
-| `GET /api/v1/users/{id}` | 공개 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1) |
+| `GET /api/v1/users/{id}` | 공개 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1). 응답은 아래 **공개 프로필 응답** |
 
 **내 정보 응답** (`GET /me`, `PUT /me/profile`)
 ```json
@@ -184,6 +184,18 @@ covers:
 { "attendanceRate": 92, "windowCount": 10, "noShow": 0, "late": 1, "lateCancel": 0, "isNewcomer": false }
 ```
 신규면 `attendanceRate: null`, `isNewcomer: true`. 주최 지표는 `{ "hostedCount": 7, "leftWithinWindowCount": 1, "showCountOnly": false }` (5회 미만이면 `showCountOnly: true`, PRD 4.13D).
+- `attendanceRate`는 출석률(%)을 **내림한 정수**다(89.99 → 89). 입장 기준 "최소 출석률 N%"를 채운 사람만 N 이상으로 보이게 하려는 것이다. 출석 기록이 없으면 `windowCount`와 건수가 모두 0이고 신규다.
+- `hostedCount`는 **끝난(`ENDED`) 스터디 중 지금 주최자인 것**과 **시작 직전에 나가 다른 사람에게 승계한 것**(`leftWithinWindowCount`)의 합이다. 파투·진행 중인 스터디는 세지 않는다. 승계한 스터디는 더는 그 사람이 주최자가 아니라 둘이 겹치지 않는다.
+
+**공개 프로필 응답** (`GET /users/{id}`, 비회원도 가능)
+```json
+{ "id": 42, "nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "SUWON_YEONGTONG",
+  "joinedAt": "2026-11-17T05:00:00Z",
+  "attendance": { "attendanceRate": 92, "windowCount": 10, "noShow": 0, "late": 1, "lateCancel": 0, "isNewcomer": false },
+  "hostStats": { "hostedCount": 7, "leftWithinWindowCount": 1, "showCountOnly": false } }
+```
+- 탈퇴한 회원은 `nickname`·`jobCode`·`districtCode`가 `null`이다(화면은 "탈퇴한 사용자"). 지표와 `joinedAt`은 그대로 준다.
+- 없는 회원과 온보딩을 마치지 않은 회원은 `404 NOT_FOUND`다. 이메일 같은 개인정보는 없다.
 
 ## 4. 스터디
 
@@ -279,7 +291,7 @@ covers:
 | `waitingCount` | **주최자에게만** 있는 필드. 다른 사람의 응답에는 아예 없다 |
 
 - 탈퇴한 회원의 `nickname`은 `null`이다. 화면은 "탈퇴한 사용자"로 표시한다.
-- 출석 집계(M3) 전까지 지표는 모두 신규(`isNewcomer: true`), 주최 지표는 0과 `showCountOnly: true`다.
+- 주최자·참여자의 출석 지표와 주최 지표는 3장의 응답 모양 그대로 실제 집계 값이다. 출석 기록이 없으면 신규(`isNewcomer: true`), 주최 지표는 0과 `showCountOnly: true`다.
 - 체크인 오픈 이후에는 남은 대기 행이 `myState`(`WAITING`)와 `waitingCount`에 반영되지 않는다 (PLAN X-16).
 
 `myState`는 클라이언트가 버튼을 정하는 근거다: `NONE`+모집 중 → "참여", `NONE`+정원 참 → "대기하기", `WAITING` → "대기 취소", `MEMBER` → "나가기".

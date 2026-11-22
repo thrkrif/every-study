@@ -5,6 +5,7 @@ import com.everystudy.user.domain.UserStatus;
 import com.everystudy.user.repository.UserRepository;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,22 @@ public class UserDirectory {
         return users.findAllById(userIds).stream()
                 .map(UserDirectory::toPublic)
                 .collect(Collectors.toMap(PublicUser::userId, Function.identity()));
+    }
+
+    /**
+     * 공개 프로필 한 건. 없는 회원과 온보딩을 마치지 않은 회원은 비어 있다 (프로필은 온보딩을 마친 회원만 갖는다).
+     * 탈퇴한 회원은 닉네임·직군·지역을 비워 돌려준다.
+     */
+    @Transactional(readOnly = true)
+    public Optional<PublicProfile> findProfile(long userId) {
+        return users.findById(userId)
+                .filter(user -> user.isOnboarded() || user.getStatus() == UserStatus.WITHDRAWN)
+                .map(user -> {
+                    boolean withdrawn = user.getStatus() == UserStatus.WITHDRAWN;
+                    return new PublicProfile(user.getId(), withdrawn ? null : user.getNickname(),
+                            withdrawn ? null : user.getJobCode(), withdrawn ? null : user.getDistrictCode(),
+                            user.getCreatedAt());
+                });
     }
 
     private static PublicUser toPublic(User user) {
