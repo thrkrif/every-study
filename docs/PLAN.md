@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.37"
+version: "0.38"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.32
-  - docs/API.md@0.37
+  - docs/DATA-MODEL.md@0.33
+  - docs/API.md@0.38
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -447,11 +447,13 @@ based_on:
   - 결과: `chat.service.ReportService`·`ReportController`(`POST /api/v1/reports`, `GET /api/v1/admin/reports`, `POST .../dismiss`·`/resolve`) · 테이블 `report`(V20), 감사 로그 `REPORT_RESOLVE` 추가 · 내가 정한 세부 결정: ① 신고는 `chat` 모듈 소속(ARCHITECTURE 3장) ② 같은 신고자·같은 대상의 열린 신고는 하나만(`ALREADY_REPORTED`), 처리 뒤에는 다시 신고 가능 ③ 메시지 신고는 그 방의 `ACTIVE` 참여자만, 내 메시지·시스템·지워진 메시지는 불가 ④ 처리 완료는 표시일 뿐이고 실제 조치는 T-054·T-055 의 API ⑤ 처리 사유 `note`는 300자 ⑥ 큐 항목에 대상 요약(제목·닉네임·메시지 앞 100자)을 붙임
   - 로컬 검증: 단위 테스트 통과, 통합 테스트(`ReportIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-054 운영자 강제 종료
+- [x] T-054 운영자 강제 종료
   - 선행: T-031, T-040, T-049, T-053 · 결정 D-16
   - 참조: PRD 4.11 조치 2, ADR-0004 결정 1, DATA-MODEL 4장(`cancel_reason`)·10장, API 7장(`force-end`)
   - 완료: 락 안에서 파투(`CANCELLED`, `OPERATOR`), 대기 행 삭제, 미발송 일정 알림 취소(T-040), 참여자 파투 알림, 채팅방 처리는 D-16 결정대로, 감사 로그 · 참여자 `VOIDED`는 이 작업에서 기록하지 않고 판정 작업(T-031, `judged_at`)에 맡긴다 · 테스트: 강제 종료 후 판정 작업을 실행하면 참여자마다 `VOIDED` 1건이고 지표가 강제 종료 전과 같음, 재호출 멱등, 예약 알림 미발송
   - 문서: API 7장 확인
+  - 결과: `study.service.StudyForceEndService`와 `AdminStudyController`(`POST /api/v1/admin/studies/{id}/force-end`, `note` 필수) · 락 안에서 `cancel(OPERATOR)`, 대기 행 삭제, 참여자·대기자 `STUDY_CANCELLED` 알림, `StudyCancelled` 발행(예약 일정 알림 취소 T-040, 채팅방 폐쇄 T-049가 받음), 감사 로그 `STUDY_FORCE_END` · 내가 정한 세부 결정: ① 이미 운영자가 강제 종료한 스터디는 `204` 멱등, 정상 종료·주최자 포기 파투는 `409 STUDY_CLOSED` ② 알림 유효 기한은 시작 전이면 시작 시각, 시작 뒤면 하루 ③ 이미 시작한 스터디도 강제 종료할 수 있고, 체크인 기록이 있어도 판정 작업이 참여자마다 `VOIDED`를 남겨 지표에서 빠짐
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`ForceEndIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-055 메시지 삭제·이용 정지·제재 조회
   - 선행: T-035a, T-035b, T-053

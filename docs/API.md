@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.37"
+version: "0.38"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.32
+  - docs/DATA-MODEL.md@0.33
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -389,7 +389,7 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 | `PUT /api/v1/blocks/{userId}` · `DELETE` | 회원 | 사용자 차단·해제 |
 | `GET /api/v1/admin/reports?status=open&cursor=&size=20` | 운영자 | 신고 큐, 최근 신고부터. `status`는 `open`(기본)·`dismissed`·`resolved`·`all`(그 밖은 `400`). 항목 `{ id, reporterId, reporterNickname, targetType, targetId, targetSummary(스터디 제목·닉네임·메시지 앞 100자, 대상이 없으면 null), reason, detail, status, handledBy, handleNote, createdAt, handledAt }`, 응답 `{ items, nextCursor }` |
 | `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 반려 또는 처리 완료 `{ "note": "..." }`(`note` 필수 300자 이하). `200`과 처리된 신고, 없으면 `404`, 이미 처리됐으면 `409 REPORT_ALREADY_HANDLED`. 감사 로그 `REPORT_DISMISS`·`REPORT_RESOLVE`. 처리 완료는 표시일 뿐 실제 조치는 아래 API로 따로 한다 |
-| `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 강제 종료 = 파투. 참여자 지표 영향 없음 |
+| `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 강제 종료 = 파투(`cancel_reason=OPERATOR`) `{ "note": "..." }`(`note` 필수 200자 이하, 감사 로그 `STUDY_FORCE_END`). `204`. 참여자 지표 영향 없음(체크인 마감 뒤 판정 작업이 `VOIDED`를 남김). 대기 행 삭제, 참여자·대기자에게 `STUDY_CANCELLED` 알림, 채팅방 폐쇄. 이미 강제 종료됐으면 `204`(멱등), 정상 종료·주최자 포기 파투면 `409 STUDY_CLOSED`, 없으면 `404` |
 | `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 메시지 삭제 |
 | `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여·해제 |
 | `GET /api/v1/admin/appeals?status=open&cursor=&size=20` | 운영자 | 이의 목록, 최근 신청부터. `status`는 `open`(기본)·`accepted`·`rejected`·`all`(그 밖은 `400`). 항목 `{ id, studyId, studyTitle, userId, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`, 응답 `{ items, nextCursor }` |

@@ -278,6 +278,10 @@ public class Study {
         return voidedAt;
     }
 
+    public CancelReason getCancelReason() {
+        return cancelReason;
+    }
+
     public StudyStatus getStatus() {
         return status;
     }
