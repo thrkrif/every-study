@@ -28,6 +28,7 @@ const json = (status: number, body?: unknown) =>
 
 const fetchMock = vi.fn<typeof fetch>();
 let loggedIn: boolean;
+let role: "USER" | "ADMIN";
 
 function renderMenu() {
   const client = new QueryClient({
@@ -45,13 +46,14 @@ describe("HeaderMenu", () => {
     vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", BASE_URL);
     vi.stubGlobal("fetch", fetchMock);
     loggedIn = true;
+    role = "USER";
     fetchMock.mockImplementation(async (url, init) => {
       const path = new URL(String(url)).pathname.replace("/api/v1", "");
       if (path === "/auth/logout" && init?.method === "POST") {
         loggedIn = false;
         return new Response(null, { status: 204 });
       }
-      if (path === "/me" && loggedIn) return json(200, ME);
+      if (path === "/me" && loggedIn) return json(200, { ...ME, role });
       return json(401, { status: 401, code: "UNAUTHENTICATED" });
     });
   });
@@ -91,5 +93,21 @@ describe("HeaderMenu", () => {
       ),
     ).toBe(true);
     expect(push).toHaveBeenCalledWith("/");
+  });
+
+  it("운영자에게만 운영 링크를 보여 준다", async () => {
+    const first = renderMenu();
+    await screen.findByRole("link", { name: "마이페이지" });
+    expect(
+      screen.queryByRole("link", { name: "운영" }),
+    ).not.toBeInTheDocument();
+    first.unmount();
+
+    role = "ADMIN";
+    renderMenu();
+    expect(await screen.findByRole("link", { name: "운영" })).toHaveAttribute(
+      "href",
+      "/admin",
+    );
   });
 });
