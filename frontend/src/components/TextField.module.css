@@ -69,3 +69,9 @@
   line-height: var(--text-label-line);
   color: var(--color-ink-sub);
 }
+
+.input:disabled {
+  background: var(--color-neutral-bg);
+  color: var(--color-disabled);
+  cursor: not-allowed;
+}

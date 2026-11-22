@@ -165,6 +165,7 @@ covers:
   - `401 UNAUTHENTICATED`이면 `/auth/refresh`를 한 번 보내고 원 요청을 한 번 다시 보낸다. 동시에 여러 요청이 401을 받아도 갱신은 한 번만 보낸다(API 2장). 갱신이 실패하면 오류를 그대로 던지고, 로그인이 필요한 화면이 로그인 화면으로 보낸다(비회원도 보는 화면이 있어서 `apiFetch`가 이동시키지 않는다).
   - `403 CSRF_INVALID`이면 응답에 실려 온 새 CSRF 쿠키로 한 번 다시 보낸다(API 1장).
   - 로그인 상태는 `frontend/src/lib/session.ts`의 `useSession`(`GET /me`)으로 읽는다. 비회원은 오류가 아니라 `anonymous` 상태다.
+- 채팅 실시간 연결은 `frontend/src/lib/chatSocket.ts` 한 곳에서 STOMP(`@stomp/stompjs`)로 연다. 주소는 `NEXT_PUBLIC_API_BASE_URL`의 `http`를 `ws`로 바꾼 `/ws`이고 인증은 쿠키다. 연결이 다시 붙을 때마다 최근 대화를 REST로 다시 받아 빠진 구간을 채우고, 같은 메시지는 id로 합쳐 중복이 없다 (T-051).
 - 카카오맵은 클라이언트에서만 로드한다 (스터디 만들기: 장소 선택, 상세: 지도 표시). 앱 키는 공개용 JavaScript 키이며 도메인 제한을 건다.
 - 패키지 매니저는 **npm**이다 (ADR-0001 후속 결정. CI가 `npm ci` 기준, 도구를 늘리지 않는다).
 

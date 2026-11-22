@@ -90,6 +90,7 @@ PRD 는 백엔드 Spring Boot REST API, 프론트 Next.js(React) 분리 구조�
 - ESLint 10.15.0 (9.x는 지원이 끝났다. `eslint-config-next` 16.4.6이 `>=9`를 허용하고 린트가 통과함을 확인), Prettier 3.10.1. 포맷 규칙 충돌은 `eslint-config-prettier`로 끈다
 - Vitest 5.1.0, Testing Library(React 16.3.3), 테스트 DOM은 jsdom 31.0.1
 - TanStack Query 5.107.1
+- @stomp/stompjs 7.5.0 (채팅 STOMP 클라이언트, PLAN T-051). 서버는 `spring-boot-starter-websocket`(Boot BOM)
 - Node는 24.15 이상이어야 한다 (jsdom 31의 요구 사항). `frontend/.nvmrc`와 `package.json`의 `engines`에 적는다
 - `package.json`에는 정확한 버전을 적고(범위 표기 없음) 잠금 파일을 함께 커밋한다
 - Next.js 템플릿이 기본으로 켜는 `cacheComponents`·`partialPrefetching`은 켜지 않았다. 필요해지는 화면 작업에서 정한다
