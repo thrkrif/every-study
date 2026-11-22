@@ -59,6 +59,22 @@ public class AppealService {
         this.time = time;
     }
 
+    /**
+     * 최근 {@code appealRejectWindowDays} 일에 기각이 {@code appealRejectLimit} 회 이상이면 마지막 기각 결정부터
+     * {@code appealRestrictDays} 일 동안 새 이의를 받지 않는다 (PRD 4.9, PLAN D-11). 제한이 끝나면 다시 신청할 수 있다.
+     */
+    private void requireNotRestricted(long userId, Instant now) {
+        List<Instant> rejected = appeals.findRejectedDecisionTimes(userId,
+                now.minus(Duration.ofDays(properties.appealRejectWindowDays())));
+        if (rejected.size() < properties.appealRejectLimit()) {
+            return;
+        }
+        Instant until = rejected.get(0).plus(Duration.ofDays(properties.appealRestrictDays()));
+        if (until.isAfter(now)) {
+            throw new BusinessException(AttendanceErrorCode.APPEAL_RESTRICTED, null, Map.of("until", until));
+        }
+    }
+
     /** 이의 기한: 판정 이벤트 발생 시각 + 이의 기간. */
     Instant dueAt(Instant verdictOccurredAt) {
         return verdictOccurredAt.plus(Duration.ofHours(properties.appealWindowHours()));
@@ -66,7 +82,7 @@ public class AppealService {
 
     /**
      * 이의를 신청한다. 검사 순서: 판정 없음 {@code NOT_FOUND} → 내 판정 아님 {@code FORBIDDEN} → 이의 대상 종류 아님
-     * {@code APPEAL_NOT_ALLOWED} → 이미 신청함 {@code ALREADY_APPEALED} → 기한 지남 {@code APPEAL_CLOSED} → 뒤따르는
+     * {@code APPEAL_NOT_ALLOWED} → 반복 기각으로 제한 중 {@code APPEAL_RESTRICTED}(응답에 {@code until}) → 이미 신청함 {@code ALREADY_APPEALED} → 기한 지남 {@code APPEAL_CLOSED} → 뒤따르는
      * 판정(노쇼 확정 등)이 있음 {@code APPEAL_NOT_ALLOWED}.
      */
     @Transactional
@@ -78,10 +94,11 @@ public class AppealService {
         if (!verdict.appealable()) {
             throw new BusinessException(AttendanceErrorCode.APPEAL_NOT_ALLOWED);
         }
+        Instant now = time.now();
+        requireNotRestricted(userId, now);
         if (appeals.existsByAttendanceEventId(eventId)) {
             throw new BusinessException(AttendanceErrorCode.ALREADY_APPEALED);
         }
-        Instant now = time.now();
         Instant dueAt = dueAt(verdict.occurredAt());
         if (now.isAfter(dueAt)) {
             throw new BusinessException(AttendanceErrorCode.APPEAL_CLOSED);

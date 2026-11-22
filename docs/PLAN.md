@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.35"
+version: "0.36"
 based_on:
-  - docs/PRD.md@0.16
+  - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.30
-  - docs/API.md@0.35
+  - docs/DATA-MODEL.md@0.31
+  - docs/API.md@0.36
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -473,11 +473,13 @@ based_on:
   - 결과: `attendance.service.AttendanceCorrectionService`와 `AdminAttendanceController` · 이의 인정과 같은 정정 이벤트(`recordCorrection`)·지표 재계산·`reassessAfterCorrection`(근거를 잃은 자동 제재 해제)·감사 로그 `ATTENDANCE_CORRECT` · 내가 정한 세부 결정: ① 정정 대상은 현재 판정이 `NO_SHOW_CANDIDATE`·`LATE`·`NO_SHOW`인 이벤트만(출석·취소·무효는 대상 아님) ② 열린 이의가 있으면 거부하고 이의 결정으로 처리하게 함 ③ 사용자에게는 알림을 보내지 않음(필요하면 T-059 이후 검토) ④ 오류는 `409 CORRECTION_NOT_ALLOWED`
   - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AttendanceCorrectionIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-058 이의 반복 기각 제한
+- [x] T-058 이의 반복 기각 제한
   - 선행: T-056 · 결정 D-11
   - 참조: PRD 4.9 악용 방지
   - 완료: D-11에서 정한 기준·효과 구현 · 테스트: 기준 직전·도달 시 동작 · D-11이 출시 전까지 정해지지 않으면 이 작업은 출시 범위에서 빼고 7장에 남긴다
   - 문서: PRD 4.9 위치를 가리키는 설정값 확인, DATA-MODEL 필요 시 갱신
+  - 결과: `AppealService.file`이 이의를 받기 전에 최근 90일 기각 결정 수를 보고 3회 이상이면 마지막 기각 + 30일까지 `403 APPEAL_RESTRICTED`(`until`) · 설정 `everystudy.attendance.appeal-reject-limit`·`appeal-reject-window-days`·`appeal-restrict-days` · 내가 정한 세부 결정: ① 별도 제재 행 없이 이의 행에서 계산(기록이 하나라 어긋날 일이 없음) ② 제한이 끝나면(마지막 기각 +30일) 3회가 아직 90일 안에 있어도 다시 낼 수 있고, 그 이의가 또 기각되면 새 30일 ③ 검사 순서는 이의 대상 종류 다음, 이미 신청함 앞
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AppealIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-059 [프론트] 관리자: 이의 큐와 출석 정정
   - 선행: T-007, T-056, T-057
@@ -589,7 +591,7 @@ based_on:
 | D-8 | 이메일 발송 수단(SMTP 업체·발신 주소) — 문서에 없음 | 없음 | T-041 |
 | D-9 | **결정됨(2026-11-17, DATA-MODEL 3장)**: 공급자가 확인한 이메일만 저장한다. 구글은 기본 제공 이메일, 카카오는 선택 동의 항목(`account_email`)이고 동의하지 않으면 `NULL`로 가입된다. T-004에서 함께 정한 것: 온보딩 전 회원은 닉네임·직군·지역이 `NULL`(DATA-MODEL 3장), 액세스 JWT는 HS256, 리프레시 쿠키 `Path`는 `/api/v1/auth`(ADR-0002 후속 결정). T-041은 이메일이 없는 회원에게 이메일 알림을 보내지 않는 경우를 다룬다 | DATA-MODEL 3장(`email` NULL 허용) | T-004, T-041 |
 | D-10 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 3장, backend/README).** 운영자 계정은 환경변수 `ADMIN_EMAILS`(쉼표로 구분)에 이메일을 적고, 그 이메일로 소셜 로그인하면 `ADMIN`이 된다. 공급자가 확인한 이메일만 저장되므로 남이 가장할 수 없다. 목록에서 빼도 자동으로 내려가지 않는다(DB에서 직접). 운영자는 먼저 한 번 로그인해야 한다 | 없음 | T-052 |
-| D-11 | 이의 반복 기각 시 제한의 기준과 효과 | PRD 4.9 악용 방지 | T-058 |
+| D-11 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. PRD 4.9 v0.17).** 최근 90일에 이의가 3회 기각되면 마지막 기각 결정부터 30일간 새 이의를 받지 않는다(설정값) | PRD 4.9 악용 방지 | T-058 |
 | D-12 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. API 8장).** 채팅 새 메시지 알림은 푸시만, 방별로 5분 시간 창마다 한 건으로 묶고 보낸 사람 본인과 방을 열어 둔 사람은 제외한다. 이메일은 보내지 않는다 | PRD 4.12 | T-050 |
 | D-13 | 주최자 제재 수치("확인 필요" 표기) 확정. 구현은 설정값이라 먼저 진행 가능 | PRD 4.13C | T-068 |
 | D-14 | 개인정보 처리방침 작성 주체와 검토 방법 | PRD 8장, ARCHITECTURE 7장 | T-066 |

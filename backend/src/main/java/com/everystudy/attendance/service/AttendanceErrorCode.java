@@ -13,6 +13,7 @@ public enum AttendanceErrorCode implements ErrorCode {
     APPEAL_CLOSED(HttpStatus.CONFLICT, "이의를 받는 기간이 지났거나 이미 결정됐습니다"),
     APPEAL_NOT_ALLOWED(HttpStatus.CONFLICT, "이의를 신청할 수 없는 판정입니다"),
     ALREADY_APPEALED(HttpStatus.CONFLICT, "이미 이의를 신청한 판정입니다"),
+    APPEAL_RESTRICTED(HttpStatus.FORBIDDEN, "이의가 반복해서 기각되어 한동안 이의를 신청할 수 없습니다"),
     CORRECTION_NOT_ALLOWED(HttpStatus.CONFLICT, "정정할 수 없는 판정입니다");
 
     private final HttpStatus status;

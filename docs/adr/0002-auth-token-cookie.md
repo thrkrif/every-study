@@ -1,7 +1,7 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.16
+  - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
 ---
 
