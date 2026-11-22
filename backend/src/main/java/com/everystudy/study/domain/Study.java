@@ -94,6 +94,14 @@ public class Study {
     @Column(name = "cancel_reason", length = 20)
     private CancelReason cancelReason;
 
+    /** 출석 판정을 끝낸 시각. 판정 작업의 멱등 표시다 (DATA-MODEL 4장). */
+    @Column(name = "judged_at")
+    private Instant judgedAt;
+
+    /** 주최자 미도착으로 세션을 무효 처리한 시각 (PRD 4.6). */
+    @Column(name = "voided_at")
+    private Instant voidedAt;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -202,6 +210,18 @@ public class Study {
         updatedAt = now;
     }
 
+    /** 출석 판정을 끝냈다고 표시한다. {@code voided} 면 주최자 미도착 무효로도 표시한다. 한 번만 할 수 있다. */
+    public void markJudged(boolean voided, Instant now) {
+        if (judgedAt != null) {
+            throw new IllegalStateException("이미 판정한 스터디입니다");
+        }
+        judgedAt = now;
+        if (voided) {
+            voidedAt = now;
+        }
+        updatedAt = now;
+    }
+
     public Long getId() {
         return id;
     }
@@ -248,6 +268,14 @@ public class Study {
 
     public EntryCriteria getEntryCriteria() {
         return new EntryCriteria(minAttendanceRate, allowNewcomer);
+    }
+
+    public Instant getJudgedAt() {
+        return judgedAt;
+    }
+
+    public Instant getVoidedAt() {
+        return voidedAt;
     }
 
     public StudyStatus getStatus() {

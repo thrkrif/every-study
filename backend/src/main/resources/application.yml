@@ -92,6 +92,7 @@ everystudy:
     checkin-radius-meters: 150   # PRD 4.6
     attended-within-minutes: 10  # PRD 4.6: 시작 후 10분까지는 출석, 그 뒤 체크인 마감까지는 지각
     code-max-failures: 5         # PLAN D-7: 일회용 코드를 5번 틀리면 그 사용자는 그 스터디에서 코드 입력 불가
+    appeal-window-hours: 48      # PRD 4.9: 노쇼 후보 통지 뒤 이의 기간
   trust:
     newcomer-below-sessions: 3   # PRD 4.7 신규 배지: 집계 대상 세션이 3회 미만
     host-leave-window-minutes: 180   # PRD 4.13B: 시작 3시간 이내에 주최자가 나가면 감점

@@ -54,4 +54,22 @@ public class HostPenaltyRecorder {
                 Map.of("hostId", hostId, "points", points, "reason", HostPenaltyReason.LEFT_WITHIN_WINDOW.name()));
         return true;
     }
+
+    /**
+     * 주최자 미도착 감점을 기록한다 (사유 {@code ABSENT}, PRD 4.13B). 영향받는 참여자가 있는지는 호출한 쪽이 따진다. 같은
+     * (스터디, 주최자, 사유)는 한 번만 부과한다.
+     *
+     * @return 새로 부과했으면 {@code true}, 이미 있어 건너뛰었으면 {@code false}
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean recordAbsent(long studyId, long hostId, Instant occurredAt) {
+        if (events.existsByStudyIdAndHostIdAndReason(studyId, hostId, HostPenaltyReason.ABSENT)) {
+            return false;
+        }
+        int points = properties.hostLeavePenaltyPoints();
+        events.save(HostPenaltyEvent.of(hostId, studyId, points, HostPenaltyReason.ABSENT, occurredAt));
+        audit.record(null, AuditAction.HOST_PENALTY, "STUDY", studyId,
+                Map.of("hostId", hostId, "points", points, "reason", HostPenaltyReason.ABSENT.name()));
+        return true;
+    }
 }

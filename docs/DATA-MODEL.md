@@ -410,8 +410,7 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 | 작업 | 대상 조건 |
 |---|---|
 | 알림 워커 | `notification_outbox.status='PENDING' AND next_attempt_at <= now`. `expires_at < now`인 건은 발송하지 않고 취소 |
-| 주최자 미도착 무효 처리 | `study.status='ACTIVE' AND voided_at IS NULL AND 주최자 checkin 없음 AND start_at + (미도착 기준) < now` |
-| 노쇼 후보 판정 | `study.judged_at IS NULL AND start_at + (체크인 마감) < now`, 무효·파투 스터디는 `VOIDED` 이벤트로 처리 |
+| 출석 판정 (주최자 미도착 무효 + 노쇼 후보, PLAN X-30) | `study.judged_at IS NULL AND start_at + (체크인 마감) < now`(상태 무관). 파투면 참여자 `VOIDED`, 주최자 `checkin`이 없으면 `voided_at` 기록과 참여자 `VOIDED`, 있으면 미체크인 참여자 `NO_SHOW_CANDIDATE`. 끝나면 `judged_at` 기록 |
 | 이의 기간 경과 확정 | `NO_SHOW_CANDIDATE`이고 이의 없는 채 기간 경과 |
 | 스터디 종료 처리 | `study.status='ACTIVE' AND session_date < 오늘(KST)` (세션 날짜 다음날 00:00) |
 | 채팅 보관 만료 삭제 | `chat_room.purge_after <= now AND purged_at IS NULL` |
