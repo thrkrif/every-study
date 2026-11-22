@@ -13,6 +13,14 @@ spring:
             client-secret: test-google-client-value
 
 everystudy:
+  rate-limit:
+    # 통합 테스트는 테이블을 비울 때마다 회원 ID 가 1 부터 다시 매겨지므로, 제한기의 횟수가 다른 테스트로 넘어가지 않게
+    # 넉넉히 둔다. 제한 자체는 RateLimitIntegrationTest 가 낮은 값으로 덮어써 검증한다.
+    checkin-code-per-minute: 100000
+    join-per-minute: 100000
+    report-per-hour: 100000
+    chat-send-per-minute: 100000
+    public-read-per-minute: 100000
   scheduler:
     enabled: false   # 스케줄 작업은 통합 테스트가 서비스를 직접 불러 검증한다
   auth:

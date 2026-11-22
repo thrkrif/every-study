@@ -1,5 +1,6 @@
 package com.everystudy.common.error;
 
+import com.everystudy.common.ratelimit.RateLimiter;
 import com.everystudy.common.web.TraceIdFilter;
 import java.util.List;
 import org.slf4j.MDC;
@@ -34,6 +35,14 @@ class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ProblemDetail body = problem(ex.errorCode(), ex.detail());
         ex.properties().forEach(body::setProperty);
         return handleExceptionInternal(ex, body, new HttpHeaders(), ex.errorCode().status(), request);
+    }
+
+    /** 호출 제한. 다시 시도할 수 있는 시점을 {@code Retry-After}(초)로 알린다. */
+    @ExceptionHandler(RateLimiter.RateLimitedException.class)
+    ResponseEntity<Object> handleRateLimited(RateLimiter.RateLimitedException ex, WebRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.RETRY_AFTER, Long.toString(ex.retryAfterSeconds()));
+        return handleExceptionInternal(ex, problem(ex.errorCode(), null), headers, ex.errorCode().status(), request);
     }
 
     /**

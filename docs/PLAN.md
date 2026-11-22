@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.39"
+version: "0.40"
 based_on:
   - docs/PRD.md@0.17
-  - docs/ARCHITECTURE.md@0.19
+  - docs/ARCHITECTURE.md@0.20
   - docs/DATA-MODEL.md@0.34
-  - docs/API.md@0.39
+  - docs/API.md@0.40
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -517,11 +517,13 @@ based_on:
   - 완료: 진행 중 스터디에 미치는 영향 안내 후 확인 · 테스트: 확인 전 호출 없음, 탈퇴 후 로그아웃 상태
   - 문서: 해당 없음
 
-- [ ] T-064 호출 제한
+- [x] T-064 호출 제한
   - 선행: T-028, T-047, T-053 · 결정 D-5
   - 참조: API 1장(`429`)·9장 1번(대상)
   - 완료: API 9장 1번의 대상에 `429 RATE_LIMITED`, 수치는 설정값 · 테스트: 대상별 한도 직전 허용·초과 거부
   - 문서: API 9장 1번 갱신(D-5)
+  - 결과: `common.ratelimit.RateLimiter`(메모리 고정 시간 창, 지난 창은 맵이 커지면 쓸어 냄)·`RateLimitInterceptor`(HTTP: 체크인 코드·참여 신청·신고는 회원 기준, 비회원 목록·상세 조회는 IP 기준)·`RateLimitProperties` · 채팅 전송은 REST·STOMP 가 같은 `ChatMessageService.send`에서 셈 · `429 RATE_LIMITED`와 `Retry-After`(`GlobalExceptionHandler`) · 내가 정한 세부 결정: ① 고정 창이라 창 경계에서 순간적으로 최대 두 배까지 받을 수 있음(MVP) ② 운영의 IP 는 `forward-headers-strategy: native`가 주는 값 ③ 인증이 필요한 경로에서 회원을 못 찾으면 IP 로 셈 ④ 웹 계층 슬라이스 테스트에는 제한기가 없어 인터셉터가 `ObjectProvider`로 찾고 없으면 통과 ⑤ 통합 테스트는 회원 ID 가 재사용되므로 테스트 설정에서 한도를 크게 두고 제한 테스트만 낮춤
+  - 로컬 검증: 단위 테스트(`RateLimiterTest` 포함) 통과, 통합 테스트(`RateLimitIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-065 운영 환경 마감
   - 선행: T-013 · 결정 D-3
@@ -591,7 +593,7 @@ based_on:
 | D-2 | **결정됨(2026-11-16, ADR-0003 후속 결정)**: 모듈 경계 검사 도구는 ArchUnit 1.5.1(코어만 사용). T-003에서 함께 정한 것: 모듈의 공개 면은 `service`·`event` 패키지, `web`은 같은 모듈의 `domain` 타입을 쓸 수 있고 `repository`는 못 쓴다 | ADR-0003 | T-003 |
 | D-3 | **일부 결정(2026-11-18, ARCHITECTURE 9장)**: M1 배포는 클라우드 VM 1대 + 도메인 + Caddy(HTTPS), MySQL은 같은 VM의 컨테이너, 이미지는 SSH로 전달(`deploy/`). 임시 호스트·터널은 쓰지 않는다. 남은 것: 업체·도메인 이름(사람), 백업(T-065). 원래 항목: 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
 | D-4 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 9장).** 신고 사유는 6종: `SPAM_AD`(광고·홍보), `ABUSE`(욕설·비방), `INAPPROPRIATE_RECRUIT`(부적절한 모집), `HARASSMENT`(괴롭힘·성적 불쾌감), `FRAUD`(사기·위장), `OTHER`(기타, 상세 필수) | DATA-MODEL 11장 1번 | T-053 |
-| D-5 | 호출 제한 수치 (대상은 API 9장 1번에 있음) | API 9장 1번 | T-064 |
+| D-5 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. API 9장 1번).** 호출 제한 수치: 체크인 코드 입력 회원당 분당 10, 참여 신청 분당 20, 신고 시간당 20, 채팅 전송 분당 60, 비회원 목록·상세 조회 IP당 분당 120. 모두 설정값 | API 9장 1번 | T-064 |
 | D-6 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 7장·11장 2번).** 수신 설정 때문에 건너뛴 알림은 `SKIPPED` 상태를 추가해 표기한다 | DATA-MODEL 11장 2번 | T-043 |
 | D-7 | **결정됨(2026-11-22, 사용자 확인. DATA-MODEL 5장·11장 3번, ARCHITECTURE 4.4).** 일회용 코드 자릿수·수명·입력 시도 제한 횟수 | 6자리 숫자, 체크인 마감 시각까지 유효, 한 사람이 한 스터디에서 5번 틀리면 입력 불가(`everystudy.attendance.code-max-failures`) | T-028 |
 | D-8 | 이메일 발송 수단(SMTP 업체·발신 주소) — 문서에 없음 | 없음 | T-041 |

@@ -9,10 +9,13 @@ import com.everystudy.common.error.BusinessException;
 import com.everystudy.common.error.CommonErrorCode;
 import com.everystudy.common.error.FieldViolation;
 import com.everystudy.common.error.InvalidInputException;
+import com.everystudy.common.ratelimit.RateLimitProperties;
+import com.everystudy.common.ratelimit.RateLimiter;
 import com.everystudy.common.time.TimeProvider;
 import com.everystudy.study.service.StudySessions;
 import com.everystudy.user.service.PublicUser;
 import com.everystudy.user.service.UserDirectory;
+import java.time.Duration;
 import java.util.List;
 import java.util.Set;
 import org.springframework.context.ApplicationEventPublisher;
@@ -36,10 +39,12 @@ public class ChatMessageService {
     private final TimeProvider time;
     private final ApplicationEventPublisher events;
     private final ChatMessageNotifier notifier;
+    private final RateLimiter limiter;
+    private final RateLimitProperties rateLimits;
 
     ChatMessageService(StudySessions sessions, ChatRoomRepository rooms, ChatMessageRepository messages,
             UserDirectory users, TimeProvider time, ApplicationEventPublisher events,
-            ChatMessageNotifier notifier) {
+            ChatMessageNotifier notifier, RateLimiter limiter, RateLimitProperties rateLimits) {
         this.sessions = sessions;
         this.rooms = rooms;
         this.messages = messages;
@@ -47,6 +52,8 @@ public class ChatMessageService {
         this.time = time;
         this.events = events;
         this.notifier = notifier;
+        this.limiter = limiter;
+        this.rateLimits = rateLimits;
     }
 
     /**
@@ -78,6 +85,7 @@ public class ChatMessageService {
     @Transactional
     public ChatRoomService.MessageView send(long studyId, long userId, String content) {
         requireCanSend(studyId, userId);
+        limiter.check("chat-send", "u" + userId, rateLimits.chatSendPerMinute(), Duration.ofMinutes(1));
         String text = content == null ? "" : content.strip();
         if (text.isEmpty() || text.length() > CONTENT_MAX) {
             throw new InvalidInputException(List.of(new FieldViolation("content",
