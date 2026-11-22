@@ -26,6 +26,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Query("update RefreshToken t set t.revokedAt = :now where t.familyId = :familyId and t.revokedAt is null")
     int revokeFamily(@Param("familyId") String familyId, @Param("now") Instant now);
 
+    /** 회원의 아직 폐기되지 않은 리프레시 토큰을 모두 폐기한다 (탈퇴, ADR-0002 결정 6). */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update RefreshToken t set t.revokedAt = :now where t.userId = :userId and t.revokedAt is null")
+    int revokeAllOfUser(@Param("userId") long userId, @Param("now") Instant now);
+
     /** 만료 시각이 {@code now} 이하인(이미 쓸 수 없는) 토큰의 id. 정리 작업이 쓴다. */
     @Query("select t.id from RefreshToken t where t.expiresAt <= :now order by t.id")
     List<Long> findIdsByExpiresAtLessThanEqual(@Param("now") Instant now, Pageable pageable);

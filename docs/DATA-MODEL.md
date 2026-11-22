@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.34"
+version: "0.35"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.20
@@ -66,7 +66,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 - 닉네임은 **중복 불허**(`UNIQUE (nickname)`, 확정). 온보딩 전과 탈퇴 후에는 값이 `NULL`이라 충돌하지 않는다. 비교는 컬럼 정렬 규칙(`utf8mb4_0900_ai_ci`)을 따라 영문 대소문자를 구분하지 않는다(`Mate`와 `mate`는 같은 닉네임). 형식은 2~20자의 한글(완성형)·영문·숫자·밑줄이다 (API 3장).
 - **온보딩 전 회원** (확정, 2026-11-17): 소셜 로그인으로 처음 들어오면 `nickname`·`job_code`·`district_code`가 `NULL`인 행을 만든다. 셋이 모두 채워져야 온보딩을 마친 것으로 본다(별도 컬럼을 두지 않는다).
 - **이메일** (확정, PLAN D-9): 구글은 `email_verified`가 참인 이메일, 카카오는 선택 동의 항목(`account_email`)으로 받은 이메일 중 유효·인증된 것만 저장한다. 동의하지 않았거나 확인되지 않은 이메일이면 `NULL`로 가입된다. 다시 로그인할 때 공급자가 확인된 이메일을 주면 그 값으로 맞추고, 주지 않으면 기존 값을 둔다.
-- 탈퇴: 개인정보 컬럼만 비우고 행과 `id`는 남긴다. 다른 테이블의 `user_id`는 그대로 둔다 (PRD 4.1, ARCHITECTURE 5장).
+- 탈퇴(T-062): 개인정보 컬럼(닉네임·이메일·직군·지역)만 비우고 행과 `id`는 남기며 `status=WITHDRAWN`, `withdrawn_at`을 채운다. 다른 테이블의 `user_id`는 그대로 둔다 (PRD 4.1, ARCHITECTURE 5장). 한 트랜잭션에서 진행 중 스터디에 나가기 규칙을 적용하고(참여자 취소 기록, 주최자 승계·파투, 대기 행 삭제. 이미 시작한 스터디의 참여자는 출석 판정에 맡기고 그대로 둔다), 미발송 아웃박스를 모든 채널에서 취소하고, `social_account`를 지우고, 리프레시 토큰을 모두 폐기한다. 탈퇴 뒤에 다른 기능이 만든 알림도 발송 단계에서 `CANCELLED`로 걸러진다. 같은 소셜 계정으로 다시 로그인하면 새 회원이다.
 
 ### `social_account`
 | 컬럼 | 타입 | 설명 |

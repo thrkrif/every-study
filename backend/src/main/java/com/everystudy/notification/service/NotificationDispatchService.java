@@ -9,6 +9,7 @@ import com.everystudy.notification.repository.NotificationOutboxRepository;
 import com.everystudy.notification.repository.NotificationRepository;
 import com.everystudy.notification.service.ChannelSender.ChannelSendException;
 import com.everystudy.notification.service.ChannelSender.OutgoingNotification;
+import com.everystudy.user.service.UserAccountService;
 import java.time.Instant;
 import java.util.EnumMap;
 import java.util.List;
@@ -42,6 +43,7 @@ public class NotificationDispatchService {
     private final NotificationOutboxRepository outbox;
     private final NotificationRepository notifications;
     private final NotificationSettingService settings;
+    private final UserAccountService accounts;
     private final Map<NotificationChannel, ChannelSender> senders = new EnumMap<>(NotificationChannel.class);
     private final NotificationProperties properties;
     private final SchedulerProperties scheduler;
@@ -49,11 +51,12 @@ public class NotificationDispatchService {
     private final TransactionTemplate tx;
 
     NotificationDispatchService(NotificationOutboxRepository outbox, NotificationRepository notifications,
-            NotificationSettingService settings, List<ChannelSender> senders, NotificationProperties properties, SchedulerProperties scheduler,
+            NotificationSettingService settings, UserAccountService accounts, List<ChannelSender> senders, NotificationProperties properties, SchedulerProperties scheduler,
             TimeProvider time, TransactionTemplate tx) {
         this.outbox = outbox;
         this.notifications = notifications;
         this.settings = settings;
+        this.accounts = accounts;
         senders.forEach(sender -> this.senders.put(sender.channel(), sender));
         this.properties = properties;
         this.scheduler = scheduler;
@@ -92,9 +95,14 @@ public class NotificationDispatchService {
             row.cancelExpired("유효 기한이 지나 보내지 않음");
             return true;
         }
+        Notification notification = notifications.findById(row.getNotificationId()).orElse(null);
+        // 탈퇴한 회원에게는 보내지 않는다. 탈퇴 뒤에 다른 기능이 만든 알림도 여기서 걸러진다 (PLAN T-062).
+        if (notification != null && accounts.findActive(notification.getUserId()).isEmpty()) {
+            row.cancelExpired("탈퇴한 회원이라 보내지 않음");
+            return true;
+        }
         NotificationChannel channel = NotificationChannel.valueOf(row.getChannel());
         ChannelSender sender = senders.get(channel);
-        Notification notification = notifications.findById(row.getNotificationId()).orElse(null);
         if (sender == null || notification == null) {
             return false;
         }

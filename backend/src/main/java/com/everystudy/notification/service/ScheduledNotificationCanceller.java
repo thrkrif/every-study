@@ -41,6 +41,12 @@ public class ScheduledNotificationCanceller {
         cancel(studyId, userId);
     }
 
+    /** 회원에게 가는 미발송 알림(이메일 포함 모든 채널·종류)을 취소한다. 탈퇴할 때 부른다 (PLAN T-062). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public int cancelAllPendingOfUser(long userId) {
+        return outbox.cancelAllPendingOfUser(userId);
+    }
+
     /** 이 스터디의 모든 참여자의 일정 알림을 취소한다. */
     @Transactional(propagation = Propagation.MANDATORY)
     public void cancelForStudy(long studyId) {

@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.43"
+version: "0.44"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.20
-  - docs/DATA-MODEL.md@0.34
-  - docs/API.md@0.40
+  - docs/DATA-MODEL.md@0.35
+  - docs/API.md@0.41
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -363,6 +363,7 @@ based_on:
   - 참조: ADR-0005, DATA-MODEL 7장(`push_subscription`), API 3장(`push-subscription`)
   - 완료: VAPID 웹 푸시 발송, 구독 등록·해지 API · 테스트: 같은 엔드포인트 재등록 시 1행, 푸시 서비스의 만료·삭제 응답 시 구독 삭제, 일시 오류는 재시도
   - 문서: DATA-MODEL 7장, API 3장 확인
+  - 남은 일(T-062 에서 넘어옴): 탈퇴(`auth.service.WithdrawalService`)가 회원의 `push_subscription` 도 지우게 한다 · 테스트: 탈퇴 후 구독 0건
 
 - [x] T-043 알림 수신 설정
   - 선행: T-038 · 결정 D-6
@@ -511,11 +512,13 @@ based_on:
   - 결과: 공용 `components/ReportForm`(사유 6종 칩, 기타는 상세 필수, 화면 안에 펼치는 폼이라 모달 없음)과 `lib/api/reports.ts`(`fileReport`·`blockUser`·`unblockUser`) · 채팅 메시지마다 "신고"·"차단"(내 메시지·시스템·지운 메시지는 없음), 차단한 사람의 메시지에는 "차단 해제" · 사용자 프로필과 스터디 상세(주최자 제외)에 신고 · 오류 코드 `APPEAL_RESTRICTED`·`ALREADY_REPORTED`·`REPORT_ALREADY_HANDLED`·`CORRECTION_NOT_ALLOWED`를 `errors.ts`에 추가(API 1장과 맞춤) · 내가 정한 세부 결정: ① 차단은 서버 응답 전에도 이 화면의 메시지를 바로 가리고(그 사람의 이후 실시간 메시지 포함), 차단 해제는 서버에 알린 뒤 최근 대화를 다시 받아 내용을 되살림(이전 대화는 다시 위로 올리면 받음) ② 프로필·스터디 상세에는 차단 단추를 두지 않음(차단 여부를 알려 주는 API 가 없어 상태를 보여 줄 수 없음, 채팅에서만 차단·해제) ③ 로그인한 회원에게만 신고 단추를 보임
   - 로컬 검증: `npm run lint`·`tsc`·`vitest`(209개) 통과 (Node 24)
 
-- [ ] T-062 탈퇴 API
+- [x] T-062 탈퇴 API
   - 선행: T-017, T-020, T-038, T-042
   - 참조: PRD 4.1(탈퇴), ADR-0002 결정 6, DATA-MODEL 3장·4장·7장, API 3장(`DELETE /me`)
   - 완료: 진행 중 스터디에 참여 취소·주최자 승계 규칙을 먼저 적용 · 개인정보 컬럼 비움, `social_account` 삭제, 리프레시 전부 폐기, 쿠키 삭제, `push_subscription`·`study_waiting` 삭제, 미발송 아웃박스(이메일 포함) 취소 · 다른 사용자 화면에 "탈퇴한 사용자" 표시 · 테스트: 탈퇴 후 해당 사용자 대상 발송 0건, 주최 중 스터디 승계, 같은 소셜 계정 재로그인은 신규 가입
   - 문서: DATA-MODEL 3장, API 3장 확인
+  - 결과: `auth.service.WithdrawalService`(한 트랜잭션, READ COMMITTED)가 `study.service.StudyWithdrawalCleanup`(스터디 번호 순으로 `StudyLeaveService.leave` 적용, 대기 삭제) → `ScheduledNotificationCanceller.cancelAllPendingOfUser` → `user.service.UserWithdrawal`(개인정보 비움, `social_account` 삭제) → 리프레시 토큰 전부 폐기 · `DELETE /api/v1/me`(`auth.web.WithdrawalController`)가 쿠키와 CSRF 를 정리 · 발송 워커는 탈퇴한 회원의 알림을 `CANCELLED` 로 걸러 탈퇴 뒤에 만들어진 알림도 나가지 않음 · 내가 정한 세부 결정: ① 오케스트레이션은 `user` 가 `study` 를 볼 수 없는 의존 방향 때문에 `auth` 에 둠 ② 이미 시작한 스터디의 참여자는 나갈 수 없으므로(PRD 4.6) 그대로 두고 판정에 맡김, 시작한 스터디의 주최자는 나가기 규칙대로 승계 없이 빠짐 ③ 이미 끝났거나 파투된 스터디는 건드리지 않음 ④ 푸시 구독 삭제는 `push_subscription` 이 생기는 T-042 에서 이 서비스에 더함(순서를 앞당긴 대신 남긴 일) ⑤ 이미 발급된 액세스 토큰은 서버에서 즉시 막지 않음(`GET /me` 만 401, 나머지는 만료 최대 15분)
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`WithdrawalIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-063 [프론트] 탈퇴 화면
   - 선행: T-036, T-062

@@ -49,6 +49,15 @@ public interface NotificationOutboxRepository extends JpaRepository<Notification
     int deleteUnseenPending(@Param("studyId") long studyId, @Param("userId") long userId,
             @Param("types") Collection<String> types, @Param("now") Instant now);
 
+    /** 회원에게 가는 아직 안 보낸({@code PENDING}) 건을 모두 취소한다 (탈퇴, PLAN T-062). */
+    @Modifying
+    @Query("""
+            UPDATE NotificationOutbox o SET o.status = com.everystudy.notification.domain.OutboxStatus.CANCELLED
+            WHERE o.status = com.everystudy.notification.domain.OutboxStatus.PENDING
+              AND o.notificationId IN (SELECT n.id FROM Notification n WHERE n.userId = :userId)
+            """)
+    int cancelAllPendingOfUser(@Param("userId") long userId);
+
     /** 예정 시각이 이미 지났지만 아직 안 나간({@code PENDING}) 건은 지우지 않고 {@code CANCELLED} 로 바꾼다. */
     @Modifying
     @Query("""
