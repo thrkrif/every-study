@@ -55,6 +55,11 @@ export function HeaderMenu() {
       <Link href="/notifications" className={styles.item}>
         알림
       </Link>
+      {session.me.role === "ADMIN" && (
+        <Link href="/admin" className={styles.item}>
+          운영
+        </Link>
+      )}
       <button
         type="button"
         className={`${styles.item} ${styles.sub}`}
