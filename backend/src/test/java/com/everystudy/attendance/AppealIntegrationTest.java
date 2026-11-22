@@ -128,8 +128,7 @@ class AppealIntegrationTest extends IntegrationTestSupport {
         assertThat(restricted).bodyJson().extractingPath("$.until").isNotNull();
 
         // 마지막 기각이 31일 전이면 제한이 끝났다 (세 건 모두 90일 안)
-        jdbc.update("UPDATE appeal SET decided_at = ? WHERE decided_at = (SELECT m FROM "
-                + "(SELECT MAX(decided_at) m FROM appeal) t)", utc(now.minus(Duration.ofDays(31))));
+        jdbc.update("UPDATE appeal SET decided_at = ? WHERE status = 'REJECTED'", utc(now.minus(Duration.ofDays(31))));
         assertThat(file(eventId, member, "{\"reason\":\"z\"}")).hasStatus(201);
     }
 
