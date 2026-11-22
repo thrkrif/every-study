@@ -155,9 +155,10 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
         tx.executeWithoutResult(status -> events.publishEvent(event));
     }
 
+    /** 지금부터 {@code hours} 시간 뒤, 분은 10분 단위로 내린다 (개설 규칙의 시작 시각 단위). 현재 시각은 한 번만 읽는다. */
     private static Instant inHours(int hours) {
-        return Instant.now().plus(Duration.ofHours(hours)).truncatedTo(ChronoUnit.MINUTES)
-                .minusSeconds(Instant.now().atZone(ZoneOffset.UTC).getMinute() % 10 * 60L);
+        Instant target = Instant.now().plus(Duration.ofHours(hours)).truncatedTo(ChronoUnit.MINUTES);
+        return target.minusSeconds(target.atZone(ZoneOffset.UTC).getMinute() % 10 * 60L);
     }
 
     private long user(String nickname) {
