@@ -261,3 +261,31 @@ export function leftNotice(result: {
       return "참여를 취소했어요.";
   }
 }
+
+/**
+ * 스터디 관리(수정·정원 변경) 실패를 한 문장으로 (PLAN T-026). `memberCount` 는 정원 감소 안내에 쓴다.
+ * 필드 오류(`VALIDATION_FAILED`)는 서버가 준 칸별 문구를 이어 붙인다.
+ */
+export function manageErrorText(error: unknown, memberCount: number): string {
+  if (!(error instanceof ApiError)) return "잠시 뒤 다시 시도해 주세요.";
+  switch (error.code) {
+    case "SCHEDULE_LOCKED":
+      return "참여자가 있거나 이미 시작해서 일정·장소는 바꿀 수 없어요. 새 스터디를 만들어 주세요.";
+    case "CAPACITY_BELOW_MEMBERS":
+      return `지금 참여자가 ${memberCount}명이라 그보다 적게 줄일 수 없어요.`;
+    case "STUDY_CLOSED":
+      return "끝났거나 열리지 않은 스터디는 바꿀 수 없어요.";
+    case "FORBIDDEN":
+      return "주최자만 바꿀 수 있어요.";
+    case "VALIDATION_FAILED":
+      return error.fieldErrors.length > 0
+        ? error.fieldErrors.map((field) => field.message).join(" ")
+        : "입력한 값을 확인해 주세요.";
+    case "LOCK_TIMEOUT":
+      return "요청이 몰렸어요. 한 번 더 눌러 주세요.";
+    case "NETWORK_ERROR":
+      return "연결이 불안정해요. 잠시 뒤 다시 시도해 주세요.";
+    default:
+      return "잠시 뒤 다시 시도해 주세요.";
+  }
+}

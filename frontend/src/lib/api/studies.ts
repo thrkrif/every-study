@@ -170,3 +170,40 @@ export function leaveStudy(id: number): Promise<LeaveResult> {
 export function fetchLeavePreview(id: number): Promise<LeavePreview> {
   return apiFetch<LeavePreview>(`/studies/${id}/leave-preview`);
 }
+
+/** 수정할 값 (`PATCH /studies/{id}`). 보내지 않은 항목은 바뀌지 않는다 */
+export type UpdateStudyInput = {
+  title?: string;
+  description?: string;
+  /** 일정·장소는 주최자 혼자이고 시작 전일 때만 보낼 수 있다 */
+  startAt?: string;
+  durationMin?: number;
+  place?: {
+    name: string;
+    address: string;
+    latitude: number;
+    longitude: number;
+  };
+};
+
+/** 수정하고 고친 상세를 받는다 */
+export function updateStudy(
+  id: number,
+  input: UpdateStudyInput,
+): Promise<StudyDetail> {
+  return apiFetch<StudyDetail>(`/studies/${id}`, {
+    method: "PATCH",
+    body: input,
+  });
+}
+
+/** 정원을 바꾸고 고친 상세를 받는다 */
+export function changeStudyCapacity(
+  id: number,
+  capacity: number,
+): Promise<StudyDetail> {
+  return apiFetch<StudyDetail>(`/studies/${id}/capacity`, {
+    method: "PUT",
+    body: { capacity },
+  });
+}
