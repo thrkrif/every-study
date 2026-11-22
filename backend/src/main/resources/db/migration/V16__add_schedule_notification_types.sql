@@ -1,0 +1,5 @@
+-- 일정 알림 종류 추가 (PLAN T-040, PRD 4.5): 전날, 1시간 전, 체크인 오픈 시점은 이미 CHECKIN_OPEN 으로 허용돼 있다.
+ALTER TABLE notification DROP CHECK ck_notification_type;
+ALTER TABLE notification ADD CONSTRAINT ck_notification_type CHECK (type IN
+    ('STUDY_CANCELLED', 'HOST_ASSIGNED', 'WAITING_OPENED', 'CHECKIN_OPEN', 'NO_SHOW_NOTICE',
+     'SANCTION_WARNING', 'SANCTION_APPLIED', 'HOST_WARNING', 'CHECKIN_REMINDER_DAY', 'CHECKIN_REMINDER_HOUR'));

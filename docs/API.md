@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.28"
+version: "0.29"
 based_on:
   - docs/PRD.md@0.16
-  - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.24
+  - docs/ARCHITECTURE.md@0.19
+  - docs/DATA-MODEL.md@0.25
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -403,7 +403,7 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 | type | 대상 | 시점 |
 |---|---|---|
 | `STUDY_CANCELLED` | 참여자 | 스터디 취소(파투, 강제 종료) |
-| `CHECKIN_REMINDER_DAY`, `_HOUR`, `CHECKIN_OPEN` | 참여자 | 전날, 1시간 전, 체크인 오픈 (PRD 4.5) |
+| `CHECKIN_REMINDER_DAY`, `_HOUR`, `CHECKIN_OPEN` | 참여자 | 전날(시작 24시간 전), 1시간 전, 체크인 오픈 (PRD 4.5). 참여 확정 때 예약하고(주최자는 개설 때) 나가기·파투 때 미발송 건을 취소한다. 키 `{type}:{studyId}:{userId}` |
 | `WAITING_OPENED` | 대기자 | 자리 발생, 정원 증액. 알림 시점에 신청 자격이 남은 대기자만 (PRD 4.14, PLAN X-20) |
 | `HOST_ASSIGNED` | 새 주최자 | 승계 |
 | `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 |

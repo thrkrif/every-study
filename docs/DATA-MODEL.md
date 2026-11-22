@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.24"
+version: "0.25"
 based_on:
   - docs/PRD.md@0.16
-  - docs/ARCHITECTURE.md@0.18
+  - docs/ARCHITECTURE.md@0.19
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -295,7 +295,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`. 종류를 더하면 `CHECK`도 고친다 |
+| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`, `CHECKIN_REMINDER_DAY`, `CHECKIN_REMINDER_HOUR`. 종류를 더하면 `CHECK`도 고친다 |
 | study_id | BIGINT NULL FK | 연결 대상 |
 | title | VARCHAR(100) | 중복을 견디는 문장 (ADR-0005) |
 | body | VARCHAR(300) | 같음 |
@@ -326,7 +326,8 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | created_at | DATETIME(6) | |
 
 - 워커는 `status='PENDING' AND next_attempt_at <= now`를 한 번에 상한 건수만큼 읽는다. 인덱스 `(status, next_attempt_at)`.
-- 스터디가 취소되면 해당 스터디의 미발송 일정 알림 행을 `CANCELLED`로 바꾼다. 주최자 혼자일 때 일정을 수정하면 미발송 행을 취소하고 새로 만든다 (ARCHITECTURE 4.6).
+- **일정 알림 취소(T-040)**: 참여자가 나가거나 스터디가 취소되면 미발송 일정 알림(`CHECKIN_REMINDER_DAY`·`_HOUR`·`CHECKIN_OPEN`)을 취소한다. 예정 시각이 아직 오지 않아 알림 센터에 보이지 않는 `PENDING` 행은 알림과 함께 **삭제**해 같은 키로 다시 예약할 수 있게 하고, 예정 시각이 지났지만 아직 안 나간 `PENDING` 행은 `CANCELLED`로 바꾼다. 이미 보낸 알림은 남긴다. 주최자 혼자일 때 일정을 수정하면 주최자 몫을 같은 방식으로 지우고 새로 만든다 (ARCHITECTURE 4.6).
+- **일정 알림 유효 기한(PLAN D-18)**: 하루 전 알림은 1시간 전 알림 시각까지, 1시간 전 알림은 체크인 오픈까지, 체크인 오픈 알림은 체크인 마감까지다.
 - 수신 설정은 발송 시점에 읽는다. 꺼져 있으면 건너뛴다. 상태를 `CANCELLED`로 둘지 `SKIPPED`를 추가할지는 11장 2번.
 
 ### `notification_setting`

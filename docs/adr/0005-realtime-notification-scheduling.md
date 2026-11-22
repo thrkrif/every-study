@@ -2,7 +2,7 @@
 status: draft
 based_on:
   - docs/PRD.md@0.16
-  - docs/ARCHITECTURE.md@0.18
+  - docs/ARCHITECTURE.md@0.19
 ---
 
 # ADR-0005: 채팅·알림·스케줄러
