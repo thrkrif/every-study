@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.12"
+version: "0.13"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.14
+  - docs/ARCHITECTURE.md@0.15
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -171,7 +171,8 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | from_user_id, to_user_id | BIGINT FK | |
 | created_at | DATETIME(6) | |
 
-- 승계 이력(추가만). 같은 트랜잭션에서 `study.host_id`를 바꾼다 (ADR-0004).
+- 승계 이력(추가만). 같은 트랜잭션에서 `study.host_id`를 바꾼다 (ADR-0004). 파투와 시작 후 나가기에는 행을 만들지 않는다.
+- 주최자가 나가면 그 `study_member` 행은 `LEFT`가 되고 `cancel_type`은 `NULL`이다(참여 취소가 아니라 주최 포기이며 `attendance_event`도 만들지 않는다, PLAN X-13).
 
 ## 5. 출석
 
@@ -261,7 +262,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | reason | VARCHAR(20) | `LEFT_WITHIN_WINDOW`(3시간 이내 이탈) / `ABSENT`(미도착) |
 | occurred_at | DATETIME(6) | |
 
-- `UNIQUE (study_id, host_id, reason)`로 중복 부과를 막는다. 롤링 기간 합계는 **조회 시 계산**한다 (ARCHITECTURE 4.5). 표시용 "주최 N회 중 직전 이탈 N회"는 `study`와 이 테이블로 센다.
+- `UNIQUE (study_id, host_id, reason)`로 중복 부과를 막는다. `LEFT_WITHIN_WINDOW`는 승계로 이어지는(남은 참여자가 있는) 이탈일 때만 만든다. 롤링 기간 합계는 **조회 시 계산**한다 (ARCHITECTURE 4.5). 표시용 "주최 N회 중 직전 이탈 N회"는 `study`와 이 테이블로 센다.
 
 ### `user_sanction`
 | 컬럼 | 타입 | 설명 |

@@ -89,6 +89,11 @@ public class Study {
     @Column(nullable = false, length = 10)
     private StudyStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "cancel_reason", length = 20)
+    private CancelReason cancelReason;
+
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
@@ -142,6 +147,25 @@ public class Study {
         study.createdAt = now;
         study.updatedAt = now;
         return study;
+    }
+
+    /**
+     * 주최자를 바꾼다 (승계). 일정·장소·입장 기준 등 설정은 그대로 둔다 (PRD 4.13A). 참여자 행과 이력은 호출한 쪽이
+     * 정리한다.
+     */
+    public void transferHostTo(long newHostId, Instant now) {
+        hostId = newHostId;
+        updatedAt = now;
+    }
+
+    /** 파투한다 (PRD 4.13A). 진행 중인 스터디만 파투할 수 있다. */
+    public void cancel(CancelReason reason, Instant now) {
+        if (status != StudyStatus.ACTIVE) {
+            throw new IllegalStateException("진행 중인 스터디만 파투할 수 있습니다");
+        }
+        status = StudyStatus.CANCELLED;
+        cancelReason = reason;
+        updatedAt = now;
     }
 
     public Long getId() {

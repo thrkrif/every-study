@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.14"
+version: "0.15"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.14
-  - docs/DATA-MODEL.md@0.12
+  - docs/ARCHITECTURE.md@0.15
+  - docs/DATA-MODEL.md@0.13
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -287,12 +287,12 @@ covers:
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
 | `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`, 본문 없음(결과는 상세의 `myState`). 오류 `STUDY_NOT_RECRUITING`, `STUDY_FULL`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4). 그 밖에 온보딩 전이면 `403 ONBOARDING_REQUIRED`(검증보다 먼저, PLAN X-19), 스터디가 없으면 `404 NOT_FOUND`, 락 대기 초과면 `409 LOCK_TIMEOUT`(재시도) |
-| `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소 → `200 { cancelType }`(`EARLY`/`LATE`). 오류 `FORBIDDEN`(참여 중이 아님), `SESSION_STARTED`(시작 후·종료·파투), `NOT_FOUND`, `LOCK_TIMEOUT`. **주최자가 호출하면 주최 포기**로 승계·파투·감점 규칙을 적용하고(PRD 4.13) 응답에 `outcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`)을 담는다. **T-020 전까지는 주최자의 호출을 `403 FORBIDDEN`으로 거절한다 (PLAN X-21)** |
+| `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소 → `200 { cancelType }`(`EARLY`/`LATE`). 오류 `FORBIDDEN`(참여 중이 아님), `SESSION_STARTED`(참여자: 시작 후·종료·파투, 주최자: 종료·파투), `NOT_FOUND`, `LOCK_TIMEOUT`. **주최자가 호출하면 주최 포기**로 `200 { outcome }`을 돌려주고 `cancelType`은 없다: 시작 전 남은 참여자가 있으면 `TRANSFERRED`(무작위 1명 승계, 시작 3시간 이내면 감점 PRD 4.13B), 주최자만 남았으면 `CANCELLED`(파투, 감점 없음), 시작 후면 `LEFT_AFTER_START`(승계 없음, PLAN X-13) |
 | `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표(상세의 `members`와 같은 형식). 그 스터디의 `ACTIVE` 참여자(주최자 포함)가 아니면 `403 FORBIDDEN` |
 | `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록 → `201`, 본문 없음. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_RECRUITING`, `ALREADY_JOINED`, `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`(참여 신청과 같은 자격 검사, PRD 4.14), `ALREADY_WAITING` (이 순서로 검사). 그 밖에 `ONBOARDING_REQUIRED`, `NOT_FOUND`, `LOCK_TIMEOUT` |
 | `DELETE /api/v1/studies/{id}/waiting/me` | 회원 | 대기 취소 → `204`. 대기 중이 아니어도 `204`(멱등) |
 
-- 나가기 확인용 사전 조회: `GET /api/v1/studies/{id}/leave-preview` → `{ cancelType, hostOutcome, penaltyApplies }`(`hostOutcome`은 값이 없으면 생략하며 T-020 전에는 항상 생략, 주최자·비참여자는 `403`, 시작 후·종료·파투는 `409 SESSION_STARTED`). 클라이언트가 "직전 취소는 기록에 반영됩니다" 같은 안내를 띄우는 데 쓴다.
+- 나가기 확인용 사전 조회: `GET /api/v1/studies/{id}/leave-preview` → `{ cancelType, hostOutcome, penaltyApplies }`(주최자는 `hostOutcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`)만, 참여자는 `cancelType`만 담기고 없는 쪽은 생략한다. 주최자의 `penaltyApplies`는 주최자 감점이 붙는지다. 비참여자는 `403`, 참여자의 시작 후·종료·파투와 주최자의 종료·파투는 `409 SESSION_STARTED`). 클라이언트가 "직전 취소는 기록에 반영됩니다" 같은 안내를 띄우는 데 쓴다.
 - 모집 마감 토글 API는 **없다** (PRD 4.14). 강퇴 API도 없다 (PRD 7장).
 
 ## 5. 출석
