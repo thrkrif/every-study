@@ -178,6 +178,14 @@ export function StudyDetailView({
               ))}
             </ul>
             <p className={styles.fact}>{hostFact(data.host.stats)}</p>
+            {data.myState === "HOST" && (
+              <Link
+                href={`/studies/${data.id}/appeals`}
+                className={styles.link}
+              >
+                들어온 이의 보기
+              </Link>
+            )}
           </Section>
         </article>
 

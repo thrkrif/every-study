@@ -92,10 +92,16 @@ describe("MyPageView", () => {
 
   function mock(
     pages: Record<string, { items: unknown[]; nextCursor: string | null }>,
+    appealResponse?: () => Response,
   ) {
-    fetchMock.mockImplementation(async (url) => {
+    fetchMock.mockImplementation(async (url, init) => {
       const parsed = new URL(String(url));
       const path = parsed.pathname.replace("/api/v1", "");
+      if (init?.method === "POST" && path.endsWith("/appeals")) {
+        return (
+          appealResponse?.() ?? json(404, { status: 404, code: "NOT_FOUND" })
+        );
+      }
       if (path === "/me") return json(200, ME);
       if (path === "/meta/options") return json(200, META);
       if (path === "/users/7") return json(200, PROFILE);
@@ -171,5 +177,91 @@ describe("MyPageView", () => {
     expect(
       screen.queryByRole("button", { name: "더 보기" }),
     ).not.toBeInTheDocument();
+  });
+
+  describe("이의 신청", () => {
+    const due = "2026-11-18T05:00:00Z";
+    const appealable = (id: number) =>
+      record(id, "NO_SHOW_CANDIDATE", { appealable: true, appealDueAt: due });
+
+    const posts = () =>
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "POST");
+
+    it("기한이 지났거나 이미 낸 판정에는 신청 버튼이 없다", async () => {
+      mock({
+        first: {
+          items: [
+            record(3, "NO_SHOW_CANDIDATE"),
+            record(2, "LATE", { appealId: 5 }),
+            appealable(1),
+          ],
+          nextCursor: null,
+        },
+      });
+      renderView();
+
+      await screen.findByText("스터디 3");
+      expect(screen.getAllByRole("button", { name: "이의 신청" })).toHaveLength(
+        1,
+      );
+      expect(screen.getByRole("link", { name: "이의 내역" })).toHaveAttribute(
+        "href",
+        "/me/appeals",
+      );
+      expect(
+        screen.getByText(/11월 18일 \(수\) 오후 2:00까지/),
+      ).toBeInTheDocument();
+    });
+
+    it("사유를 적어 신청하면 서버에 보내고 입력칸을 닫는다", async () => {
+      mock({ first: { items: [appealable(1)], nextCursor: null } }, () =>
+        json(201, { id: 9, status: "OPEN" }),
+      );
+      renderView();
+      const user = userEvent.setup();
+
+      await user.click(
+        await screen.findByRole("button", { name: "이의 신청" }),
+      );
+      await user.type(
+        screen.getByLabelText(/이의 사유/),
+        "  지하철이 멈췄어요  ",
+      );
+      await user.click(screen.getByRole("button", { name: "이의 신청" }));
+
+      await vi.waitFor(() => expect(posts()).toHaveLength(1));
+      const [url, init] = posts()[0];
+      expect(String(url)).toContain("/attendance-events/1/appeals");
+      expect(JSON.parse(String(init?.body))).toEqual({
+        reason: "지하철이 멈췄어요",
+      });
+      await vi.waitFor(() =>
+        expect(screen.queryByLabelText(/이의 사유/)).not.toBeInTheDocument(),
+      );
+    });
+
+    it("사유가 비어 있으면 보내지 않고, 기한이 지났다는 응답(APPEAL_CLOSED)은 안내한다", async () => {
+      mock({ first: { items: [appealable(1)], nextCursor: null } }, () =>
+        json(409, { status: 409, code: "APPEAL_CLOSED" }),
+      );
+      renderView();
+      const user = userEvent.setup();
+
+      await user.click(
+        await screen.findByRole("button", { name: "이의 신청" }),
+      );
+      await user.click(screen.getByRole("button", { name: "이의 신청" }));
+      expect(
+        await screen.findByText("이의 사유를 입력해 주세요."),
+      ).toBeInTheDocument();
+      expect(posts()).toHaveLength(0);
+
+      await user.type(screen.getByLabelText(/이의 사유/), "늦었어요");
+      await user.click(screen.getByRole("button", { name: "이의 신청" }));
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "이의를 받는 기간이 지났",
+      );
+    });
   });
 });

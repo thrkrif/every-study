@@ -2,6 +2,7 @@
 
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/Button";
 import buttonStyles from "@/components/Button.module.css";
 import {
@@ -12,10 +13,12 @@ import {
 import { useMetaOptions, useSession } from "@/lib/session";
 import {
   codeNames,
+  formatClockOf,
   formatDay,
   nicknameOf,
   verdictLabel,
 } from "@/lib/studyFormat";
+import { AppealForm } from "./AppealForm";
 import { ProfileMetrics } from "../users/ProfileMetrics";
 import styles from "./MyPageView.module.css";
 
@@ -156,17 +159,43 @@ export function MyPageView() {
 }
 
 function RecordRow({ record }: { record: AttendanceRecord }) {
+  const [appealing, setAppealing] = useState(false);
   return (
-    <Link href={`/studies/${record.studyId}`} className={styles.record}>
-      <span className={styles.verdict} data-verdict={record.type}>
-        {verdictLabel(record.type)}
-      </span>
-      <span className={styles.recordMain}>
-        <span className={styles.recordTitle}>{record.studyTitle}</span>
-        <span className={`${styles.recordWhen} num`}>
-          {formatDay(record.occurredAt)}
+    <div className={styles.recordBox}>
+      <Link href={`/studies/${record.studyId}`} className={styles.record}>
+        <span className={styles.verdict} data-verdict={record.type}>
+          {verdictLabel(record.type)}
         </span>
-      </span>
-    </Link>
+        <span className={styles.recordMain}>
+          <span className={styles.recordTitle}>{record.studyTitle}</span>
+          <span className={`${styles.recordWhen} num`}>
+            {formatDay(record.occurredAt)}
+          </span>
+        </span>
+      </Link>
+      {record.appealable && record.appealDueAt && !appealing && (
+        <div className={styles.appealRow}>
+          <span className={`${styles.recordWhen} num`}>
+            이의 신청 {formatDay(record.appealDueAt)}{" "}
+            {formatClockOf(record.appealDueAt)}까지
+          </span>
+          <Button onClick={() => setAppealing(true)}>이의 신청</Button>
+        </div>
+      )}
+      {record.appealable && appealing && (
+        <AppealForm
+          eventId={record.eventId}
+          onClose={() => setAppealing(false)}
+        />
+      )}
+      {record.appealId !== null && (
+        <p className={styles.appealRow}>
+          <span className={styles.recordWhen}>이의를 신청했어요</span>
+          <Link href="/me/appeals" className={styles.inlineLink}>
+            이의 내역
+          </Link>
+        </p>
+      )}
+    </div>
   );
 }

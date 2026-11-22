@@ -8,6 +8,8 @@ import com.everystudy.common.time.TimeProvider;
 import com.everystudy.study.service.StudySessions;
 import com.everystudy.trust.service.AttendanceLedger;
 import com.everystudy.trust.service.AttendanceLedger.Verdict;
+import com.everystudy.user.service.PublicUser;
+import com.everystudy.user.service.UserDirectory;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -31,6 +33,11 @@ public class AppealService {
             String reason, String hostOpinion, String status, Instant dueAt, Instant createdAt, Instant decidedAt) {
     }
 
+    /** 주최자가 보는 이의 한 건. 신청자는 닉네임만 보이고(탈퇴했으면 {@code null}) 판정 종류와 사유가 의견의 근거다. */
+    public record HostView(long id, String applicantNickname, String verdictType, String reason, String hostOpinion,
+            String status, Instant dueAt, Instant createdAt) {
+    }
+
     /** 내 이의 내역 한 페이지. */
     public record Page(List<View> items, String nextCursor) {
     }
@@ -40,9 +47,11 @@ public class AppealService {
     private final StudySessions sessions;
     private final AttendanceProperties properties;
     private final TimeProvider time;
+    private final UserDirectory users;
 
     AppealService(AppealRepository appeals, AttendanceLedger ledger, StudySessions sessions,
-            AttendanceProperties properties, TimeProvider time) {
+            AttendanceProperties properties, TimeProvider time, UserDirectory users) {
+        this.users = users;
         this.appeals = appeals;
         this.ledger = ledger;
         this.sessions = sessions;
@@ -108,6 +117,28 @@ public class AppealService {
         appeal.writeHostOpinion(opinion);
         Verdict verdict = ledger.find(appeal.getAttendanceEventId()).orElseThrow();
         return views(List.of(appeal), Map.of(verdict.id(), verdict)).get(0);
+    }
+
+    /**
+     * 이 스터디에 들어온 이의, 최근 신청부터. 주최자가 1차 의견을 쓸 이의를 찾는 곳이다. 검사 순서: 스터디 없음
+     * {@code NOT_FOUND} → 그 스터디의 현재 주최자 아님 {@code FORBIDDEN}.
+     */
+    @Transactional(readOnly = true)
+    public List<HostView> forStudy(long userId, long studyId) {
+        StudySessions.Session session = sessions.read(studyId, userId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND));
+        if (session.hostId() != userId) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+        List<Appeal> rows = appeals.findByStudyIdOrderByIdDesc(studyId);
+        Map<Long, PublicUser> applicants = users.findPublic(
+                rows.stream().map(Appeal::getUserId).collect(Collectors.toSet()));
+        return rows.stream().map(a -> {
+            Verdict verdict = ledger.find(a.getAttendanceEventId()).orElseThrow();
+            PublicUser applicant = applicants.get(a.getUserId());
+            return new HostView(a.getId(), applicant == null ? null : applicant.nickname(), verdict.type(),
+                    a.getReason(), a.getHostOpinion(), a.getStatus().name(), a.getDueAt(), a.getCreatedAt());
+        }).toList();
     }
 
     /** 내 이의 내역, 최근 것부터 (커서). */

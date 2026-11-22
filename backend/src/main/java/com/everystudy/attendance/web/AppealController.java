@@ -6,6 +6,7 @@ import com.everystudy.common.security.LoginUser;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +41,11 @@ class AppealController {
     AppealService.View hostOpinion(@AuthenticationPrincipal LoginUser user, @PathVariable long id,
             @Valid @RequestBody HostOpinionRequest request) {
         return appeals.writeHostOpinion(user.userId(), id, request.opinion().strip());
+    }
+
+    @GetMapping("/api/v1/studies/{studyId}/appeals")
+    List<AppealService.HostView> studyAppeals(@AuthenticationPrincipal LoginUser user, @PathVariable long studyId) {
+        return appeals.forStudy(user.userId(), studyId);
     }
 
     @GetMapping("/api/v1/me/appeals")
