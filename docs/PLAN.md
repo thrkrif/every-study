@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.44"
+version: "0.45"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.20
@@ -520,11 +520,13 @@ based_on:
   - 결과: `auth.service.WithdrawalService`(한 트랜잭션, READ COMMITTED)가 `study.service.StudyWithdrawalCleanup`(스터디 번호 순으로 `StudyLeaveService.leave` 적용, 대기 삭제) → `ScheduledNotificationCanceller.cancelAllPendingOfUser` → `user.service.UserWithdrawal`(개인정보 비움, `social_account` 삭제) → 리프레시 토큰 전부 폐기 · `DELETE /api/v1/me`(`auth.web.WithdrawalController`)가 쿠키와 CSRF 를 정리 · 발송 워커는 탈퇴한 회원의 알림을 `CANCELLED` 로 걸러 탈퇴 뒤에 만들어진 알림도 나가지 않음 · 내가 정한 세부 결정: ① 오케스트레이션은 `user` 가 `study` 를 볼 수 없는 의존 방향 때문에 `auth` 에 둠 ② 이미 시작한 스터디의 참여자는 나갈 수 없으므로(PRD 4.6) 그대로 두고 판정에 맡김, 시작한 스터디의 주최자는 나가기 규칙대로 승계 없이 빠짐 ③ 이미 끝났거나 파투된 스터디는 건드리지 않음 ④ 푸시 구독 삭제는 `push_subscription` 이 생기는 T-042 에서 이 서비스에 더함(순서를 앞당긴 대신 남긴 일) ⑤ 이미 발급된 액세스 토큰은 서버에서 즉시 막지 않음(`GET /me` 만 401, 나머지는 만료 최대 15분)
   - 로컬 검증: 단위 테스트 통과, 통합 테스트(`WithdrawalIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-063 [프론트] 탈퇴 화면
+- [x] T-063 [프론트] 탈퇴 화면
   - 선행: T-036, T-062
   - 참조: PRD 4.1
   - 완료: 진행 중 스터디에 미치는 영향 안내 후 확인 · 테스트: 확인 전 호출 없음, 탈퇴 후 로그아웃 상태
   - 문서: 해당 없음
+  - 결과: `/me/withdraw`(`WithdrawView`)와 마이페이지의 "회원 탈퇴" 링크 · `lib/api/me.ts`의 `withdraw()` · 영향 안내 5가지(참여 취소·주최 승계/파투·시작한 스터디·개인정보 삭제·재가입은 새 회원) 뒤 "이해했어요" 체크, 확인 창, 탈퇴 확정 순으로만 서버를 부름 · 성공하면 모든 쿼리를 비우고(로그인 상태 해제) 처음 화면으로 이동, 실패하면 안내하고 확인 창을 닫음 · 내가 정한 세부 결정: ① 내 스터디 개수 같은 개별 현황은 보여 주지 않고 규칙을 일반적으로 안내(서버가 규칙대로 처리) ② 별도 비밀번호·문구 입력은 두지 않음(소셜 로그인이라 체크와 확인 창으로 충분)
+  - 로컬 검증: `npm run lint`·`tsc`·`vitest`(229개) 통과 (Node 24)
 
 - [x] T-064 호출 제한
   - 선행: T-028, T-047, T-053 · 결정 D-5
