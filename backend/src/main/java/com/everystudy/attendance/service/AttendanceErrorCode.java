@@ -12,7 +12,8 @@ public enum AttendanceErrorCode implements ErrorCode {
     HOST_NOT_CHECKED_IN(HttpStatus.UNPROCESSABLE_CONTENT, "주최자가 아직 체크인하지 않았습니다"),
     APPEAL_CLOSED(HttpStatus.CONFLICT, "이의를 받는 기간이 지났거나 이미 결정됐습니다"),
     APPEAL_NOT_ALLOWED(HttpStatus.CONFLICT, "이의를 신청할 수 없는 판정입니다"),
-    ALREADY_APPEALED(HttpStatus.CONFLICT, "이미 이의를 신청한 판정입니다");
+    ALREADY_APPEALED(HttpStatus.CONFLICT, "이미 이의를 신청한 판정입니다"),
+    CORRECTION_NOT_ALLOWED(HttpStatus.CONFLICT, "정정할 수 없는 판정입니다");
 
     private final HttpStatus status;
     private final String title;

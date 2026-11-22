@@ -107,8 +107,18 @@ public class AttendanceEventRecorder {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordAppealAccepted(long studyId, long userId, boolean wasLate, Instant occurredAt, String note) {
+        recordCorrection(studyId, userId, wasLate, occurredAt, note);
+    }
+
+    /**
+     * 운영자 개별 정정 (PRD 9장, PLAN X-7·T-057): 직전 판정을 {@code NO_SHOW_CLEARED} 로 무효화하고, {@code countAsAttended}
+     * 면 출석으로 센다는 {@code ATTENDED} 정정 이벤트를 이어서 남긴다. 집계를 다시 만든다. 호출한 쪽이 그 판정이 현재
+     * 판정이고 정정할 수 있는 종류인지 확인한다.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordCorrection(long studyId, long userId, boolean countAsAttended, Instant occurredAt, String note) {
         events.save(AttendanceEvent.corrected(studyId, userId, AttendanceEventType.NO_SHOW_CLEARED, occurredAt, note));
-        if (wasLate) {
+        if (countAsAttended) {
             events.save(AttendanceEvent.corrected(studyId, userId, AttendanceEventType.ATTENDED, occurredAt, note));
         }
         summaries.refresh(userId);
