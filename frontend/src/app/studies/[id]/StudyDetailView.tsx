@@ -6,11 +6,11 @@ import { useMemo, type ReactNode } from "react";
 import buttonStyles from "@/components/Button.module.css";
 import { PlaceMap, kakaoMapLink } from "@/components/PlaceMap";
 import { SeatRow } from "@/components/SeatRow";
-import { StatusChip, type StudyPhase } from "@/components/StatusChip";
+import { StatusChip } from "@/components/StatusChip";
 import { isApiError } from "@/lib/api/errors";
 import { districtsOf } from "@/lib/api/meta";
-import { fetchStudy, type StudyDetail } from "@/lib/api/studies";
-import { useMetaOptions, useSession } from "@/lib/session";
+import { fetchStudy } from "@/lib/api/studies";
+import { useMetaOptions } from "@/lib/session";
 import {
   codeNames,
   entryCriteriaTexts,
@@ -22,6 +22,7 @@ import {
   trustText,
 } from "@/lib/studyFormat";
 import { formatDuration } from "../new/rules";
+import { StudyActions } from "./StudyActions";
 import styles from "./StudyDetailView.module.css";
 
 type DetailViewProps = {
@@ -34,14 +35,13 @@ type DetailViewProps = {
 /**
  * 스터디 상세 (PRD 4.3, DESIGN 6장 상세). 비회원도 본다.
  * 휴대폰은 한 열에 하단 고정 안내, PC 는 왼쪽 본문 + 오른쪽 따라다니는 카드(일시·좌석 줄·안내).
- * 참여·대기·나가기 버튼은 PLAN T-024 에서 이 자리에 더한다.
+ * 참여·대기·나가기는 `StudyActions` 가 맡는다 (PLAN T-024).
  */
 export function StudyDetailView({
   id,
   now = () => new Date(),
 }: DetailViewProps) {
   const studyId = /^\d+$/.test(id) ? Number(id) : undefined;
-  const session = useSession();
   const meta = useMetaOptions();
   const study = useQuery({
     queryKey: ["study", studyId],
@@ -90,7 +90,6 @@ export function StudyDetailView({
   const current = now();
   const phase = phaseOf(data, current);
   const jobs = data.targetJobCodes.map((code) => names.get(code) ?? code);
-  const guidance = guidanceOf(data, phase, session.status === "anonymous");
 
   return (
     <main className={styles.page}>
@@ -184,57 +183,11 @@ export function StudyDetailView({
             </p>
             <SeatRow capacity={data.capacity} memberCount={data.memberCount} />
           </div>
-          {guidance}
+          <StudyActions study={data} now={current} names={names} />
         </aside>
       </div>
     </main>
   );
-}
-
-/** 참여 영역의 안내. 버튼이 생기기 전(T-024)까지는 비회원 로그인 안내와 상태 설명만 둔다 */
-function guidanceOf(
-  study: StudyDetail,
-  phase: StudyPhase,
-  anonymous: boolean,
-): ReactNode {
-  if (phase === "ENDED") {
-    return (
-      <p className={styles.guide}>
-        {study.status === "CANCELLED"
-          ? "열리지 않은 스터디예요."
-          : "끝난 스터디예요."}
-      </p>
-    );
-  }
-  if (phase === "IN_PROGRESS") {
-    return <p className={styles.guide}>지금 진행 중인 스터디예요.</p>;
-  }
-  if (anonymous) {
-    return (
-      <Link
-        href="/login"
-        className={buttonStyles.button}
-        data-variant="primary"
-      >
-        로그인하고 참여하기
-      </Link>
-    );
-  }
-  if (study.myState === "HOST")
-    return <p className={styles.guide}>내가 주최하는 스터디예요.</p>;
-  if (study.myState === "MEMBER")
-    return <p className={styles.guide}>참여 중인 스터디예요.</p>;
-  if (phase === "CLOSED") {
-    return (
-      <p className={styles.guide}>
-        {study.memberCount >= study.capacity
-          ? "정원이 찼어요."
-          : "신청이 마감됐어요."}
-      </p>
-    );
-  }
-  const left = study.capacity - study.memberCount;
-  return <p className={styles.guide}>{left}자리 남았어요.</p>;
 }
 
 function Section({ title, children }: { title: string; children: ReactNode }) {

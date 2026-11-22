@@ -182,6 +182,34 @@
   text-align: center;
 }
 
+.result {
+  text-align: center;
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.result[data-tone="ok"] {
+  color: var(--color-ok);
+  font-weight: var(--text-label-weight);
+}
+
+.result[data-tone="error"] {
+  color: var(--color-bad);
+  font-weight: var(--text-label-weight);
+}
+
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.confirmTitle {
+  font-size: var(--text-heading-size);
+  line-height: var(--text-heading-line);
+  font-weight: var(--text-heading-weight);
+}
+
 .message {
   display: flex;
   flex-direction: column;
