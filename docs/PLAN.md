@@ -325,11 +325,12 @@ based_on:
 
 ### M4 알림 발송과 채팅
 
-- [ ] T-038 알림 워커·재시도·만료
+- [x] T-038 알림 워커·재시도·만료
   - 선행: T-014, T-030
   - 참조: ADR-0005 알림, ARCHITECTURE 4.6, DATA-MODEL 7장·10장
   - 완료: 워커가 상한 건수씩 읽어 가짜 채널로 발송, 실패 시 백오프 재시도, 최대 횟수 후 `FAILED`, `expires_at` 지난 건은 발송하지 않고 `CANCELLED` · 테스트: 고정 `Clock`으로 재시도 시각, 최대 횟수 도달, 만료 건 미발송, 워커 재실행 시 `SENT` 건 재발송 0건
   - 문서: DATA-MODEL 7장 확인, 재시도·최대 횟수 기본값을 ARCHITECTURE 4.6에 기록(진행 규칙 9)
+  - 결과: `notification.service.NotificationDispatchService.dispatchDue()`와 스케줄 작업 `NotificationDispatchJob`(10초) · 기본값 5회·1분 두 배 백오프를 ARCHITECTURE 4.6에 기록, DATA-MODEL 7장은 확인(변경 없음) · 내가 정한 세부 결정: 보낼 구현이 없는 채널(이메일·푸시 구현은 T-041·T-042)의 건은 `PENDING`으로 두고 만료되면 `CANCELLED`(다른 건이 배치에서 밀리지 않게 조회에서 걸러 냄) · 구현이 예기치 못한 예외를 던지면 재시도 대상 실패로 보고 `last_error`에는 예외 종류만 남김(연락처 유출 방지) · 수신 설정으로 건너뛰는 건 T-043
 
 - [ ] T-039 알림 종류 정리와 중복 방지 검증
   - 선행: T-035a, T-035b, T-038
