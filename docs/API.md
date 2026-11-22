@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.30"
+version: "0.31"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.26
+  - docs/DATA-MODEL.md@0.27
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -408,6 +408,7 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 | `HOST_ASSIGNED` | 새 주최자 | 승계 |
 | `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 |
 | `APPEAL_RESULT` | 신청자 | 이의 결정 |
+| `CHAT_MESSAGE` | 방의 다른 참여자 | 채팅 새 메시지 (PRD 4.12, PLAN D-12). **푸시만** 보내고 이메일은 없다. 보낸 사람 본인·방을 열어 둔(구독 중인) 사람·보낸 사람을 차단한 사람·나간 사람은 제외. 방·사람마다 5분(설정 `everystudy.chat.notify-window`) 시간 창에 한 건으로 묶는다. 키 `CHAT_MESSAGE:{studyId}:{userId}:{창 번호}`. 메시지 내용은 싣지 않는다 |
 | `HOST_WARNING` | 주최자 | 90일 감점 합계가 경고 단계 (PRD 4.13C, 행 없이 알림만) |
 | `SANCTION_WARNING` | 대상자 | 참여자 경고: 노쇼 확정, 최근 5회 중 지각 3회 (PRD 4.8, 제재 행 없이 알림만) |
 | `SANCTION_APPLIED` | 대상자 | 제재 부여: 참여 신청 제한·이용 정지·주최자 개설 제한 |

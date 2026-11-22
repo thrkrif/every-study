@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.26"
+version: "0.27"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
@@ -295,7 +295,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`, `CHECKIN_REMINDER_DAY`, `CHECKIN_REMINDER_HOUR`. 종류를 더하면 `CHECK`도 고친다 |
+| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`, `CHECKIN_REMINDER_DAY`, `CHECKIN_REMINDER_HOUR`, `CHAT_MESSAGE`. 종류를 더하면 `CHECK`도 고친다 |
 | study_id | BIGINT NULL FK | 연결 대상 |
 | title | VARCHAR(100) | 중복을 견디는 문장 (ADR-0005) |
 | body | VARCHAR(300) | 같음 |

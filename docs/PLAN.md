@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.30"
+version: "0.31"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.26
-  - docs/API.md@0.30
+  - docs/DATA-MODEL.md@0.27
+  - docs/API.md@0.31
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -410,11 +410,13 @@ based_on:
   - 문서: DATA-MODEL 8·10장 확인
   - 결과: `chat.service.ChatRoomLifecycle`이 `StudyEnded`·`StudyCancelled`를 동기 리스너로 받아 방을 닫고(`purge_after` = 닫은 시각 + `everystudy.chat.retention` 7일) 커밋 뒤 `ROOM_CLOSED`를 보낸 다음 방 구독을 모두 끊음 · `ChatPurgeService`(10분마다)가 보관 만료 방의 메시지를 방마다 상한 건수씩 지우고 다 지우면 공지·읽음 위치를 지운 뒤 `purged_at` 표시 · 이 PR에서 PRD 4.12·4.14에 D-16(파투도 같은 경로) 문구를 반영(v0.15) · 내가 정한 세부 결정: 보관 기간은 설정값 `retention`(기본 7d) · 이미 닫힌 방은 처음 시각 유지(멱등) · 닫힌 방 전송은 인터셉터가 `CHAT_CLOSED`로 거부
 
-- [ ] T-050 새 메시지 알림
+- [x] T-050 새 메시지 알림
   - 선행: T-043, T-047 · 결정 D-12
   - 참조: PRD 4.12(새 메시지 알림), API 8장
   - 완료: D-12에서 정한 방식대로 새 메시지 알림 생성, 수신 설정 준수 · 테스트: D-12 규칙의 묶음·제외 조건(예: 보낸 사람 본인 제외)
   - 문서: API 8장에 type 추가
+  - 결과: `chat.service.ChatMessageNotifier`가 메시지 저장과 같은 트랜잭션에서 방의 `ACTIVE` 참여자 중 보낸 사람·방을 열어 둔 사람(STOMP 구독 중, `ChatSubscriptions.viewersOf`)·보낸 사람을 차단한 사람을 뺀 나머지에게 `CHAT_MESSAGE` 푸시 알림 기록(채널 PUSH만) · 수신 설정은 발송 시점에 워커가 확인(T-043) · 내가 정한 세부 결정: ① 묶음은 고정 시간 창(5분, `everystudy.chat.notify-window`)이라 같은 창의 메시지는 키가 같아 한 건 ② 알림에 메시지 내용을 싣지 않음(잠금 화면 노출 방지) ③ 유효 기간 1시간(`notify-valid`, D-18 즉시 알림 고정 기간) ④ 알림 센터에도 같은 알림이 남음 ⑤ 시스템 메시지(입장·나감 안내)는 알리지 않음
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`ChatMessageNotificationIntegrationTest`)는 CI 에서 확인. "방을 열어 둔 사람 제외"는 STOMP 연결이 필요해 자동 테스트가 없다
 
 - [x] T-051 [프론트] 채팅방 화면
   - 선행: T-024, T-048
@@ -580,7 +582,7 @@ based_on:
 | D-9 | **결정됨(2026-11-17, DATA-MODEL 3장)**: 공급자가 확인한 이메일만 저장한다. 구글은 기본 제공 이메일, 카카오는 선택 동의 항목(`account_email`)이고 동의하지 않으면 `NULL`로 가입된다. T-004에서 함께 정한 것: 온보딩 전 회원은 닉네임·직군·지역이 `NULL`(DATA-MODEL 3장), 액세스 JWT는 HS256, 리프레시 쿠키 `Path`는 `/api/v1/auth`(ADR-0002 후속 결정). T-041은 이메일이 없는 회원에게 이메일 알림을 보내지 않는 경우를 다룬다 | DATA-MODEL 3장(`email` NULL 허용) | T-004, T-041 |
 | D-10 | 운영자(`ADMIN`) 계정 지정 방법 — 문서에 없음 | 없음 | T-052 |
 | D-11 | 이의 반복 기각 시 제한의 기준과 효과 | PRD 4.9 악용 방지 | T-058 |
-| D-12 | 채팅 새 메시지 알림의 채널·묶음 방식 | PRD 4.12 | T-050 |
+| D-12 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. API 8장).** 채팅 새 메시지 알림은 푸시만, 방별로 5분 시간 창마다 한 건으로 묶고 보낸 사람 본인과 방을 열어 둔 사람은 제외한다. 이메일은 보내지 않는다 | PRD 4.12 | T-050 |
 | D-13 | 주최자 제재 수치("확인 필요" 표기) 확정. 구현은 설정값이라 먼저 진행 가능 | PRD 4.13C | T-068 |
 | D-14 | 개인정보 처리방침 작성 주체와 검토 방법 | PRD 8장, ARCHITECTURE 7장 | T-066 |
 | D-15 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. PRD 4.8 v0.16, DATA-MODEL 6장).** "제한 후 재발"은 마지막 참여 신청 제한이 시작된 이후 확정된 노쇼 1회 또는 지각 3회이고, 제한 기간이 끝난 뒤에도 계속 누적해 센다 | PRD 4.8 | T-035a |
@@ -600,7 +602,7 @@ based_on:
 | X-1 | ADR-0002~0005 본문은 "확정(2026-11-13)"인데 머리말 `status`가 `draft`. ARCHITECTURE 3장·4.1·4.6~4.8 제목에 "(제안, ADR-000x)"가 남아 있음 | 머리말을 `confirmed`로, 제목의 "제안"을 "확정"으로 (ADR 오탈자 수준 수정) | 없음 |
 | X-2 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. ARCHITECTURE 4.6·4.7).** ARCHITECTURE 4.7 작업 목록에 "체크인 오픈 알림" 작업이 따로 있으나, 4.6과 ADR-0005는 개설 시 아웃박스 예약으로 처리. 또 4.6은 "개설 시 예약"이라 하는데 알림 대상인 참여자는 개설 뒤에 생김 | 참여 확정 시 그 참여자의 일정 알림을 예약하고(나가기 시 취소), 4.7의 별도 작업은 지운다 | T-040 |
 | X-3 | **결정됨(해소)**: docs/README.md 1장 표와 계층도에 PLAN을 추가함 (PR #12) | - | - |
-| X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음. **일부 반영(T-035a)**: `SANCTION_WARNING`·`SANCTION_APPLIED`(참여자)는 API 8장에 추가됨. `HOST_WARNING`(주최자)도 T-035b에서 추가됨. 남은 것: `CHAT_MESSAGE`(T-050) | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
+| X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음. **일부 반영(T-035a)**: `SANCTION_WARNING`·`SANCTION_APPLIED`(참여자)는 API 8장에 추가됨. `HOST_WARNING`(주최자)도 T-035b에서 추가됨. `CHAT_MESSAGE`도 T-050에서 추가됨. X-4 의 알림 type 은 모두 반영(문구는 T-039 가 점검) | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
 | X-5 | **결정됨(2026-11-17, 오른쪽 제안대로. API 4장 상세 응답 필드 표)**: API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
 | X-6 | **결정됨(2026-11-17, 오른쪽 제안대로. API 1장)**: 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음. 함께 정한 것: 닉네임은 2~20자의 한글(완성형)·영문·숫자·밑줄, 영문 대소문자는 구분하지 않고 중복으로 본다(API 3장) | `409 NICKNAME_TAKEN` 추가 | T-006 |
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |

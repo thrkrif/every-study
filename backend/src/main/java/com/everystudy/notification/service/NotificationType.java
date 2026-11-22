@@ -19,5 +19,7 @@ public enum NotificationType {
     /** 일정 알림: 모임 하루 전 (PRD 4.5). 참여 확정 때 예약한다. */
     CHECKIN_REMINDER_DAY,
     /** 일정 알림: 모임 1시간 전 (PRD 4.5). */
-    CHECKIN_REMINDER_HOUR
+    CHECKIN_REMINDER_HOUR,
+    /** 채팅 새 메시지 (PRD 4.12, PLAN D-12): 푸시만, 방별로 묶어 보낸다. */
+    CHAT_MESSAGE
 }
