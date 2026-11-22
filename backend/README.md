@@ -16,6 +16,7 @@ Spring Boot REST API. 구조와 규칙은 [ARCHITECTURE](../docs/ARCHITECTURE.md
 | `KAKAO_CLIENT_ID`, `KAKAO_CLIENT_SECRET` | 카카오 개발자 콘솔: 앱의 REST API 키와 Client Secret(사용함으로 설정) |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google Cloud 콘솔: OAuth 클라이언트 ID(웹 애플리케이션) |
 | `JWT_SECRET` | 직접 만든 32자 이상의 랜덤 값 (예: `openssl rand -base64 48`의 출력) |
+| `ADMIN_EMAILS` | (선택) 운영자로 올릴 이메일, 쉼표로 구분. 그 이메일로 소셜 로그인하면 운영자(`ADMIN`)가 된다. 비우면 운영자가 없다 |
 
 공급자 콘솔에 등록할 값:
 

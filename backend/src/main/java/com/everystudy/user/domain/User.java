@@ -73,6 +73,11 @@ public class User {
         }
     }
 
+    /** 운영자로 올린다 (PLAN D-10). 내리는 일은 운영 DB 에서 직접 한다. */
+    public void grantAdmin() {
+        this.role = UserRole.ADMIN;
+    }
+
     /**
      * 닉네임·직군·지역을 정한다. 온보딩과 이후 수정이 같은 동작이다.
      * 값의 형식과 닉네임 중복은 호출한 쪽이 검사한다.

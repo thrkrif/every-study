@@ -73,6 +73,8 @@ class SecurityConfig {
                         .requestMatchers(tokenIgnoredPaths).permitAll()
                         // 공개 API. 로그인했으면 액세스 쿠키를 읽어 그 회원에게 맞춘 값(myState 등)을 준다.
                         .requestMatchers(HttpMethod.GET, PUBLIC_READ_PATHS).permitAll()
+                        // 운영자 API 는 role=ADMIN 만 (PRD 4.11). 비회원은 401, 일반 회원은 403.
+                        .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // 로그인 상태는 쿠키의 토큰이 나타낸다. 서버 세션에 인증을 저장하지 않는다.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
