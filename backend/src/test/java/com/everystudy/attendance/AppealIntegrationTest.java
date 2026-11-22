@@ -114,6 +114,36 @@ class AppealIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("최근 90일에 3회 기각되면 마지막 기각부터 30일간 403 APPEAL_RESTRICTED 와 until 이고, 2회까지나 제한이 끝나면 신청할 수 있다")
+    void repeatedRejectionsRestrict() {
+        long eventId = event(studyId, memberId, "NO_SHOW_CANDIDATE", now.minus(Duration.ofHours(1)));
+        rejected(now.minus(Duration.ofDays(20)));
+        rejected(now.minus(Duration.ofDays(15)));
+        assertThat(file(eventId, member, "{\"reason\":\"x\"}")).hasStatus(201);
+
+        jdbc.update("DELETE FROM appeal WHERE status = 'OPEN'");
+        rejected(now.minus(Duration.ofDays(10)));
+        MvcTestResult restricted = file(eventId, member, "{\"reason\":\"y\"}");
+        assertCode(restricted, 403, "APPEAL_RESTRICTED");
+        assertThat(restricted).bodyJson().extractingPath("$.until").isNotNull();
+
+        // 마지막 기각이 31일 전이면 제한이 끝났다 (세 건 모두 90일 안)
+        jdbc.update("UPDATE appeal SET decided_at = ? WHERE status = 'REJECTED'", utc(now.minus(Duration.ofDays(31))));
+        assertThat(file(eventId, member, "{\"reason\":\"z\"}")).hasStatus(201);
+    }
+
+    @Test
+    @DisplayName("90일보다 오래된 기각은 세지 않는다")
+    void oldRejectionsDoNotCount() {
+        long eventId = event(studyId, memberId, "NO_SHOW_CANDIDATE", now.minus(Duration.ofHours(1)));
+        rejected(now.minus(Duration.ofDays(120)));
+        rejected(now.minus(Duration.ofDays(100)));
+        rejected(now.minus(Duration.ofDays(2)));
+
+        assertThat(file(eventId, member, "{\"reason\":\"x\"}")).hasStatus(201);
+    }
+
+    @Test
     @DisplayName("타인의 판정은 403, 없는 판정은 404, 사유가 비면 400")
     void permissionsAndValidation() {
         long eventId = event(studyId, memberId, "NO_SHOW_CANDIDATE", now.minus(Duration.ofHours(1)));
@@ -309,6 +339,17 @@ class AppealIntegrationTest extends IntegrationTestSupport {
         jdbc.update("INSERT INTO study_member (study_id, user_id, status, joined_at) VALUES (?, ?, 'ACTIVE', ?)", id,
                 hostId, utc(now));
         return id;
+    }
+
+    /** 이 회원의 기각된 이의 한 건을 심는다 (판정 이벤트는 새 스터디에 따로 만든다). */
+    private void rejected(Instant decidedAt) {
+        long other = study();
+        long eventId = event(other, memberId, "LATE", decidedAt.minus(Duration.ofHours(60)));
+        jdbc.update("""
+                INSERT INTO appeal (attendance_event_id, study_id, user_id, reason, status, due_at, created_at, decided_at)
+                VALUES (?, ?, ?, '이유', 'REJECTED', ?, ?, ?)
+                """, eventId, other, memberId, utc(decidedAt), utc(decidedAt.minus(Duration.ofHours(50))),
+                utc(decidedAt));
     }
 
     private long event(long studyId, long userId, String type, Instant occurredAt) {

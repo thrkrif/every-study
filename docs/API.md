@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.35"
+version: "0.36"
 based_on:
-  - docs/PRD.md@0.16
+  - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.30
+  - docs/DATA-MODEL.md@0.31
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -59,6 +59,7 @@ covers:
 | 409 | `ALREADY_JOINED` / `ALREADY_WAITING` | 중복 |
 | 409 | `APPEAL_CLOSED` | 이의를 받는 기간(PRD 4.9)이 지났거나, 주최자 의견을 낼 이의가 이미 결정됨 |
 | 409 | `APPEAL_NOT_ALLOWED` | 이의 대상이 아닌 판정(출석·취소 등), 또는 이미 정정·확정이 뒤따른 판정 |
+| 403 | `APPEAL_RESTRICTED` | 이의가 반복해서 기각되어 한동안 새 이의를 낼 수 없음(PRD 4.9). `until` 포함 |
 | 409 | `ALREADY_APPEALED` | 이 판정에 이미 이의를 냈음 (판정당 1회) |
 | 409 | `CHAT_CLOSED` | 채팅방이 닫혀(`CLOSED`) 이전 대화·공지·읽음을 쓸 수 없음 (방 상태 조회는 된다, PRD 4.14) |
 | 409 | `SESSION_STARTED` | 이미 시작했거나 종료·파투된 스터디라 참여자가 나갈 수 없음 (PRD 4.6) |
@@ -339,7 +340,7 @@ covers:
 
 - **이의 응답**: `{ id, attendanceEventId, studyId, studyTitle, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`. `status`는 `OPEN`/`ACCEPTED`/`REJECTED`, `verdictType`은 이의를 낸 판정 종류(`NO_SHOW_CANDIDATE`·`LATE`).
 - **이의 대상**: 노쇼 후보(`NO_SHOW_CANDIDATE`)와 지각(`LATE`) 판정만. 기한은 판정이 쌓인 시각부터 PRD 4.9의 기간이다 (DATA-MODEL 5장).
-- 검사 순서(신청): 판정 없음 `404` → 내 판정 아님 `403` → 이의 대상 종류 아님 `409 APPEAL_NOT_ALLOWED` → 이미 냄 `409 ALREADY_APPEALED` → 기한 지남 `409 APPEAL_CLOSED` → 정정·확정이 뒤따름 `409 APPEAL_NOT_ALLOWED`. 사유가 비었거나 500자를 넘으면 `400 VALIDATION_FAILED`.
+- 검사 순서(신청): 판정 없음 `404` → 내 판정 아님 `403` → 이의 대상 종류 아님 `409 APPEAL_NOT_ALLOWED` → 반복 기각으로 제한 중 `403 APPEAL_RESTRICTED`(`until`) → 이미 냄 `409 ALREADY_APPEALED` → 기한 지남 `409 APPEAL_CLOSED` → 정정·확정이 뒤따름 `409 APPEAL_NOT_ALLOWED`. 사유가 비었거나 500자를 넘으면 `400 VALIDATION_FAILED`.
 - 검사 순서(주최자 의견): 이의 없음 `404` → 그 스터디의 현재 주최자 아님 `403`(참여자 본인 포함) → 이미 결정됨 `409 APPEAL_CLOSED`.
 
 최종 결정은 운영자 API(7장).
