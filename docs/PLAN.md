@@ -4,7 +4,7 @@ version: "0.21"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.19
+  - docs/DATA-MODEL.md@0.20
   - docs/API.md@0.22
 ---
 
