@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.11"
+version: "0.12"
 based_on:
-  - docs/PRD.md@0.13
-  - docs/ARCHITECTURE.md@0.13
+  - docs/PRD.md@0.14
+  - docs/ARCHITECTURE.md@0.14
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -11,6 +11,7 @@ covers:
   - backend/src/main/java/com/everystudy/chat/**
   - backend/src/main/java/com/everystudy/notification/**
   - backend/src/main/java/com/everystudy/trust/**
+  - backend/src/main/java/com/everystudy/common/audit/**
   - backend/src/main/resources/db/migration/**
 ---
 
@@ -396,7 +397,9 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 | detail | JSON NULL | 변경 전후 값 |
 | created_at | DATETIME(6) | |
 
-- 추가만 한다. 점수 변동과 운영자 조치는 모두 여기에 남긴다 (PRD 4.11, 8장).
+- 추가만 한다. 자동 감점·제재·판정 확정과 운영자 조치는 모두 여기에 남긴다 (PRD 4.6·4.11·8장, PLAN D-17). 주최자는 출석을 바꿀 수 없으므로 주최자 행위는 없다.
+- `action`은 코드의 `AuditAction` 이름이고 `CHECK`를 두지 않는다(종류가 늘 때마다 마이그레이션을 만들지 않으려고). `detail`에는 개인정보·토큰을 넣지 않는다. 기록은 `common.audit.AuditLogger`(공개 서비스)가 호출한 트랜잭션 안에서만 한다. 조회·권한은 T-052.
+- 인덱스: `(target_type, target_id, id)`, `(actor_id, id)`.
 
 ## 10. 스케줄러가 읽는 조건 (ADR-0005)
 
