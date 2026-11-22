@@ -1,0 +1,139 @@
+.page {
+  max-width: var(--form-max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--page-gutter) var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+  overflow-wrap: anywhere;
+}
+
+.facts,
+.note {
+  color: var(--color-ink-sub);
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-4);
+  color: var(--color-ink-sub);
+  text-align: center;
+}
+
+.links {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.link {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-align: center;
+}
+
+.link:focus-visible,
+.record:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: var(--text-heading-size);
+  line-height: var(--text-heading-line);
+  font-weight: 700;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.record {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: inherit;
+}
+
+.verdict {
+  flex: none;
+  min-width: 72px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-chip);
+  background: var(--color-neutral-bg);
+  color: var(--color-ink-sub);
+  font-size: var(--text-caption-size);
+  line-height: 24px;
+  text-align: center;
+}
+
+.verdict[data-verdict="ATTENDED"] {
+  background: var(--color-ok-bg);
+  color: var(--color-ok);
+}
+
+.verdict[data-verdict="LATE"],
+.verdict[data-verdict="LATE_CANCEL"],
+.verdict[data-verdict="NO_SHOW_CANDIDATE"] {
+  background: var(--color-late-bg);
+  color: var(--color-late);
+}
+
+.verdict[data-verdict="NO_SHOW"] {
+  background: var(--color-bad-bg);
+  color: var(--color-bad);
+}
+
+.recordMain {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.recordTitle {
+  overflow-wrap: anywhere;
+}
+
+.recordWhen {
+  color: var(--color-ink-sub);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+}

@@ -156,6 +156,15 @@ describe("StudyDetailView", () => {
     expect(screen.getByText("주최")).toBeInTheDocument();
     expect(screen.getByText("탈퇴한 사용자")).toBeInTheDocument();
     expect(screen.getByText("출석률 92%")).toBeInTheDocument();
+    // 참여자 이름은 공개 프로필로 이동한다 (T-036)
+    expect(screen.getByRole("link", { name: "주최자" })).toHaveAttribute(
+      "href",
+      "/users/7",
+    );
+    expect(screen.getByRole("link", { name: "탈퇴한 사용자" })).toHaveAttribute(
+      "href",
+      "/users/8",
+    );
     // 로그인 상태를 확인한 뒤에 버튼이 정해진다
     expect(
       await screen.findByRole("link", { name: "로그인하고 참여하기" }),
