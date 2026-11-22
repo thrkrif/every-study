@@ -2,6 +2,7 @@
 import { formatClock } from "@/app/studies/new/rules";
 import type { StudyPhase } from "@/components/StatusChip";
 import type { CodeOption } from "./api/meta";
+import type { AttendanceVerdict } from "./api/profile";
 import type {
   EntryCriteria,
   HostStats,
@@ -75,6 +76,47 @@ export function trustText(trust: Trust): string {
   return trust.isNewcomer || trust.attendanceRate === null
     ? "신규"
     : `출석률 ${trust.attendanceRate}%`;
+}
+
+/**
+ * 출석 지표 전체 문구 (PRD 4.7 표시 형태): "출석률 92% · 최근 10회 중 노쇼 0회 · 지각 1회".
+ * 신규(집계 3회 미만)면 숫자 대신 "신규"만 쓴다. 직전 취소는 PRD 표시 형태에 없어 덧붙이지 않는다.
+ */
+export function trustSummaryText(trust: Trust): string {
+  if (trust.isNewcomer || trust.attendanceRate === null) return "신규";
+  return [
+    `출석률 ${trust.attendanceRate}%`,
+    `최근 ${trust.windowCount}회 중 노쇼 ${trust.noShow}회`,
+    `지각 ${trust.late}회`,
+  ].join(" · ");
+}
+
+/** 지난 출석 기록의 판정 이름 (DATA-MODEL 5장) */
+export function verdictLabel(type: AttendanceVerdict): string {
+  switch (type) {
+    case "ATTENDED":
+      return "출석";
+    case "LATE":
+      return "지각";
+    case "NO_SHOW_CANDIDATE":
+      return "노쇼 후보";
+    case "NO_SHOW":
+      return "노쇼";
+    case "NO_SHOW_CLEARED":
+      return "정정됨";
+    case "EARLY_CANCEL":
+      return "사전 취소";
+    case "LATE_CANCEL":
+      return "직전 취소";
+    case "VOIDED":
+      return "진행되지 않음";
+  }
+}
+
+/** 날짜만 (KST): "11월 25일 (수)" */
+export function formatDay(at: string): string {
+  const parts = kst(new Date(at));
+  return `${parts.month}월 ${parts.day}일 (${parts.weekday})`;
 }
 
 /** 주최자 사실 칩 (PRD 4.13D): "주최 N회 중 직전 이탈 N회", 5회 이상이면 비율 */

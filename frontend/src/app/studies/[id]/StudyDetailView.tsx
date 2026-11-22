@@ -163,7 +163,12 @@ export function StudyDetailView({
               {data.members.map((member) => (
                 <li key={member.userId} className={styles.member}>
                   <span className={styles.nickname}>
-                    {nicknameOf(member.nickname)}
+                    <Link
+                      href={`/users/${member.userId}`}
+                      className={styles.profileLink}
+                    >
+                      {nicknameOf(member.nickname)}
+                    </Link>
                     {member.userId === data.host.userId && (
                       <span className={styles.hostMark}>주최</span>
                     )}

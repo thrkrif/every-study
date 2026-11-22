@@ -7,7 +7,10 @@ import {
   hostFact,
   phaseOf,
   regionChoices,
+  trustSummaryText,
   trustText,
+  verdictLabel,
+  formatDay,
 } from "./studyFormat";
 
 // KST 2026-11-18(수) 10:00
@@ -112,5 +115,36 @@ describe("스터디 표시 규칙", () => {
     ]);
     expect(cityOf("SUWON_PALDAL", REGIONS)).toBe("SUWON");
     expect(cityOf("UNKNOWN", REGIONS)).toBeUndefined();
+  });
+});
+
+describe("출석 지표 문구 (PRD 4.7)", () => {
+  const base = {
+    attendanceRate: 92,
+    windowCount: 10,
+    noShow: 0,
+    late: 1,
+    lateCancel: 0,
+    isNewcomer: false,
+  };
+
+  it("표시 형태는 '출석률 · 최근 N회 중 노쇼 · 지각'이다", () => {
+    expect(trustSummaryText(base)).toBe(
+      "출석률 92% · 최근 10회 중 노쇼 0회 · 지각 1회",
+    );
+  });
+
+  it("신규이거나 출석률이 없으면 숫자 대신 신규만 쓴다", () => {
+    expect(
+      trustSummaryText({ ...base, attendanceRate: null, isNewcomer: true }),
+    ).toBe("신규");
+    expect(trustSummaryText({ ...base, attendanceRate: null })).toBe("신규");
+  });
+
+  it("판정 이름과 날짜(KST)를 쓴다", () => {
+    expect(verdictLabel("NO_SHOW_CANDIDATE")).toBe("노쇼 후보");
+    expect(verdictLabel("VOIDED")).toBe("진행되지 않음");
+    // UTC 11-24 16:00 은 KST 11-25 01:00
+    expect(formatDay("2026-11-24T16:00:00Z")).toBe("11월 25일 (수)");
   });
 });

@@ -10,7 +10,7 @@ import styles from "./HeaderMenu.module.css";
 
 /**
  * 헤더 오른쪽 메뉴 (DESIGN 5장 상단 헤더). 비회원은 로그인, 회원은 스터디 만들기와 로그아웃.
- * 알림(T-025)과 내 스터디(T-026)는 그 화면으로 가는 링크다. 내 정보는 그 화면을 만드는 작업에서 더한다.
+ * 마이페이지(T-036)·내 스터디(T-026)·알림(T-025)은 그 화면으로 가는 링크다.
  */
 export function HeaderMenu() {
   const session = useSession();
@@ -46,6 +46,9 @@ export function HeaderMenu() {
           스터디 만들기
         </Link>
       )}
+      <Link href="/me" className={styles.item}>
+        마이페이지
+      </Link>
       <Link href="/me/studies" className={styles.item}>
         내 스터디
       </Link>
