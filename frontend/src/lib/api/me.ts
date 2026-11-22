@@ -25,6 +25,11 @@ export function updateProfile(input: ProfileInput): Promise<Me> {
   return apiFetch<Me>("/me/profile", { method: "PUT", body: input });
 }
 
+/** 회원 탈퇴 (PRD 4.1, API 3장). 서버가 로그인 쿠키를 지운다. 되돌릴 수 없다 */
+export function withdraw(): Promise<void> {
+  return apiFetch<void>("/me", { method: "DELETE" });
+}
+
 export function logout(): Promise<void> {
   return apiFetch<void>("/auth/logout", { method: "POST" });
 }

@@ -117,6 +117,9 @@ export function MyPageView() {
         <Link href="/notifications" className={styles.link}>
           알림
         </Link>
+        <Link href="/me/withdraw" className={styles.link}>
+          회원 탈퇴
+        </Link>
       </nav>
 
       <section className={styles.section} aria-labelledby="records-heading">
