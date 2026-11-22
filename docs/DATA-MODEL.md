@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.21"
+version: "0.22"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
@@ -361,7 +361,7 @@ PK `(user_id, channel)`, `enabled BOOLEAN`. 행이 없으면 기본값(켜짐, �
 | room_id | BIGINT FK | |
 | sender_id | BIGINT NULL FK | 시스템 메시지는 `NULL` |
 | kind | VARCHAR(10) | `TEXT` / `SYSTEM` (입장·나감·새 주최자 안내) |
-| content | VARCHAR(1000) | |
+| content | VARCHAR(1000) | 참여자가 보낸 `TEXT`는 앞뒤 공백을 자르고 1자 이상이어야 한다 (T-047) |
 | deleted_at | DATETIME(6) NULL | 운영자 삭제 (내용은 비운다) |
 | created_at | DATETIME(6) | |
 

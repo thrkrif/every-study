@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.23"
+version: "0.24"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.21
+  - docs/DATA-MODEL.md@0.22
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -370,6 +370,10 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 | 개인 | `/user/queue/events` : 강제 구독 종료 등 본인 대상 이벤트 |
 
 - 전송과 구독마다 서버가 `ACTIVE` 참여 여부를 검사하고, 거부는 STOMP `ERROR`로 보낸다. 방이 `CLOSED`면 전송을 거부한다 (PRD 4.14).
+- **연결**: `/ws`의 핸드셰이크는 쿠키로 인증한다. 쿠키가 없거나 토큰이 틀리면 `401`, `Origin`이 프론트 오리진이 아니면 `403`이고 연결되지 않는다. 연결된 STOMP 세션의 사용자는 쿠키의 회원이며 STOMP 헤더의 계정 정보는 쓰지 않는다 (ADR-0002 결정 5). 목적지는 이 장의 표에 있는 것만 쓸 수 있고 그 밖의 구독·전송은 거부한다.
+- **`ERROR` 프레임**: `message` 헤더에 오류 코드가 실린다: 참여자가 아님·나감 `FORBIDDEN`, 없는 스터디 `NOT_FOUND`, 닫힌 방에 전송 `CHAT_CLOSED`, 허용되지 않은 목적지 `FORBIDDEN`.
+- **방 주제 이벤트**(`/topic/studies/{id}/chat`): `{ "type": "MESSAGE", "message": { ...이전 대화의 메시지와 같은 모양 } }`, `{ "type": "NOTICE", "notice": { content, updatedAt } }`(공지 변경). 방 폐쇄 이벤트는 폐쇄 처리 작업(T-049)에서 더한다. 서버는 DB에 저장해 커밋한 뒤에 보낸다. 주제는 모든 구독자가 같아서 차단 숨김은 서버가 가릴 수 없으니 클라이언트가 `senderId`로 가리고, 다시 불러오면 REST가 가려서 준다.
+- **전송 본문**: 앞뒤 공백을 자르고 1~1000자. 어긋나면 저장하지 않고 보낸 사람의 `/user/queue/events`에만 `{ "type": "SEND_REJECTED", "code": "VALIDATION_FAILED" }`를 보낸다(연결은 유지).
 - 메시지는 DB 저장 후 전달하고, 클라이언트는 재연결 시 `GET messages`로 빠진 구간을 채운다.
 
 ## 7. 신고·차단·운영자
