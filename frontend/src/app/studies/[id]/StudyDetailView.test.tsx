@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StudyDetailView } from "./StudyDetailView";
 
@@ -155,8 +156,9 @@ describe("StudyDetailView", () => {
     expect(screen.getByText("주최")).toBeInTheDocument();
     expect(screen.getByText("탈퇴한 사용자")).toBeInTheDocument();
     expect(screen.getByText("출석률 92%")).toBeInTheDocument();
+    // 로그인 상태를 확인한 뒤에 버튼이 정해진다
     expect(
-      screen.getByRole("link", { name: "로그인하고 참여하기" }),
+      await screen.findByRole("link", { name: "로그인하고 참여하기" }),
     ).toHaveAttribute("href", "/login");
   });
 
@@ -179,5 +181,227 @@ describe("StudyDetailView", () => {
     expect(
       fetchMock.mock.calls.some(([url]) => String(url).includes("/studies/")),
     ).toBe(false);
+  });
+
+  describe("참여·대기·나가기", () => {
+    const ME = {
+      id: 9,
+      nickname: "나",
+      jobCode: "IT",
+      districtCode: "SUWON_PALDAL",
+      role: "USER",
+      onboarded: true,
+      joinedAt: "2026-11-01T00:00:00Z",
+    };
+
+    /** 로그인한 회원으로 응답하고, 주어진 상세·추가 경로를 돌려준다 */
+    function mockMember(
+      detail: Record<string, unknown>,
+      extra: (path: string, method: string) => Response | undefined = () =>
+        undefined,
+    ) {
+      fetchMock.mockImplementation(async (url, init) => {
+        const path = new URL(String(url)).pathname.replace("/api/v1", "");
+        const method = init?.method ?? "GET";
+        const custom = extra(path, method);
+        if (custom) return custom;
+        if (path === "/me") return json(200, ME);
+        if (path === "/meta/options") return json(200, META);
+        if (path === "/studies/1") return json(200, detail);
+        return json(404, { status: 404, code: "NOT_FOUND" });
+      });
+    }
+
+    const calls = (method: string, path: string) =>
+      fetchMock.mock.calls.filter(
+        ([url, init]) =>
+          new URL(String(url)).pathname === `/api/v1${path}` &&
+          (init?.method ?? "GET") === method,
+      );
+
+    it("모집 중이면 참여하기를 눌러 신청하고 결과를 알린다", async () => {
+      mockMember(DETAIL, (path, method) =>
+        path === "/studies/1/members" && method === "POST"
+          ? new Response(null, { status: 201 })
+          : undefined,
+      );
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "참여하기" }),
+      );
+
+      expect(await screen.findByText("참여했어요.")).toBeInTheDocument();
+      expect(calls("POST", "/studies/1/members")).toHaveLength(1);
+      // 신청 뒤 상세를 다시 읽는다
+      await waitFor(() =>
+        expect(calls("GET", "/studies/1").length).toBeGreaterThan(1),
+      );
+    });
+
+    it("정원이 찼으면 대기하기로 바뀌고, 대기 중이면 대기 취소가 나온다", async () => {
+      mockMember({ ...DETAIL, memberCount: 4, recruiting: false });
+      const first = renderDetail("1");
+      expect(
+        await screen.findByRole("button", { name: "대기하기" }),
+      ).toBeInTheDocument();
+      expect(screen.getByText(/정원이 찼어요/)).toBeInTheDocument();
+      first.unmount();
+
+      mockMember({
+        ...DETAIL,
+        memberCount: 4,
+        recruiting: false,
+        myState: "WAITING",
+      });
+      renderDetail("1");
+      expect(
+        await screen.findByRole("button", { name: "대기 취소" }),
+      ).toBeInTheDocument();
+    });
+
+    it("신청이 STUDY_FULL 로 거절되면 안내하고 상세를 다시 읽는다", async () => {
+      mockMember(DETAIL, (path, method) =>
+        path === "/studies/1/members" && method === "POST"
+          ? json(409, { status: 409, code: "STUDY_FULL" })
+          : undefined,
+      );
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "참여하기" }),
+      );
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        /정원이 찼어요/,
+      );
+      await waitFor(() =>
+        expect(calls("GET", "/studies/1").length).toBeGreaterThan(1),
+      );
+    });
+
+    it.each([
+      ["ENTRY_CRITERIA_NOT_MET", /입장 기준/],
+      ["LOCK_TIMEOUT", /한 번 더 눌러/],
+    ])("신청이 %s 로 거절되면 그 이유를 알려 준다", async (code, text) => {
+      mockMember(DETAIL, (path, method) =>
+        path === "/studies/1/members" && method === "POST"
+          ? json(409, { status: 409, code })
+          : undefined,
+      );
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "참여하기" }),
+      );
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(text);
+      // 다시 눌러 볼 수 있다
+      expect(screen.getByRole("button", { name: "참여하기" })).toBeEnabled();
+    });
+
+    it("이용 제한이면 끝나는 날을 알려 준다", async () => {
+      mockMember(DETAIL, (path, method) =>
+        path === "/studies/1/members" && method === "POST"
+          ? json(403, {
+              status: 403,
+              code: "USER_RESTRICTED",
+              until: "2026-11-25T05:00:00Z",
+            })
+          : undefined,
+      );
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "참여하기" }),
+      );
+
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "11월 25일 오후 2:00까지",
+      );
+    });
+
+    it("희망 직군이 아니면 신청 버튼 대신 이유를 보여 준다", async () => {
+      mockMember({ ...DETAIL, targetJobCodes: ["DESIGN"] });
+      renderDetail("1");
+
+      expect(
+        await screen.findByText(
+          /희망 직군\(DESIGN\)이 아니라 참여할 수 없어요/,
+        ),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "참여하기" }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("참여자가 나가려면 사전 조회 결과를 확인한 뒤에 나간다", async () => {
+      mockMember({ ...DETAIL, myState: "MEMBER" }, (path, method) => {
+        if (path === "/studies/1/leave-preview")
+          return json(200, { cancelType: "LATE", penaltyApplies: true });
+        if (path === "/studies/1/members/me" && method === "DELETE")
+          return json(200, { cancelType: "LATE" });
+        return undefined;
+      });
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "참여 취소" }),
+      );
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent("직전 취소로 기록돼요");
+      expect(calls("DELETE", "/studies/1/members/me")).toHaveLength(0);
+
+      await userEvent.click(
+        screen.getAllByRole("button", { name: "참여 취소" })[0],
+      );
+
+      expect(await screen.findByText("참여를 취소했어요.")).toBeInTheDocument();
+      expect(calls("DELETE", "/studies/1/members/me")).toHaveLength(1);
+    });
+
+    it("돌아가기를 누르면 나가지 않는다", async () => {
+      mockMember({ ...DETAIL, myState: "MEMBER" }, (path) =>
+        path === "/studies/1/leave-preview"
+          ? json(200, { cancelType: "EARLY", penaltyApplies: false })
+          : undefined,
+      );
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "참여 취소" }),
+      );
+      await userEvent.click(
+        await screen.findByRole("button", { name: "돌아가기" }),
+      );
+
+      expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
+      expect(calls("DELETE", "/studies/1/members/me")).toHaveLength(0);
+    });
+
+    it("주최자는 남은 참여자가 없으면 취소된다는 안내를 확인한 뒤 나간다", async () => {
+      mockMember({ ...DETAIL, myState: "HOST" }, (path, method) => {
+        if (path === "/studies/1/leave-preview")
+          return json(200, { hostOutcome: "CANCELLED", penaltyApplies: false });
+        if (path === "/studies/1/members/me" && method === "DELETE")
+          return json(200, { outcome: "CANCELLED" });
+        return undefined;
+      });
+      renderDetail("1");
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: "주최 그만두기" }),
+      );
+      expect(await screen.findByRole("alertdialog")).toHaveTextContent(
+        "스터디가 취소돼요",
+      );
+      await userEvent.click(
+        screen.getByRole("button", { name: "스터디 취소" }),
+      );
+
+      expect(
+        await screen.findByText("스터디를 취소했어요."),
+      ).toBeInTheDocument();
+    });
   });
 });

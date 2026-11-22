@@ -128,3 +128,45 @@ export function fetchStudy(
 ): Promise<StudyDetail> {
   return apiFetch<StudyDetail>(`/studies/${id}`, { signal });
 }
+
+/** 참여 신청 (`POST /studies/{id}/members`). 승인 없이 바로 확정된다 */
+export function joinStudy(id: number): Promise<void> {
+  return apiFetch<void>(`/studies/${id}/members`, { method: "POST" });
+}
+
+/** 대기 등록. 정원이 찼을 때만 된다 */
+export function registerWaiting(id: number): Promise<void> {
+  return apiFetch<void>(`/studies/${id}/waiting`, { method: "POST" });
+}
+
+/** 대기 취소. 대기 중이 아니어도 성공한다 */
+export function cancelWaiting(id: number): Promise<void> {
+  return apiFetch<void>(`/studies/${id}/waiting/me`, { method: "DELETE" });
+}
+
+/** 주최자의 나가기 결과 (API 4장 `outcome`) */
+export type HostOutcome = "TRANSFERRED" | "CANCELLED" | "LEFT_AFTER_START";
+
+/** 사전 취소(시작 3시간 전까지)·직전 취소 (PRD 4.6) */
+export type CancelType = "EARLY" | "LATE";
+
+/** 나가기 결과. 참여자는 `cancelType`, 주최자는 `outcome` 만 있다 */
+export type LeaveResult = { cancelType?: CancelType; outcome?: HostOutcome };
+
+/** 나가기 사전 조회 결과. 참여자는 `cancelType`, 주최자는 `hostOutcome` 만 있다 */
+export type LeavePreview = {
+  cancelType?: CancelType;
+  hostOutcome?: HostOutcome;
+  /** 참여자는 지표(출석률)에 반영되는가, 주최자는 주최 감점이 붙는가 */
+  penaltyApplies: boolean;
+};
+
+export function leaveStudy(id: number): Promise<LeaveResult> {
+  return apiFetch<LeaveResult>(`/studies/${id}/members/me`, {
+    method: "DELETE",
+  });
+}
+
+export function fetchLeavePreview(id: number): Promise<LeavePreview> {
+  return apiFetch<LeavePreview>(`/studies/${id}/leave-preview`);
+}
