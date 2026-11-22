@@ -67,6 +67,12 @@ public class ChatMessage {
         return message;
     }
 
+    /** 운영자가 지운다. 내용을 비우고 지운 시각만 남긴다 (PRD 4.11 조치 3, DATA-MODEL 8장). */
+    public void deleteByOperator(Instant now) {
+        this.deletedAt = now;
+        this.content = "";
+    }
+
     public Long getId() {
         return id;
     }

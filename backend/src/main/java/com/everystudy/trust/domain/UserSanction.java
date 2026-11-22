@@ -69,6 +69,15 @@ public class UserSanction {
         return sanction;
     }
 
+    /** 운영자가 건 이용 정지 (PRD 4.11 조치 4). */
+    public static UserSanction operatorSuspend(long userId, String reason, Instant startsAt, Instant endsAt,
+            long operatorId) {
+        UserSanction sanction = auto(userId, SanctionKind.SUSPEND, reason, startsAt, endsAt);
+        sanction.source = SanctionSource.OPERATOR;
+        sanction.createdBy = operatorId;
+        return sanction;
+    }
+
     /** 주최자 개설 제한. {@code reviewRequired} 면 운영자 검토 대상이다 (PRD 4.13C). */
     public static UserSanction autoHostRestrict(long userId, String reason, Instant startsAt, Instant endsAt,
             boolean reviewRequired) {
@@ -88,6 +97,34 @@ public class UserSanction {
 
     public Instant getStartsAt() {
         return startsAt;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public SanctionSource getSource() {
+        return source;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public Instant getRevokedAt() {
+        return revokedAt;
+    }
+
+    public Long getCreatedBy() {
+        return createdBy;
+    }
+
+    public boolean isReviewRequired() {
+        return reviewRequired;
+    }
+
+    public boolean isRevoked() {
+        return revokedAt != null;
     }
 
     public Long getId() {

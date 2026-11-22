@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.33"
+version: "0.34"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
@@ -291,6 +291,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 - 신청·개설 시점에 `starts_at <= now < ends_at AND revoked_at IS NULL`인 행이 있는지 검사한다. 참여 신청을 막는 것은 `JOIN_RESTRICT`와 `SUSPEND`이고, 여럿이면 가장 늦은 `ends_at`을 `USER_RESTRICTED`의 `until`로 준다. 경고 단계는 제재가 아니라 알림이므로 행을 만들지 않는다.
 - **자동 부여(T-035a)**: 노쇼 확정과 지각 기록 때 같은 트랜잭션에서 단계를 판정한다 (PRD 4.8). `source=AUTO`이고 `created_by`는 `NULL`, `reason`은 단계 이름 수준의 짧은 문구다. 같은 단계는 중복해서 만들지 않는다: 해제되지 않은 자동 `JOIN_RESTRICT`가 있으면 제한을 다시 걸지 않고, 유효한 `SUSPEND`가 있으면 정지를 다시 걸지 않는다. "재발"은 해제되지 않은 자동 `JOIN_RESTRICT` 중 가장 늦은 `starts_at` 이후 확정된 노쇼·지각으로 센다 (PLAN D-15).
 - **주최자 개설 제한(T-035b)**: 감점이 기록되는 같은 트랜잭션에서 90일 롤링 합계로 판정한다(`HostPenaltyRecorder`). 합계가 경고 단계면 행 없이 `HOST_WARNING` 알림만, 개설 제한 단계면 `HOST_RESTRICT`, 검토 단계면 더 긴 `HOST_RESTRICT`에 `review_required=TRUE`. 이미 더 늦게 끝나는 유효한 개설 제한이 있으면 다시 걸지 않는다. 개설은 `HOST_RESTRICT`와 `SUSPEND`가 막고 `JOIN_RESTRICT`는 막지 않는다.
+- **운영자 조치 (T-055)**: 수동 이용 정지는 `kind=SUSPEND`, `source=OPERATOR`, `created_by`=운영자, `reason`=운영자가 적은 사유, 기간은 1~365일이다. 제재 해제(자동·수동)는 `revoked_at`을 채우는 것이고 바로 효력이 없어진다. 이미 해제된 제재를 다시 해제해도 같다. 운영자 검토 대상은 `review_required=TRUE`인 제재이고 `GET /admin/sanctions?reviewRequired=true`로 본다. 이용 정지는 참여 신청과 스터디 개설을 막는다(PRD 4.8, T-035a).
 - 인덱스 `(user_id, kind, ends_at)`.
 
 ## 7. 알림
@@ -416,6 +417,7 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 | detail | JSON NULL | 변경 전후 값 |
 | created_at | DATETIME(6) | |
 
+- 채팅 메시지 삭제(`MESSAGE_DELETE`)는 행을 남기고 `content`를 빈 문자열로 만들며 `deleted_at`을 채운다. 감사 로그에는 메시지 내용을 남기지 않는다(방·보낸 사람·사유만).
 - 추가만 한다. 자동 감점·제재·판정 확정과 운영자 조치는 모두 여기에 남긴다 (PRD 4.6·4.11·8장, PLAN D-17). 주최자는 출석을 바꿀 수 없으므로 주최자 행위는 없다.
 - `action`은 코드의 `AuditAction` 이름이고 `CHECK`를 두지 않는다(종류가 늘 때마다 마이그레이션을 만들지 않으려고). `detail`에는 개인정보·토큰을 넣지 않는다. 기록은 `common.audit.AuditLogger`(공개 서비스)가 호출한 트랜잭션 안에서만 한다. 조회·권한은 T-052.
 - 인덱스: `(target_type, target_id, id)`, `(actor_id, id)`.

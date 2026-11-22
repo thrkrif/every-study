@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.38"
+version: "0.39"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.33
-  - docs/API.md@0.38
+  - docs/DATA-MODEL.md@0.34
+  - docs/API.md@0.39
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -455,11 +455,13 @@ based_on:
   - 결과: `study.service.StudyForceEndService`와 `AdminStudyController`(`POST /api/v1/admin/studies/{id}/force-end`, `note` 필수) · 락 안에서 `cancel(OPERATOR)`, 대기 행 삭제, 참여자·대기자 `STUDY_CANCELLED` 알림, `StudyCancelled` 발행(예약 일정 알림 취소 T-040, 채팅방 폐쇄 T-049가 받음), 감사 로그 `STUDY_FORCE_END` · 내가 정한 세부 결정: ① 이미 운영자가 강제 종료한 스터디는 `204` 멱등, 정상 종료·주최자 포기 파투는 `409 STUDY_CLOSED` ② 알림 유효 기한은 시작 전이면 시작 시각, 시작 뒤면 하루 ③ 이미 시작한 스터디도 강제 종료할 수 있고, 체크인 기록이 있어도 판정 작업이 참여자마다 `VOIDED`를 남겨 지표에서 빠짐
   - 로컬 검증: 단위 테스트 통과, 통합 테스트(`ForceEndIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-055 메시지 삭제·이용 정지·제재 조회
+- [x] T-055 메시지 삭제·이용 정지·제재 조회
   - 선행: T-035a, T-035b, T-053
   - 참조: PRD 4.11 조치 3·4·4.13C(운영자 검토), DATA-MODEL 6장·8장, API 7장
   - 완료: 메시지 삭제는 내용을 비움 · 수동 이용 정지 부여·해제, 자동 제재 조회·해제, 운영자 검토 대상 주최자 목록 · 모든 조치 감사 로그 · 테스트: 삭제된 메시지 이력 조회 시 내용 없음, 해제 후 즉시 신청 가능
   - 문서: API 7장 확인
+  - 결과: `chat.service.ChatModerationService`와 `AdminChatController`(`DELETE /admin/chat-messages/{id}`), `trust.service.SanctionAdminService`와 `trust.web.AdminSanctionController`(`GET /admin/sanctions`, `POST /admin/users/{id}/suspensions`, `DELETE .../suspensions/{sid}`, `DELETE /admin/sanctions/{id}`) · 공통 커서 도구 `common.web.IdCursor` · 내가 정한 세부 결정: ① 모든 쓰기에 사유 `note` 필수(DELETE도 JSON 본문) ② 메시지 삭제·제재 해제는 멱등 `204` ③ 수동 정지 기간은 1~365일, 대상에게 `SANCTION_APPLIED` 알림 ④ 제재 조회는 자동·수동을 한 목록에서 보고 `reviewRequired`로 운영자 검토 대상만 거를 수 있음(별도 검토 완료 표시는 두지 않음, 해제·만료로 사라짐) ⑤ 이용 정지는 신청·개설을 막음(T-035a 범위 그대로) ⑥ 삭제 사실은 실시간으로 방에 알리지 않고 이전 대화 조회·재연결 때 반영
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`ModerationIntegrationTest`)는 CI 에서 확인
 
 - [x] T-056 이의 최종 결정
   - 선행: T-035a, T-052 · 결정 X-12

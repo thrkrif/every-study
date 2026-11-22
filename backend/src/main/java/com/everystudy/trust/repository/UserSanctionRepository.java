@@ -36,4 +36,19 @@ public interface UserSanctionRepository extends JpaRepository<UserSanction, Long
             """)
     java.util.List<UserSanction> findActiveAuto(@Param("userId") long userId,
             @Param("kinds") Collection<SanctionKind> kinds, @Param("now") Instant now);
+
+    /**
+     * 운영자 조회: 최근 것부터. {@code userId} 가 0 이면 모든 회원, {@code activeOnly} 면 지금 유효한 것만,
+     * {@code reviewOnly} 면 운영자 검토 대상만.
+     */
+    @Query("""
+            select s from UserSanction s
+            where s.id < :beforeId and (:userId = 0 or s.userId = :userId)
+              and (:activeOnly = false or (s.revokedAt is null and s.endsAt > :now))
+              and (:reviewOnly = false or s.reviewRequired = true)
+            order by s.id desc
+            """)
+    java.util.List<UserSanction> findForAdmin(@Param("beforeId") long beforeId, @Param("userId") long userId,
+            @Param("activeOnly") boolean activeOnly, @Param("reviewOnly") boolean reviewOnly,
+            @Param("now") Instant now, org.springframework.data.domain.Limit limit);
 }
