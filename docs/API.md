@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.33"
+version: "0.34"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
@@ -401,18 +401,22 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 
 API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 채널 발송은 [ARCHITECTURE 4.6](ARCHITECTURE.md), 저장은 [DATA-MODEL 7장](DATA-MODEL.md)을 따른다.
 
-| type | 대상 | 시점 |
-|---|---|---|
-| `STUDY_CANCELLED` | 참여자 | 스터디 취소(파투, 강제 종료) |
-| `CHECKIN_REMINDER_DAY`, `_HOUR`, `CHECKIN_OPEN` | 참여자 | 전날(시작 24시간 전), 1시간 전, 체크인 오픈 (PRD 4.5). 참여 확정 때 예약하고(주최자는 개설 때) 나가기·파투 때 미발송 건을 취소한다. 키 `{type}:{studyId}:{userId}` |
-| `WAITING_OPENED` | 대기자 | 자리 발생, 정원 증액. 알림 시점에 신청 자격이 남은 대기자만 (PRD 4.14, PLAN X-20) |
-| `HOST_ASSIGNED` | 새 주최자 | 승계 |
-| `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 |
-| `APPEAL_RESULT` | 신청자 | 이의 결정 |
-| `CHAT_MESSAGE` | 방의 다른 참여자 | 채팅 새 메시지 (PRD 4.12, PLAN D-12). **푸시만** 보내고 이메일은 없다. 보낸 사람 본인·방을 열어 둔(구독 중인) 사람·보낸 사람을 차단한 사람·나간 사람은 제외. 방·사람마다 5분(설정 `everystudy.chat.notify-window`) 시간 창에 한 건으로 묶는다. 키 `CHAT_MESSAGE:{studyId}:{userId}:{창 번호}`. 메시지 내용은 싣지 않는다 |
-| `HOST_WARNING` | 주최자 | 90일 감점 합계가 경고 단계 (PRD 4.13C, 행 없이 알림만) |
-| `SANCTION_WARNING` | 대상자 | 참여자 경고: 노쇼 확정, 최근 5회 중 지각 3회 (PRD 4.8, 제재 행 없이 알림만) |
-| `SANCTION_APPLIED` | 대상자 | 제재 부여: 참여 신청 제한·이용 정지·주최자 개설 제한 |
+| type | 대상 | 시점 | 생성 지점 | `dedupe_key` |
+|---|---|---|---|---|
+| `STUDY_CANCELLED` | 대기자(참여자가 주최자뿐일 때)·참여자 | 스터디 취소(파투, 강제 종료) | 주최자 나가기 파투(`StudyLeaveService`), 강제 종료는 T-054 | `STUDY_CANCELLED:{studyId}:{userId}` |
+| `CHECKIN_REMINDER_DAY`, `_HOUR`, `CHECKIN_OPEN` | 참여자 | 전날(시작 24시간 전), 1시간 전, 체크인 오픈 (PRD 4.5). 참여 확정 때 예약하고(주최자는 개설 때) 나가기·파투 때 미발송 건을 취소한다 | `StudyScheduleNotifier` (T-040) | `{type}:{studyId}:{userId}` |
+| `WAITING_OPENED` | 대기자 | 자리 발생, 정원 증액. 알림 시점에 신청 자격이 남은 대기자만 (PRD 4.14, PLAN X-20) | `WaitingNotifier` | `WAITING_OPENED:{studyId}:{userId}:{원인}:{시각ms}` (자리가 날 때마다 새 알림) |
+| `HOST_ASSIGNED` | 새 주최자 | 승계 | `StudyLeaveService` | `HOST_ASSIGNED:{studyId}:{userId}:{시각ms}` (같은 사람이 다시 주최자가 될 수 있다) |
+| `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 | `AttendanceJudgementService` | `NO_SHOW_NOTICE:{studyId}:{userId}` |
+| `APPEAL_RESULT` | 신청자 | 이의 결정 | `AppealDecisionService` (T-056) | `APPEAL_RESULT:{appealId}` |
+| `CHAT_MESSAGE` | 방의 다른 참여자 | 채팅 새 메시지 (PRD 4.12, PLAN D-12). **푸시만** 보내고 이메일은 없다. 보낸 사람 본인·방을 열어 둔(구독 중인) 사람·보낸 사람을 차단한 사람·나간 사람은 제외. 방·사람마다 5분(설정 `everystudy.chat.notify-window`) 시간 창에 한 건으로 묶는다. 메시지 내용은 싣지 않는다 | `ChatMessageNotifier` (T-050) | `CHAT_MESSAGE:{studyId}:{userId}:{창 번호}` |
+| `HOST_WARNING` | 주최자 | 90일 감점 합계가 경고 단계 (PRD 4.13C, 행 없이 알림만) | `HostPenaltyRecorder` (T-035b) | `HOST_WARNING:{studyId}:{userId}` |
+| `SANCTION_WARNING` | 대상자 | 참여자 경고: 노쇼 확정, 최근 5회 중 지각 3회 (PRD 4.8, 제재 행 없이 알림만) | `ParticipantSanctionService` (T-035a) | `SANCTION_WARNING:{studyId}:{userId}` |
+| `SANCTION_APPLIED` | 대상자 | 제재 부여: 참여 신청 제한·이용 정지·주최자 개설 제한 | `ParticipantSanctionService`, `HostPenaltyRecorder` | `SANCTION_APPLIED:{studyId}:{userId}`, 주최자는 `SANCTION_APPLIED:HOST:{studyId}:{userId}` |
+
+- 같은 원인을 두 번 기록해도 알림은 한 건, 아웃박스는 채널마다 한 행이다(`dedupe_key`가 같으면 기록하지 않는다, DATA-MODEL 7장). 아웃박스 키는 알림 키에 `:{채널}`을 붙인다.
+- 알림은 늦게 받거나 두 번 받을 수 있으므로(ADR-0005) 문구는 "방금"처럼 받은 시각에 기대는 표현을 쓰지 않는다. 시각이 필요하면 "M월 d일 HH:mm" 같은 절대 시각을 쓴다. 소스 점검 테스트(`NotificationCatalogTest`)가 이를 지킨다.
+- 새 종류를 더하면 이 표에 생성 지점과 키를 함께 적는다. 표에 빠진 종류는 같은 테스트가 잡는다.
 
 ## 9. 결정 현황
 

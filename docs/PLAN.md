@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.33"
+version: "0.34"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
   - docs/DATA-MODEL.md@0.29
-  - docs/API.md@0.33
+  - docs/API.md@0.34
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -336,11 +336,13 @@ based_on:
   - 문서: DATA-MODEL 7장 확인, 재시도·최대 횟수 기본값을 ARCHITECTURE 4.6에 기록(진행 규칙 9)
   - 결과: `notification.service.NotificationDispatchService.dispatchDue()`와 스케줄 작업 `NotificationDispatchJob`(10초) · 기본값 5회·1분 두 배 백오프를 ARCHITECTURE 4.6에 기록, DATA-MODEL 7장은 확인(변경 없음) · 내가 정한 세부 결정: 보낼 구현이 없는 채널(이메일·푸시 구현은 T-041·T-042)의 건은 `PENDING`으로 두고 만료되면 `CANCELLED`(다른 건이 배치에서 밀리지 않게 조회에서 걸러 냄) · 구현이 예기치 못한 예외를 던지면 재시도 대상 실패로 보고 `last_error`에는 예외 종류만 남김(연락처 유출 방지) · 수신 설정으로 건너뛰는 건 T-043
 
-- [ ] T-039 알림 종류 정리와 중복 방지 검증
+- [x] T-039 알림 종류 정리와 중복 방지 검증
   - 선행: T-035a, T-035b, T-038
   - 참조: API 8장, PRD 4.5·4.8(경고)·4.13C(경고)·4.14
   - 완료: API 8장의 모든 type과 X-4의 누락 type이 생성 지점과 `dedupe_key` 규칙을 가진다 · 테스트: type마다 같은 원인 이벤트를 두 번 처리해도 사용자·채널별 아웃박스 행이 1건, 알림 문구에 "다시 받을 수 있음"을 해칠 상대 표현(예: "방금")이 없음
   - 문서: API 8장 갱신(X-4)
+  - 결과: API 8장 표에 종류마다 생성 지점과 `dedupe_key` 형태를 적음(종류는 T-035a·T-035b·T-040·T-050·T-056에서 이미 모두 생성 지점을 가졌고 X-4 의 누락 type 도 반영됨) · `NotificationCatalogTest`(소스 문구에 상대 표현 없음, 모든 종류가 API 8장에 있음)와 `NotificationDedupeIntegrationTest`(종류마다 같은 원인 두 번 기록 시 알림 1건·아웃박스 채널당 1행) · 내가 정한 세부 결정: ① 종류별 생성 경로의 멱등은 각 작업의 테스트가 이미 보장하므로 여기서는 기록기 수준의 종류별 점검과 문구·문서 점검만 추가 ② 문구 점검은 주석을 뺀 소스 문자열을 검사 ③ `WAITING_OPENED`·`HOST_ASSIGNED`는 키에 시각이 있어(자리가 날 때마다·다시 주최자가 될 때마다 새 알림) 같은 원인의 재처리 방지는 그 생성 지점의 상태 전이가 맡음
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트는 CI 에서 확인
 
 - [x] T-040 일정 알림 예약
   - 선행: T-018, T-020, T-022, T-038 · 결정 X-2, X-10, D-18
