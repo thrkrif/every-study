@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.32"
+version: "0.33"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
@@ -117,7 +117,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | min_attendance_rate | TINYINT NULL | 입장 기준: 최소 출석률(%). `NULL`이면 기준 없음 |
 | allow_newcomer | BOOLEAN | 입장 기준: 신규 허용 (기본 `TRUE`) |
 | status | VARCHAR(10) | `ACTIVE` / `ENDED` / `CANCELLED` (PRD 4.14) |
-| cancel_reason | VARCHAR(20) NULL | `HOST_LEFT`(주최자만 남고 포기), `OPERATOR`(강제 종료) |
+| cancel_reason | VARCHAR(20) NULL | `HOST_LEFT`(주최자만 남고 포기), `OPERATOR`(강제 종료, T-054) |
 | judged_at | DATETIME(6) NULL | 출석 판정 완료 시각. 노쇼 후보 판정 작업의 멱등 표시 |
 | voided_at | DATETIME(6) NULL | 주최자 미도착으로 **세션 무효** 처리한 시각 (PRD 4.6) |
 | ended_at | DATETIME(6) NULL | 종료 처리 시각 |
@@ -400,6 +400,7 @@ PK `(room_id, user_id)`, `last_read_message_id BIGINT`. "읽지 않음" 개수�
 | created_at, handled_at | DATETIME(6) | |
 
 - **접수 규칙 (T-053)**: 소속 모듈은 `chat`이다. 같은 신고자가 같은 대상에 `OPEN` 신고가 있으면 거부한다(`ALREADY_REPORTED`, 처리된 뒤에는 다시 신고할 수 있다). 메시지 신고는 그 방의 `ACTIVE` 참여자만 하고, 내 메시지·시스템 메시지·지워진 메시지는 신고할 수 없다. 사용자 신고는 자기 자신을 못 한다. 운영자는 `OPEN` 신고만 한 번 반려(`DISMISSED`)하거나 처리 완료(`RESOLVED`)하고, 처리 완료는 표시일 뿐 실제 조치(강제 종료·메시지 삭제·이용 정지)는 각 운영자 API로 따로 한다.
+- **강제 종료 (T-054)**: 운영자 강제 종료는 `study`를 `CANCELLED`(`cancel_reason=OPERATOR`)로 바꾸고 대기 행을 지우며 참여자·대기자에게 `STUDY_CANCELLED` 알림을 보낸다. 참여자의 `VOIDED`는 여기서 남기지 않고 체크인 마감 뒤 판정 작업(T-031)이 남긴다. 예약 알림 취소와 채팅방 폐쇄는 `StudyCancelled`를 받은 쪽이 한다. 이미 운영자가 강제 종료한 스터디에 다시 부르면 아무것도 하지 않는다.
 - 메시지 신고 시점에 내용 사본을 남기지는 않는다. 보관 기간 안에 처리한다 (PRD 4.14 "신고 대응용 보관"). 인덱스 `(status, created_at)`.
 
 ### `block`
