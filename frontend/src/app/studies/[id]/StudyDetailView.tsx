@@ -2,15 +2,17 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import buttonStyles from "@/components/Button.module.css";
 import { PlaceMap, kakaoMapLink } from "@/components/PlaceMap";
+import { Button } from "@/components/Button";
+import { ReportForm } from "@/components/ReportForm";
 import { SeatRow } from "@/components/SeatRow";
 import { StatusChip } from "@/components/StatusChip";
 import { isApiError } from "@/lib/api/errors";
 import { districtsOf } from "@/lib/api/meta";
 import { fetchStudy } from "@/lib/api/studies";
-import { useMetaOptions } from "@/lib/session";
+import { useMetaOptions, useSession } from "@/lib/session";
 import {
   codeNames,
   entryCriteriaTexts,
@@ -43,6 +45,8 @@ export function StudyDetailView({
 }: DetailViewProps) {
   const studyId = /^\d+$/.test(id) ? Number(id) : undefined;
   const meta = useMetaOptions();
+  const session = useSession();
+  const [reporting, setReporting] = useState(false);
   const study = useQuery({
     queryKey: ["study", studyId],
     queryFn: ({ signal }) => fetchStudy(studyId!, signal),
@@ -185,6 +189,22 @@ export function StudyDetailView({
               >
                 들어온 이의 보기
               </Link>
+            )}
+            {session.status === "member" && data.myState !== "HOST" && (
+              <div>
+                {reporting ? (
+                  <ReportForm
+                    targetType="STUDY"
+                    targetId={data.id}
+                    targetLabel="이 스터디"
+                    onClose={() => setReporting(false)}
+                  />
+                ) : (
+                  <Button variant="text" onClick={() => setReporting(true)}>
+                    이 스터디 신고
+                  </Button>
+                )}
+              </div>
             )}
           </Section>
         </article>

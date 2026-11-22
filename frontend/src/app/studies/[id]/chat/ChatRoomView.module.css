@@ -173,3 +173,9 @@
   color: var(--color-late);
   font-weight: 700;
 }
+
+.tools {
+  display: inline-flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
