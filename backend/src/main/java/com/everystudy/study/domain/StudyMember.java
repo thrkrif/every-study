@@ -71,6 +71,19 @@ public class StudyMember {
         cancelType = type;
     }
 
+    /**
+     * 주최자로서 나간다 (PRD 4.13A). 참여 취소가 아니므로 사전/직전 구분({@code cancel_type})은 비워 둔다. 출석 이벤트도
+     * 만들지 않는다 (PLAN X-13).
+     */
+    public void leaveAsHost(Instant now) {
+        if (!isActive()) {
+            throw new IllegalStateException("참여 중이 아닌 행은 나갈 수 없습니다");
+        }
+        status = MemberStatus.LEFT;
+        leftAt = now;
+        cancelType = null;
+    }
+
     public static StudyMember join(long studyId, long userId, Instant now) {
         StudyMember member = new StudyMember();
         member.studyId = studyId;
