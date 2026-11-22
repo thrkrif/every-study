@@ -80,8 +80,51 @@ public class NotificationOutbox {
         return outbox;
     }
 
+    /** 발송했다. */
+    public void markSent(Instant now) {
+        this.status = OutboxStatus.SENT;
+        this.sentAt = now;
+        this.lastError = null;
+    }
+
+    /** 유효 기한이 지나 보내지 않고 취소한다 (ARCHITECTURE 4.6). */
+    public void cancelExpired(String reason) {
+        this.status = OutboxStatus.CANCELLED;
+        this.lastError = truncate(reason);
+    }
+
+    /** 실패를 기록하고 {@code retryAt} 에 다시 시도한다. */
+    public void retryLater(String error, Instant retryAt) {
+        this.attempts++;
+        this.lastError = truncate(error);
+        this.nextAttemptAt = retryAt;
+    }
+
+    /** 더 시도하지 않는다. */
+    public void fail(String error) {
+        this.attempts++;
+        this.status = OutboxStatus.FAILED;
+        this.lastError = truncate(error);
+    }
+
+    private static String truncate(String text) {
+        return text.length() <= 300 ? text : text.substring(0, 299) + "…";
+    }
+
     public Long getId() {
         return id;
+    }
+
+    public int getAttempts() {
+        return attempts;
+    }
+
+    public Instant getNextAttemptAt() {
+        return nextAttemptAt;
+    }
+
+    public Instant getExpiresAt() {
+        return expiresAt;
     }
 
     public Long getNotificationId() {
