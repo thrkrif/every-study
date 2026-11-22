@@ -77,6 +77,19 @@ public class UserSanction {
         return sanction;
     }
 
+    /** 해제한다 (운영자 또는 이의 인정에 따른 재판정). */
+    public void revoke(Instant now) {
+        this.revokedAt = now;
+    }
+
+    public SanctionKind getKind() {
+        return kind;
+    }
+
+    public Instant getStartsAt() {
+        return startsAt;
+    }
+
     public Long getId() {
         return id;
     }

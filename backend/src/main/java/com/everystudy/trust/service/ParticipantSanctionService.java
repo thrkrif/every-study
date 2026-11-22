@@ -59,6 +59,40 @@ public class ParticipantSanctionService {
         judge(Trigger.LATE, userId, studyId, now);
     }
 
+    /**
+     * 이의 인정으로 판정이 바뀐 뒤, 그 판정 때문에 걸린 자동 제재가 아직 근거가 있는지 다시 본다 (PLAN T-056). 정정된 판정이
+     * 난 시각 이후에 시작된 자동 제한·정지 중, 정정을 반영한 기록으로는 그 단계에 이르지 않는 것을 해제한다(제한 먼저, 그다음
+     * 정지). 다른 근거가 남아 있으면 그대로 둔다. 해제마다 감사 로그를 남긴다.
+     *
+     * @param correctedEventAt 정정된 판정이 난 시각
+     * @param operatorId 결정한 운영자
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void reassessAfterCorrection(long userId, Instant correctedEventAt, long operatorId, Instant now) {
+        List<SessionVerdict> verdicts = SessionVerdict.currentOf(events.findByUserIdOrderByOccurredAtDescIdDesc(userId));
+        revokeUnsupported(userId, SanctionKind.JOIN_RESTRICT, Decision.JOIN_RESTRICT, verdicts, null,
+                correctedEventAt, operatorId, now);
+        Instant restrictStartedAt = sanctions.findLatestAutoStart(userId, SanctionKind.JOIN_RESTRICT).orElse(null);
+        revokeUnsupported(userId, SanctionKind.SUSPEND, Decision.SUSPEND, verdicts, restrictStartedAt,
+                correctedEventAt, operatorId, now);
+    }
+
+    private void revokeUnsupported(long userId, SanctionKind kind, Decision required, List<SessionVerdict> verdicts,
+            Instant restrictStartedAt, Instant correctedEventAt, long operatorId, Instant now) {
+        Decision supported = SanctionJudgement.decide(Trigger.LATE, verdicts, restrictStartedAt, properties);
+        if (supported.ordinal() >= required.ordinal()) {
+            return;
+        }
+        for (UserSanction sanction : sanctions.findActiveAuto(userId, Set.of(kind), now)) {
+            if (sanction.getStartsAt().isBefore(correctedEventAt)) {
+                continue;
+            }
+            sanction.revoke(now);
+            audit.record(operatorId, AuditAction.SANCTION_REVOKE, "USER", userId,
+                    Map.of("kind", kind.name(), "sanctionId", sanction.getId(), "reason", "이의 인정으로 판정이 정정됨"));
+        }
+    }
+
     private void judge(Trigger trigger, long userId, long studyId, Instant now) {
         List<SessionVerdict> verdicts = SessionVerdict.currentOf(events.findByUserIdOrderByOccurredAtDescIdDesc(userId));
         Instant restrictStartedAt = sanctions.findLatestAutoStart(userId, SanctionKind.JOIN_RESTRICT).orElse(null);

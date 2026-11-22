@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.28"
+version: "0.29"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
@@ -241,6 +241,9 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | created_at, decided_at | DATETIME(6) | |
 
 - **대상 판정 (T-034)**: `NO_SHOW_CANDIDATE`와 `LATE` 이벤트만 이의를 낼 수 있다. 노쇼 확정(`NO_SHOW`)은 이의 기간이 끝난 뒤에만 생기므로 대상이 아니다. 신청 시점에 그 이벤트가 (스터디, 사용자)의 **현재 판정**이어야 한다(정정·확정 이벤트가 뒤따르면 신청할 수 없다).
+- **운영자 결정 (T-056)**: 결정은 이의 행을 잠그고 `OPEN`일 때 한 번만 한다(이미 결정됐거나 대상 판정이 더는 현재 판정이 아니면 `APPEAL_CLOSED`). `decided_by`, `decided_at`을 기록하고 사유(`note`)는 감사 로그(`APPEAL_DECIDE`)·정정 이벤트의 `note`·신청자 알림(`APPEAL_RESULT`)에 남긴다.
+  - **인정**: `NO_SHOW_CLEARED`를 추가하고, 대상이 `LATE`였으면 이어서 `ATTENDED` 정정 이벤트를 추가한다(X-12). 집계를 다시 만들고, 정정된 판정이 난 시각 이후에 시작된 자동 제한·정지 중 정정된 기록으로는 그 단계에 이르지 않는 것을 해제한다(`revoked_at`, 감사 로그 `SANCTION_REVOKE`). 제한을 먼저, 그다음 정지를 본다.
+  - **기각**: 대상이 `NO_SHOW_CANDIDATE`면 이의 기간을 기다리지 않고 바로 `NO_SHOW`를 추가하고 참여자 제재를 판정한다(T-035a와 같은 서비스). 대상이 `LATE`면 판정이 그대로 유지된다.
 - **기한**: `due_at` = 대상 이벤트의 `occurred_at` + `everystudy.attendance.appeal-window-hours`(PRD 4.9). 정각까지는 받고 1초라도 넘으면 `APPEAL_CLOSED`. 노쇼 후보 통지의 만료와 같은 기준이다.
 - `status`가 `OPEN`인 동안만 주최자 의견(`host_opinion`)을 받고, 다시 보내면 덮어쓴다. 소속 모듈은 `attendance`다(ARCHITECTURE 3장). 주최자는 `study_id`로 자기 스터디의 이의를 조회한다(`GET /studies/{id}/appeals`, API 5장). `study_id` FK 인덱스를 쓰므로 인덱스를 더하지 않는다.
 ## 6. 신뢰 지표와 제재
@@ -295,7 +298,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`, `CHECKIN_REMINDER_DAY`, `CHECKIN_REMINDER_HOUR`, `CHAT_MESSAGE`. 종류를 더하면 `CHECK`도 고친다 |
+| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`, `CHECKIN_REMINDER_DAY`, `CHECKIN_REMINDER_HOUR`, `CHAT_MESSAGE`, `APPEAL_RESULT`. 종류를 더하면 `CHECK`도 고친다 |
 | study_id | BIGINT NULL FK | 연결 대상 |
 | title | VARCHAR(100) | 중복을 견디는 문장 (ADR-0005) |
 | body | VARCHAR(300) | 같음 |

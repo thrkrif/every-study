@@ -99,4 +99,18 @@ public class AttendanceEventRecorder {
         events.save(AttendanceEvent.of(studyId, userId, AttendanceEventType.LATE, occurredAt));
         summaries.refresh(userId);
     }
+
+    /**
+     * 이의 인정 정정 (PRD 4.9, PLAN X-12·T-056): 직전 판정을 {@code NO_SHOW_CLEARED} 로 무효화한다. 지각 판정이었으면 출석으로
+     * 센다는 뜻으로 {@code ATTENDED} 정정 이벤트를 이어서 남긴다. 집계를 다시 만든다. 호출한 쪽이 그 판정이 현재 판정인지
+     * 확인한다.
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordAppealAccepted(long studyId, long userId, boolean wasLate, Instant occurredAt, String note) {
+        events.save(AttendanceEvent.corrected(studyId, userId, AttendanceEventType.NO_SHOW_CLEARED, occurredAt, note));
+        if (wasLate) {
+            events.save(AttendanceEvent.corrected(studyId, userId, AttendanceEventType.ATTENDED, occurredAt, note));
+        }
+        summaries.refresh(userId);
+    }
 }

@@ -11,6 +11,7 @@ import com.everystudy.study.service.StudyUpdateService;
 import com.everystudy.support.IntegrationTestSupport;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
@@ -55,7 +56,7 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("참여가 확정되면 전날·1시간 전·체크인 오픈 알림을 예약하고, 알림 센터에는 아직 보이지 않는다. 같은 이벤트를 다시 처리해도 늘지 않는다")
     void schedulesThreeNotifications() {
-        long id = study(inHours(72));
+        long id = study(inDays(3));
 
         publish(new MemberJoined(id, memberId));
         publish(new MemberJoined(id, memberId));
@@ -90,7 +91,7 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("개설하면 주최자 몫을 예약한다")
     void hostIsScheduledOnCreate() {
-        long id = study(inHours(72));
+        long id = study(inDays(3));
         publish(new StudyCreated(id, hostId));
 
         assertThat(types(id, hostId)).hasSize(3);
@@ -99,7 +100,7 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("나가면 그 사람의 미발송 알림만 취소되고, 다시 들어오면 다시 예약한다")
     void leaveCancelsOnlyThatUser() {
-        long id = study(inHours(72));
+        long id = study(inDays(3));
         publish(new StudyCreated(id, hostId));
         publish(new MemberJoined(id, memberId));
 
@@ -116,8 +117,8 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("파투되면 그 스터디의 미발송 일정 알림이 모두 취소되고 다른 스터디는 그대로다. 이미 나간 알림은 남는다")
     void cancelRemovesUnsentOnly() {
-        long id = study(inHours(72));
-        long other = study(inHours(72));
+        long id = study(inDays(3));
+        long other = study(inDays(3));
         publish(new MemberJoined(id, memberId));
         publish(new MemberJoined(other, memberId));
         // 하루 전 알림은 이미 나갔다고 본다 (예정 시각이 지났고 발송 완료)
@@ -138,7 +139,7 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("주최자 혼자일 때 일정을 바꾸면 예약을 새 시각으로 다시 만든다")
     void rescheduleRecreates() {
-        Instant start = inHours(72);
+        Instant start = inDays(3);
         long id = study(start);
         publish(new StudyCreated(id, hostId));
 
@@ -155,9 +156,12 @@ class ScheduledNotificationIntegrationTest extends IntegrationTestSupport {
         tx.executeWithoutResult(status -> events.publishEvent(event));
     }
 
-    private static Instant inHours(int hours) {
-        return Instant.now().plus(Duration.ofHours(hours)).truncatedTo(ChronoUnit.MINUTES)
-                .minusSeconds(Instant.now().atZone(ZoneOffset.UTC).getMinute() % 10 * 60L);
+    /**
+     * {@code days} 일 뒤 한국 시간 오전 10시. 개설 규칙(진행 시간이 자정 전에 끝나야 함)이 현재 시각에 따라 달라지지 않게 낮 시간으로
+     * 고정한다.
+     */
+    private static Instant inDays(int days) {
+        return LocalDate.now(TimeProvider.KOREA).plusDays(days).atTime(10, 0).atZone(TimeProvider.KOREA).toInstant();
     }
 
     private long user(String nickname) {
