@@ -303,8 +303,12 @@ class StudyUpdateIntegrationTest extends IntegrationTestSupport {
     }
 
     /** 시작 시각 단위(10분)에 맞추어 분 이하를 0 으로 맞춘 시각 (KST 와 UTC 의 분 오프셋이 같다). */
+    /**
+     * 그 시각이 속한 한국 날짜의 오전 10시. 진행 시간이 자정 전에 끝나야 한다는 개설 규칙이 실행 시각에 따라 달라지지 않게
+     * 낮 시간으로 고정한다.
+     */
     private static Instant nextMinuteUnit(Instant instant) {
-        return instant.truncatedTo(ChronoUnit.HOURS);
+        return instant.atZone(TimeProvider.KOREA).toLocalDate().atTime(10, 0).atZone(TimeProvider.KOREA).toInstant();
     }
 
     private static LocalDateTime utc(Instant instant) {
