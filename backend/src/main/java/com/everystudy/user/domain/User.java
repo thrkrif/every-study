@@ -88,6 +88,19 @@ public class User {
         this.districtCode = districtCode;
     }
 
+    /**
+     * 탈퇴한다. 개인정보를 비우고(닉네임·이메일·직군·지역) 행과 {@code id} 는 남긴다 (PRD 4.1, DATA-MODEL 3장).
+     * 소셜 계정 연결은 호출한 쪽이 지운다.
+     */
+    public void withdraw(Instant now) {
+        this.nickname = null;
+        this.email = null;
+        this.jobCode = null;
+        this.districtCode = null;
+        this.status = UserStatus.WITHDRAWN;
+        this.withdrawnAt = now;
+    }
+
     /** 온보딩(닉네임·직군·지역 입력)을 마쳤는가. */
     public boolean isOnboarded() {
         return nickname != null && jobCode != null && districtCode != null;

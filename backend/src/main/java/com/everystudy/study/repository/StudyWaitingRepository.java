@@ -14,6 +14,9 @@ public interface StudyWaitingRepository extends JpaRepository<StudyWaiting, Stud
 
     void deleteByStudyIdAndUserId(Long studyId, Long userId);
 
+    /** 회원의 대기 행을 모두 지운다 (탈퇴). */
+    void deleteByUserId(Long userId);
+
     /** 스터디의 대기 행을 모두 지운다 (파투·종료 처리). */
     void deleteByStudyId(Long studyId);
 }

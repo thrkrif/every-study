@@ -15,4 +15,8 @@ public interface StudyMemberRepository extends JpaRepository<StudyMember, Long> 
 
     /** 나간 행도 찾는다. 같은 사람은 한 스터디에 한 행이다. */
     Optional<StudyMember> findByStudyIdAndUserId(Long studyId, Long userId);
+
+    /** 회원이 {@code ACTIVE} 인 스터디 번호, 작은 것부터. 탈퇴할 때 스터디마다 잠금을 같은 순서로 잡으려고 정렬한다. */
+    @org.springframework.data.jpa.repository.Query("select m.studyId from StudyMember m where m.userId = :userId and m.status = com.everystudy.study.domain.MemberStatus.ACTIVE order by m.studyId")
+    List<Long> findActiveStudyIds(@org.springframework.data.repository.query.Param("userId") Long userId);
 }

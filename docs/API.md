@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.40"
+version: "0.41"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.20
-  - docs/DATA-MODEL.md@0.34
+  - docs/DATA-MODEL.md@0.35
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -150,7 +150,7 @@ covers:
 |---|---|---|
 | `GET /api/v1/me` | 회원 | 프로필, `onboarded` 여부. 이용 제한 현황은 제재 작업(PLAN T-035a)에서 더한다 |
 | `PUT /api/v1/me/profile` | 회원 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
-| `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디가 있으면 규칙을 먼저 적용한 뒤 처리 |
+| `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디에 나가기 규칙을 먼저 적용하고(참여 취소·주최자 승계·파투, 대기 삭제) 개인정보 삭제·미발송 알림 취소·토큰 폐기를 한 트랜잭션으로 처리한다. `204`, 로그인 쿠키를 지우고 새 CSRF 토큰을 받게 한다. 이미 탈퇴했어도 `204`(멱등). 이미 시작한 스터디의 참여자는 그대로 두고 출석 판정에 맡긴다. 이미 발급된 액세스 토큰은 만료(최대 15분)까지 일부 API 에서 통과할 수 있고 `GET /me`는 `401`이다 |
 | `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
 | `GET /api/v1/me/attendance?cursor&size` | 회원 | 지난 출석 기록. 스터디마다 **현재 판정** 하나씩, 최근에 쌓인 판정부터(커서, `size` 1~50 기본 20). 응답 `{ items: [{ eventId, studyId, studyTitle, type, occurredAt, appealable, appealDueAt, appealId }], nextCursor }`. `type`은 현재 판정(DATA-MODEL 5장). `appealable`은 이의 대상 판정이고 아직 내지 않았고 기한 안일 때만 `true`, `appealDueAt`은 이의 대상 판정에만 값이 있고 `appealId`는 이미 낸 이의가 있을 때만 값이 있다. `eventId`가 이의 신청 경로(5장)의 값이다 |
 | `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
