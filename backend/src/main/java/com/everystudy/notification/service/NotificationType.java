@@ -13,5 +13,7 @@ public enum NotificationType {
     /** 참여자 경고: 노쇼 확정 또는 지각 누적 (PRD 4.8). 제재 행은 만들지 않는다. */
     SANCTION_WARNING,
     /** 참여 신청 제한 또는 이용 정지를 부여했다는 안내 (PRD 4.8). */
-    SANCTION_APPLIED
+    SANCTION_APPLIED,
+    /** 주최자 경고: 90일 감점 합계가 경고 단계 (PRD 4.13C). */
+    HOST_WARNING
 }

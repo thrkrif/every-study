@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.23"
+version: "0.24"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.18
@@ -281,9 +281,11 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | starts_at, ends_at | DATETIME(6) | 기간은 PRD 4.8, 4.13C |
 | revoked_at | DATETIME(6) NULL | 운영자 해제 |
 | created_by | BIGINT NULL FK(user) | 수동 조치자 |
+| review_required | BOOLEAN | 운영자 검토 대상이면 `TRUE`(기본 `FALSE`). 주최자 합계가 검토 단계(PRD 4.13C)에 이른 개설 제한에만 켠다. 조회·검토 처리는 T-055 |
 
 - 신청·개설 시점에 `starts_at <= now < ends_at AND revoked_at IS NULL`인 행이 있는지 검사한다. 참여 신청을 막는 것은 `JOIN_RESTRICT`와 `SUSPEND`이고, 여럿이면 가장 늦은 `ends_at`을 `USER_RESTRICTED`의 `until`로 준다. 경고 단계는 제재가 아니라 알림이므로 행을 만들지 않는다.
 - **자동 부여(T-035a)**: 노쇼 확정과 지각 기록 때 같은 트랜잭션에서 단계를 판정한다 (PRD 4.8). `source=AUTO`이고 `created_by`는 `NULL`, `reason`은 단계 이름 수준의 짧은 문구다. 같은 단계는 중복해서 만들지 않는다: 해제되지 않은 자동 `JOIN_RESTRICT`가 있으면 제한을 다시 걸지 않고, 유효한 `SUSPEND`가 있으면 정지를 다시 걸지 않는다. "재발"은 해제되지 않은 자동 `JOIN_RESTRICT` 중 가장 늦은 `starts_at` 이후 확정된 노쇼·지각으로 센다 (PLAN D-15).
+- **주최자 개설 제한(T-035b)**: 감점이 기록되는 같은 트랜잭션에서 90일 롤링 합계로 판정한다(`HostPenaltyRecorder`). 합계가 경고 단계면 행 없이 `HOST_WARNING` 알림만, 개설 제한 단계면 `HOST_RESTRICT`, 검토 단계면 더 긴 `HOST_RESTRICT`에 `review_required=TRUE`. 이미 더 늦게 끝나는 유효한 개설 제한이 있으면 다시 걸지 않는다. 개설은 `HOST_RESTRICT`와 `SUSPEND`가 막고 `JOIN_RESTRICT`는 막지 않는다.
 - 인덱스 `(user_id, kind, ends_at)`.
 
 ## 7. 알림
@@ -293,7 +295,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`. 종류를 더하면 `CHECK`도 고친다 |
+| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`, `HOST_WARNING`. 종류를 더하면 `CHECK`도 고친다 |
 | study_id | BIGINT NULL FK | 연결 대상 |
 | title | VARCHAR(100) | 중복을 견디는 문장 (ADR-0005) |
 | body | VARCHAR(300) | 같음 |

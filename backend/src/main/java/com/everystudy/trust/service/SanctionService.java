@@ -16,6 +16,9 @@ public class SanctionService {
     /** 참여 신청을 막는 제재: 참여 신청 제한과 이용 정지. 개설 제한은 신청을 막지 않는다. */
     private static final Set<SanctionKind> BLOCKS_JOIN = EnumSet.of(SanctionKind.JOIN_RESTRICT, SanctionKind.SUSPEND);
 
+    /** 스터디 개설을 막는 제재: 개설 제한과 이용 정지. 참여 신청 제한은 개설을 막지 않는다. */
+    private static final Set<SanctionKind> BLOCKS_HOST = EnumSet.of(SanctionKind.HOST_RESTRICT, SanctionKind.SUSPEND);
+
     private final UserSanctionRepository sanctions;
 
     SanctionService(UserSanctionRepository sanctions) {
@@ -30,5 +33,15 @@ public class SanctionService {
     @Transactional(readOnly = true)
     public Optional<Instant> joinRestrictedUntil(long userId, Instant now) {
         return sanctions.findLatestActiveEnd(userId, BLOCKS_JOIN, now);
+    }
+
+    /**
+     * 지금 스터디 개설이 막혀 있으면 풀리는 시각. 막는 제재가 여럿이면 가장 늦게 끝나는 것이다.
+     *
+     * @return 막혀 있지 않으면 빈 값
+     */
+    @Transactional(readOnly = true)
+    public Optional<Instant> hostRestrictedUntil(long userId, Instant now) {
+        return sanctions.findLatestActiveEnd(userId, BLOCKS_HOST, now);
     }
 }

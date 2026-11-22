@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.27"
+version: "0.28"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.23
-  - docs/API.md@0.27
+  - docs/DATA-MODEL.md@0.24
+  - docs/API.md@0.28
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -303,11 +303,13 @@ based_on:
   - 결과: `attendance.service.NoShowConfirmationService`(10분마다, `NoShowConfirmationJob`)가 이의 기간(48시간)이 **지난** 후보를 확정 · 열린 이의가 있으면 건너뛰고 기각되면 확정, 정정으로 현재 판정이 아니면 확정하지 않음 · 열린 이의가 한 번에 처리할 건수보다 많아도 뒤의 후보가 굶지 않게 id 를 따라 쪽을 넘겨 봄 · 판정은 `trust.service.ParticipantSanctionService`(`judgeAfterNoShow`·`judgeAfterLate`, T-056 재사용)가 같은 트랜잭션에서 하고, 순수 계산은 `SanctionJudgement`(단위 테스트) · 지각 판정은 `CheckinService`가 지각 이벤트를 남긴 직후 부름 · 새 알림 type `SANCTION_WARNING`·`SANCTION_APPLIED`(V14, X-4 중 참여자 몫) · 내가 정한 세부 결정: ① 이의 기한 정각에는 확정하지 않고 1초 뒤부터(이의는 기한 정각까지 받으므로 겹치지 않게) ② 제한은 해제되지 않은 자동 제한이 있으면 다시 걸지 않고, 정지는 유효한 정지가 있으면 다시 걸지 않음(정지가 끝난 뒤에도 재발 기준이 계속 충족되면 새 정지) ③ 노쇼 확정마다 경고 알림(제한·정지가 걸리면 그 알림이 대신), 지각은 최근 5회 중 3회 이상일 때만 경고 ④ 같은 시각에 확정된 노쇼는 제한을 부른 건으로 보아 재발로 세지 않음 ⑤ 제재 알림 유효 기간은 설정 `everystudy.trust.notice-valid-days`(기본 7일, D-18에서 종류별 기준이 정해지면 따름) ⑥ 단계 수치는 모두 `everystudy.trust.*` 설정값(PRD 4.8 기본값)
   - 로컬 검증: Docker Desktop 이 멈춰(ryuk `Created`) 통합 테스트(`NoShowConfirmationIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-035b 주최자 개설 제한과 운영자 검토 표시
+- [x] T-035b 주최자 개설 제한과 운영자 검토 표시
   - 선행: T-031, T-035a · 결정 X-4
   - 참조: PRD 4.13B·4.13C, ARCHITECTURE 4.5, DATA-MODEL 6장(`host_penalty_event`, `user_sanction`)
   - 완료: 주최자 개설 제한은 감점이 기록되는 시점(주최자 이탈 T-020 경로, 미도착 무효 T-031 경로)에 **같은 트랜잭션에서** 롤링 합계(PRD 4.13B)를 계산해 판정하고, 개설 제한(`HOST_RESTRICT`)과 감사 로그·알림 기록 · 주최자 합계가 운영자 검토 단계(PRD 4.13C)에 이르면 운영자 검토 대상으로 표시(조회는 T-055) · 개설(T-008)에 개설 제한 검사 추가, 거부 시 `USER_RESTRICTED`와 `until` · 테스트: 단계별 경계, 롤링 기간 밖 감점 제외, 감점 트랜잭션 롤백 시 제한 0건
   - 문서: DATA-MODEL 6장, API 1장 확인
+  - 결과: `trust.service.HostPenaltyRecorder`가 감점(이탈 T-020·미도착 T-031 경로 모두)을 저장한 같은 트랜잭션에서 90일 롤링 합계로 판정 · 합계 2점 `HOST_WARNING` 알림, 3점 7일 `HOST_RESTRICT`, 5점 30일 `HOST_RESTRICT` + `review_required`(V15) · 개설(`StudyCreationService`)은 `SanctionService.hostRestrictedUntil`로 검사해 `USER_RESTRICTED`와 `until` · 내가 정한 세부 결정: ① 개설은 개설 제한과 이용 정지가 막고 참여 신청 제한은 막지 않음 ② 이미 더 늦게 끝나는 유효한 개설 제한이 있으면 같은 제한을 다시 걸지 않음(3점 → 4점은 그대로, 5점은 30일로 새로 걸림) ③ 경고는 합계가 경고 단계인 감점에서 나가고(감점마다 한 건이라 중복 없음) 개설 제한이 걸리면 `SANCTION_APPLIED` 알림이 대신 ④ 검토 표시는 `user_sanction.review_required` 컬럼, 조회는 T-055 ⑤ 수치는 `everystudy.trust.host-*` 설정값(PRD 4.13C 제안값, D-13 확정 전)
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`HostSanctionIntegrationTest`)는 CI 에서 확인
 
 - [x] T-036 [프론트] 마이페이지: 지표와 출석 기록
   - 선행: T-026, T-033
@@ -594,7 +596,7 @@ based_on:
 | X-1 | ADR-0002~0005 본문은 "확정(2026-11-13)"인데 머리말 `status`가 `draft`. ARCHITECTURE 3장·4.1·4.6~4.8 제목에 "(제안, ADR-000x)"가 남아 있음 | 머리말을 `confirmed`로, 제목의 "제안"을 "확정"으로 (ADR 오탈자 수준 수정) | 없음 |
 | X-2 | ARCHITECTURE 4.7 작업 목록에 "체크인 오픈 알림" 작업이 따로 있으나, 4.6과 ADR-0005는 개설 시 아웃박스 예약으로 처리. 또 4.6은 "개설 시 예약"이라 하는데 알림 대상인 참여자는 개설 뒤에 생김 | 참여 확정 시 그 참여자의 일정 알림을 예약하고(나가기 시 취소), 4.7의 별도 작업은 지운다 | T-040 |
 | X-3 | **결정됨(해소)**: docs/README.md 1장 표와 계층도에 PLAN을 추가함 (PR #12) | - | - |
-| X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음. **일부 반영(T-035a)**: `SANCTION_WARNING`·`SANCTION_APPLIED`(참여자)는 API 8장에 추가됨. 남은 것: `HOST_WARNING`(T-035b), `CHAT_MESSAGE`(T-050) | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
+| X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음. **일부 반영(T-035a)**: `SANCTION_WARNING`·`SANCTION_APPLIED`(참여자)는 API 8장에 추가됨. `HOST_WARNING`(주최자)도 T-035b에서 추가됨. 남은 것: `CHAT_MESSAGE`(T-050) | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
 | X-5 | **결정됨(2026-11-17, 오른쪽 제안대로. API 4장 상세 응답 필드 표)**: API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
 | X-6 | **결정됨(2026-11-17, 오른쪽 제안대로. API 1장)**: 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음. 함께 정한 것: 닉네임은 2~20자의 한글(완성형)·영문·숫자·밑줄, 영문 대소문자는 구분하지 않고 중복으로 본다(API 3장) | `409 NICKNAME_TAKEN` 추가 | T-006 |
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |

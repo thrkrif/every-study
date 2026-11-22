@@ -52,6 +52,9 @@ public class UserSanction {
     @Column(name = "created_by")
     private Long createdBy;
 
+    @Column(name = "review_required", nullable = false)
+    private boolean reviewRequired;
+
     protected UserSanction() {
     }
 
@@ -63,6 +66,14 @@ public class UserSanction {
         sanction.reason = reason;
         sanction.startsAt = startsAt;
         sanction.endsAt = endsAt;
+        return sanction;
+    }
+
+    /** 주최자 개설 제한. {@code reviewRequired} 면 운영자 검토 대상이다 (PRD 4.13C). */
+    public static UserSanction autoHostRestrict(long userId, String reason, Instant startsAt, Instant endsAt,
+            boolean reviewRequired) {
+        UserSanction sanction = auto(userId, SanctionKind.HOST_RESTRICT, reason, startsAt, endsAt);
+        sanction.reviewRequired = reviewRequired;
         return sanction;
     }
 

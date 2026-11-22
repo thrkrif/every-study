@@ -20,6 +20,12 @@ import org.springframework.validation.annotation.Validated;
  * @param suspendConvertedNoShows 긴 창의 환산 노쇼가 이 값 이상이면 이용 정지 (PRD 4.8, 4회)
  * @param joinRestrictDays 참여 신청 제한 기간, 일 (PRD 4.8, 7일)
  * @param suspendDays 이용 정지 기간, 일 (PRD 4.8, 14일)
+ * @param hostPenaltyWindowDays 주최자 감점을 합산하는 기간, 일 (PRD 4.13B 90일 롤링)
+ * @param hostWarnPoints 합계가 이 값 이상이면 주최자 경고 (PRD 4.13C 2점)
+ * @param hostRestrictPoints 합계가 이 값 이상이면 개설 제한 (PRD 4.13C 3점)
+ * @param hostRestrictDays 개설 제한 기간, 일 (PRD 4.13C 7일)
+ * @param hostReviewPoints 합계가 이 값 이상이면 긴 개설 제한과 운영자 검토 (PRD 4.13C 5점)
+ * @param hostLongRestrictDays 운영자 검토 단계의 개설 제한 기간, 일 (PRD 4.13C 30일)
  * @param noticeValidDays 제재 알림의 유효 기간, 일. 알림 종류별 기준(PLAN D-18)이 정해지면 그쪽을 따른다
  */
 @Validated
@@ -37,5 +43,11 @@ public record TrustProperties(
         @Min(1) @DefaultValue("4") int suspendConvertedNoShows,
         @Min(1) @DefaultValue("7") int joinRestrictDays,
         @Min(1) @DefaultValue("14") int suspendDays,
-        @Min(1) @DefaultValue("7") int noticeValidDays) {
+        @Min(1) @DefaultValue("7") int noticeValidDays,
+        @Min(1) @DefaultValue("90") int hostPenaltyWindowDays,
+        @Min(1) @DefaultValue("2") int hostWarnPoints,
+        @Min(1) @DefaultValue("3") int hostRestrictPoints,
+        @Min(1) @DefaultValue("7") int hostRestrictDays,
+        @Min(1) @DefaultValue("5") int hostReviewPoints,
+        @Min(1) @DefaultValue("30") int hostLongRestrictDays) {
 }

@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.27"
+version: "0.28"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.23
+  - docs/DATA-MODEL.md@0.24
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -207,7 +207,7 @@ covers:
 |---|---|---|
 | `GET /api/v1/meta/options` | 공개 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정). 아래 응답 |
 | `GET /api/v1/studies` | 공개 | 목록. 기본은 모집 중만. 아래 "목록 조회" |
-| `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 제재 중이면 `403 USER_RESTRICTED`(T-035b에서 추가) |
+| `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 개설 제한·이용 정지 중이면 `403 USER_RESTRICTED`(`until` 포함, 온보딩 검사 다음·입력 검증 앞) |
 | `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함. 종료·파투된 스터디도 주소로 열면 보인다. 없으면 `404 NOT_FOUND` |
 | `PATCH /api/v1/studies/{id}` | 주최자 | 본문 `{ title?, description?, startAt?, durationMin?, place? }`, 보낸 항목만 바꾸고 고친 **상세**를 `200`으로 돌려준다(`scheduleEditable`로 클라이언트가 입력란을 잠근다). 제목·소개는 진행 중이면 언제든 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없고 시작 전일 때만** 수정 가능하고, 아니면 `409 SCHEDULE_LOCKED`(같이 보낸 제목·소개도 바뀌지 않는다). 일정은 개설과 같은 규칙으로 검사해(바꾸지 않은 항목은 지금 값과 합쳐서) 어긋나면 `400 VALIDATION_FAILED`. 주최자(`host_id`이고 `ACTIVE`)가 아니면 `403`, 종료·파투면 `409 STUDY_CLOSED` |
 | `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소하고 고친 **상세**를 `200`으로 돌려준다. 범위(`capacityMin`~`capacityMax`) 밖이면 `400 VALIDATION_FAILED`, 현재 `ACTIVE` 참여자 수(주최자 포함) 미만이면 `409 CAPACITY_BELOW_MEMBERS`. 정원이 찼던 스터디에서 자리가 생기게 늘리면 자격이 남은 대기자에게 알림(PLAN X-20). 권한·종료 처리는 PATCH와 같다 |
@@ -408,8 +408,9 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 | `HOST_ASSIGNED` | 새 주최자 | 승계 |
 | `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 |
 | `APPEAL_RESULT` | 신청자 | 이의 결정 |
+| `HOST_WARNING` | 주최자 | 90일 감점 합계가 경고 단계 (PRD 4.13C, 행 없이 알림만) |
 | `SANCTION_WARNING` | 대상자 | 참여자 경고: 노쇼 확정, 최근 5회 중 지각 3회 (PRD 4.8, 제재 행 없이 알림만) |
-| `SANCTION_APPLIED` | 대상자 | 제재 부여: 참여 신청 제한·이용 정지 (주최자 개설 제한은 T-035b) |
+| `SANCTION_APPLIED` | 대상자 | 제재 부여: 참여 신청 제한·이용 정지·주최자 개설 제한 |
 
 ## 9. 결정 현황
 
