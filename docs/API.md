@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.31"
+version: "0.32"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.27
+  - docs/DATA-MODEL.md@0.28
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -391,10 +391,10 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 | `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여·해제 |
 | `GET /api/v1/admin/appeals?status=open` · `POST /{id}/decision` | 운영자 | 이의 최종 결정 `{ "accept": true, "note": "..." }`. 인정 시 정정 이벤트와 지표 재계산 |
 | `GET /api/v1/admin/sanctions?userId=` | 운영자 | 자동 제재 조회·해제 |
-| `GET /api/v1/admin/audit-logs` | 운영자 | 감사 로그 (커서) |
+| `GET /api/v1/admin/audit-logs?cursor=&size=50&action=&targetType=` | 운영자 | 감사 로그. 최근 것부터 커서(`size` 1~100). `action`은 알려진 행위 이름만(아니면 `400`), `targetType`은 그대로 비교한다. 응답 `{ "items": [ { id, actorId(시스템이면 null), action, targetType, targetId, detail, createdAt } ], "nextCursor": null }` |
 
 - 모든 운영자 쓰기 API는 `audit_log`에 기록한다. 응답 코드는 `204` 또는 변경된 리소스.
-- 운영자 API는 일반 API와 **경로 접두사(`/admin`)로 분리**하고 `role=ADMIN`을 필수로 검사한다.
+- 운영자 API는 일반 API와 **경로 접두사(`/admin`)로 분리**하고 `role=ADMIN`을 필수로 검사한다. 비회원은 `401`, 일반 회원은 `403`이다. 역할은 액세스 토큰에 들어 있어(ADR-0002) 운영자 지정·해제는 토큰이 갱신될 때(최대 15분) 반영된다.
 
 ## 8. 서버가 내보내는 이벤트와 알림
 

@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.27"
+version: "0.28"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
@@ -59,7 +59,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | email | VARCHAR(255) NULL | 이메일 알림용. 소셜 공급자가 확인한 이메일만 저장하고, 없으면 `NULL`. 탈퇴 시 삭제 |
 | job_code | VARCHAR(30) NULL | 내 직군. 대분류 코드, 또는 세부 직무를 골랐으면 그 코드 하나. 온보딩에서 정한다 (대분류는 필수, 세부는 선택. PRD 4.1) |
 | district_code | VARCHAR(20) NULL | 활동 지역. **구** 단위 코드. 온보딩에서 정한다 |
-| role | VARCHAR(10) | `USER` / `ADMIN` |
+| role | VARCHAR(10) | `USER` / `ADMIN`. `ADMIN`은 설정 목록(`everystudy.admin.emails`, 환경변수 `ADMIN_EMAILS`)에 있는 이메일로 소셜 로그인할 때 올라간다 (PLAN D-10). 내리는 일은 운영 DB 에서 직접 한다 |
 | status | VARCHAR(12) | `ACTIVE` / `WITHDRAWN` |
 | created_at, withdrawn_at | DATETIME(6) | |
 

@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.31"
+version: "0.32"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.27
-  - docs/API.md@0.31
+  - docs/DATA-MODEL.md@0.28
+  - docs/API.md@0.32
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -429,11 +429,13 @@ based_on:
 
 ### M5 운영과 출시
 
-- [ ] T-052 운영자 권한과 감사 로그 조회
+- [x] T-052 운영자 권한과 감사 로그 조회
   - 선행: T-019 · 결정 D-10
   - 참조: PRD 4.11, API 7장(`/admin` 분리, `audit-logs`), ADR-0002 결정 7
   - 완료: `/admin/**`은 `role=ADMIN`만 · 운영자 지정은 D-10 결과대로 · 감사 로그 조회(커서) · 테스트: 일반 사용자 `403`, 비회원 `401`
   - 문서: API 7장 확인
+  - 결과: `SecurityConfig`가 `/api/v1/admin/**`을 `ROLE_ADMIN`만 통과(비회원 401·일반 회원 403) · `user.service.AdminProperties`(`everystudy.admin.emails`, 환경변수 `ADMIN_EMAILS`; `.env.example`·`deploy/compose.yaml`에 키 추가)와 `SocialUserService`가 로그인 때 목록의 이메일이면 `ADMIN` 승격 · `GET /api/v1/admin/audit-logs`(`common.audit.AuditLogQueryService`·`AuditLogController`, 커서·`action`·`targetType` 필터) · 내가 정한 세부 결정: ① 운영자 지정은 이메일 목록(ID는 가입 전에 알 수 없어서), 승격은 로그인 때와 같은 트랜잭션 ② 자동 강등 없음 ③ 역할은 토큰에 있어 변경 반영에 최대 15분 ④ 감사 로그 목록은 기본 50건, 최대 100건
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AdminAccessIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-053 신고 접수와 신고 큐 처리
   - 선행: T-046, T-052 · 결정 D-4
@@ -580,7 +582,7 @@ based_on:
 | D-7 | **결정됨(2026-11-22, 사용자 확인. DATA-MODEL 5장·11장 3번, ARCHITECTURE 4.4).** 일회용 코드 자릿수·수명·입력 시도 제한 횟수 | 6자리 숫자, 체크인 마감 시각까지 유효, 한 사람이 한 스터디에서 5번 틀리면 입력 불가(`everystudy.attendance.code-max-failures`) | T-028 |
 | D-8 | 이메일 발송 수단(SMTP 업체·발신 주소) — 문서에 없음 | 없음 | T-041 |
 | D-9 | **결정됨(2026-11-17, DATA-MODEL 3장)**: 공급자가 확인한 이메일만 저장한다. 구글은 기본 제공 이메일, 카카오는 선택 동의 항목(`account_email`)이고 동의하지 않으면 `NULL`로 가입된다. T-004에서 함께 정한 것: 온보딩 전 회원은 닉네임·직군·지역이 `NULL`(DATA-MODEL 3장), 액세스 JWT는 HS256, 리프레시 쿠키 `Path`는 `/api/v1/auth`(ADR-0002 후속 결정). T-041은 이메일이 없는 회원에게 이메일 알림을 보내지 않는 경우를 다룬다 | DATA-MODEL 3장(`email` NULL 허용) | T-004, T-041 |
-| D-10 | 운영자(`ADMIN`) 계정 지정 방법 — 문서에 없음 | 없음 | T-052 |
+| D-10 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 3장, backend/README).** 운영자 계정은 환경변수 `ADMIN_EMAILS`(쉼표로 구분)에 이메일을 적고, 그 이메일로 소셜 로그인하면 `ADMIN`이 된다. 공급자가 확인한 이메일만 저장되므로 남이 가장할 수 없다. 목록에서 빼도 자동으로 내려가지 않는다(DB에서 직접). 운영자는 먼저 한 번 로그인해야 한다 | 없음 | T-052 |
 | D-11 | 이의 반복 기각 시 제한의 기준과 효과 | PRD 4.9 악용 방지 | T-058 |
 | D-12 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. API 8장).** 채팅 새 메시지 알림은 푸시만, 방별로 5분 시간 창마다 한 건으로 묶고 보낸 사람 본인과 방을 열어 둔 사람은 제외한다. 이메일은 보내지 않는다 | PRD 4.12 | T-050 |
 | D-13 | 주최자 제재 수치("확인 필요" 표기) 확정. 구현은 설정값이라 먼저 진행 가능 | PRD 4.13C | T-068 |

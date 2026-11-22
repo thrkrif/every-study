@@ -59,6 +59,8 @@ spring:
             user-name-attribute: id
 
 everystudy:
+  admin:
+    emails: ${ADMIN_EMAILS:}      # 쉼표로 구분. 이 이메일로 소셜 로그인한 회원이 운영자(ADMIN)가 된다 (PLAN D-10)
   auth:
     token:
       signing-key: ${JWT_SECRET}   # 32자 이상. 짧으면 기동하지 않는다
