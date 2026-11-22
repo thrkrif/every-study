@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,9 +61,12 @@ public class ChatRoomService {
     private final ChatReadRepository reads;
     private final UserDirectory users;
     private final TimeProvider time;
+    private final ApplicationEventPublisher events;
 
     ChatRoomService(StudySessions sessions, ChatRoomRepository rooms, ChatMessageRepository messages,
-            ChatNoticeRepository notices, ChatReadRepository reads, UserDirectory users, TimeProvider time) {
+            ChatNoticeRepository notices, ChatReadRepository reads, UserDirectory users, TimeProvider time,
+            ApplicationEventPublisher events) {
+        this.events = events;
         this.sessions = sessions;
         this.rooms = rooms;
         this.messages = messages;
@@ -112,7 +116,9 @@ public class ChatRoomService {
             notice.update(content, userId, now);
         }
         notices.save(notice);
-        return new Notice(notice.getContent(), notice.getUpdatedAt());
+        Notice view = new Notice(notice.getContent(), notice.getUpdatedAt());
+        events.publishEvent(new ChatBroadcaster.NoticeChanged(studyId, view));
+        return view;
     }
 
     /**

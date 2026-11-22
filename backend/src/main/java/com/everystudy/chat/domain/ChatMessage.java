@@ -45,6 +45,17 @@ public class ChatMessage {
     protected ChatMessage() {
     }
 
+    /** 참여자가 보낸 텍스트 메시지. */
+    public static ChatMessage text(long roomId, long senderId, String content, Instant now) {
+        ChatMessage message = new ChatMessage();
+        message.roomId = roomId;
+        message.senderId = senderId;
+        message.kind = ChatMessageKind.TEXT;
+        message.content = content;
+        message.createdAt = now;
+        return message;
+    }
+
     public Long getId() {
         return id;
     }

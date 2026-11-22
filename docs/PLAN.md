@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.22"
+version: "0.23"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
   - docs/DATA-MODEL.md@0.21
-  - docs/API.md@0.23
+  - docs/API.md@0.24
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -381,11 +381,12 @@ based_on:
   - 문서: DATA-MODEL 8장, API 6장 확인
   - 결과: `chat.service.ChatRoomService`(방 상태·이전 대화·공지·읽음)와 `BlockService`, 마이그레이션 V13(`chat_message`·`chat_notice`·`chat_read_state`·`block`) · 참여 여부는 `study.service.StudySessions`로만 조회(`chat → study`) · 내가 정한 세부 결정(API 6장·DATA-MODEL 8·9장에 기록): 닫힌 방은 상태 조회만 되고 이전 대화·공지·읽음은 `409 CHAT_CLOSED`(PRD 4.14 "열람 차단", T-049가 폐쇄 처리를 더한다) · 이전 대화는 최근 순, `nextCursor`는 다음 `before` 값, `size` 1~100(기본 30) · 차단·지운 메시지는 `hidden`/`deleted`로 내용 없이 표시 · 읽지 않음 수는 내 메시지·차단한 사람·지운 메시지를 빼고 시스템 메시지는 셈 · 읽음 위치는 올리기만 하고 마지막 메시지 번호로 맞춤 · 공지는 고쳐 쓰기만 하고 지우는 API는 없음 · 차단은 멱등, 자기 자신 `400`, 없는 사용자 `404`
 
-- [ ] T-047 실시간 채팅: 연결·권한·전달
+- [x] T-047 실시간 채팅: 연결·권한·전달
   - 선행: T-046
   - 참조: ADR-0005 채팅, ADR-0002 결정 5, ARCHITECTURE 4.8, API 6장(WebSocket)
   - 완료: `/ws` 핸드셰이크는 쿠키 인증과 `Origin` 허용 목록 · 구독·전송마다 `ACTIVE` 검사, 거부는 STOMP `ERROR` · DB 저장 후 전달 · 테스트: 쿠키 없는 연결 거부, 허용 외 `Origin` 거부, 비참여자 구독 거부, 저장 실패 시 전달 없음
   - 문서: API 6장 확인
+  - 결과: `chat.web.WebSocketConfig`(`/ws`, 단순 브로커, `/app`·`/topic`·`/queue`·`/user`), `ChatSocketInterceptor`(CONNECT·SUBSCRIBE·SEND마다 권한 검사, 거부는 `ERROR`), `ChatSocketController`(저장), `chat.service.ChatMessageService`·`ChatBroadcaster`(커밋 뒤 전달) · 의존성 `spring-boot-starter-websocket`(잠금 파일 갱신) · 내가 정한 세부 결정(API 6장에 기록): 핸드셰이크 인증은 기존 HTTP 보안 필터가 하고 STOMP 사용자는 회원 id · `ERROR`의 `message` 헤더에 오류 코드 · 전송 본문 검증 실패는 연결을 끊지 않고 `/user/queue/events`로 `SEND_REJECTED` · 공지 변경도 방 주제로 `NOTICE` 이벤트 · 차단 숨김은 주제 하나로 서버가 가릴 수 없어 클라이언트가 `senderId`로 가림(REST는 가려서 줌) · 테스트용 `WebSocketIntegrationTestSupport`(임의 포트)를 추가
 
 - [ ] T-048 채팅 시스템 메시지와 구독 종료
   - 선행: T-020, T-047
