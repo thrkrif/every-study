@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.29"
+version: "0.30"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.25
-  - docs/API.md@0.29
+  - docs/DATA-MODEL.md@0.26
+  - docs/API.md@0.30
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -362,11 +362,13 @@ based_on:
   - 완료: VAPID 웹 푸시 발송, 구독 등록·해지 API · 테스트: 같은 엔드포인트 재등록 시 1행, 푸시 서비스의 만료·삭제 응답 시 구독 삭제, 일시 오류는 재시도
   - 문서: DATA-MODEL 7장, API 3장 확인
 
-- [ ] T-043 알림 수신 설정
+- [x] T-043 알림 수신 설정
   - 선행: T-038 · 결정 D-6
   - 참조: PRD 4.5, DATA-MODEL 7장(`notification_setting`)·11장 2번, API 3장
   - 완료: 채널별 on/off 조회·저장, 행이 없으면 기본값 · 발송 시점에 확인하고 꺼져 있으면 D-6 결과대로 상태 기록 · 테스트: 발송 예약 후 설정을 끄면 발송되지 않음, 기본값 동작
   - 문서: DATA-MODEL 7장·11장 2번 갱신
+  - 결과: `GET/PUT /api/v1/me/notification-settings`(`{ push, email }`, 보낸 채널만 변경) · `notification_setting` 테이블과 아웃박스 `SKIPPED`(V17) · `NotificationDispatchService`가 발송 직전에 설정을 읽어 꺼져 있으면 `SKIPPED`(예약 뒤에 끈 알림도 나가지 않음) · 내가 정한 세부 결정: ① 요청·응답 모양은 `push`/`email` 불리언 두 개(채널이 둘뿐이라 목록보다 단순) ② `SKIPPED`가 된 건은 설정을 다시 켜도 되살리지 않음 ③ 알림 센터의 알림은 설정과 무관하게 남김(채널 설정은 푸시·이메일 발송에만 적용)
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트는 CI 에서 확인
 
 - [ ] T-044 [프론트] PWA와 푸시 구독
   - 선행: T-013, T-025, T-042
@@ -572,7 +574,7 @@ based_on:
 | D-3 | **일부 결정(2026-11-18, ARCHITECTURE 9장)**: M1 배포는 클라우드 VM 1대 + 도메인 + Caddy(HTTPS), MySQL은 같은 VM의 컨테이너, 이미지는 SSH로 전달(`deploy/`). 임시 호스트·터널은 쓰지 않는다. 남은 것: 업체·도메인 이름(사람), 백업(T-065). 원래 항목: 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
 | D-4 | 신고 사유 분류 목록 | DATA-MODEL 11장 1번 | T-053 |
 | D-5 | 호출 제한 수치 (대상은 API 9장 1번에 있음) | API 9장 1번 | T-064 |
-| D-6 | 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 / `SKIPPED` 추가) | DATA-MODEL 11장 2번 | T-043 |
+| D-6 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 7장·11장 2번).** 수신 설정 때문에 건너뛴 알림은 `SKIPPED` 상태를 추가해 표기한다 | DATA-MODEL 11장 2번 | T-043 |
 | D-7 | **결정됨(2026-11-22, 사용자 확인. DATA-MODEL 5장·11장 3번, ARCHITECTURE 4.4).** 일회용 코드 자릿수·수명·입력 시도 제한 횟수 | 6자리 숫자, 체크인 마감 시각까지 유효, 한 사람이 한 스터디에서 5번 틀리면 입력 불가(`everystudy.attendance.code-max-failures`) | T-028 |
 | D-8 | 이메일 발송 수단(SMTP 업체·발신 주소) — 문서에 없음 | 없음 | T-041 |
 | D-9 | **결정됨(2026-11-17, DATA-MODEL 3장)**: 공급자가 확인한 이메일만 저장한다. 구글은 기본 제공 이메일, 카카오는 선택 동의 항목(`account_email`)이고 동의하지 않으면 `NULL`로 가입된다. T-004에서 함께 정한 것: 온보딩 전 회원은 닉네임·직군·지역이 `NULL`(DATA-MODEL 3장), 액세스 JWT는 HS256, 리프레시 쿠키 `Path`는 `/api/v1/auth`(ADR-0002 후속 결정). T-041은 이메일이 없는 회원에게 이메일 알림을 보내지 않는 경우를 다룬다 | DATA-MODEL 3장(`email` NULL 허용) | T-004, T-041 |

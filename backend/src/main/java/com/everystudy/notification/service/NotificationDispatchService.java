@@ -32,7 +32,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  *
  * <p>건마다 별도 트랜잭션에서 그 행을 잠그고 상태를 다시 확인한다. 그래서 재실행·동시 실행에 안전하고 {@code SENT} 건은
  * 다시 보내지 않으며, 한 건의 실패가 다른 건을 막지 않는다. 보낸 직후 커밋 전에 서버가 멈추면 한 번 더 보낼 수 있다(적어도
- * 한 번 전달). 알림 문장이 중복을 견디게 쓰인 이유다 (ADR-0005). 수신 설정 확인은 T-043 에서 더한다.
+ * 한 번 전달). 알림 문장이 중복을 견디게 쓰인 이유다 (ADR-0005). 수신 설정이 꺼진 채널의 건은 보내지 않고 {@code SKIPPED} 로 남긴다 (T-043).
  */
 @Service
 public class NotificationDispatchService {
@@ -41,6 +41,7 @@ public class NotificationDispatchService {
 
     private final NotificationOutboxRepository outbox;
     private final NotificationRepository notifications;
+    private final NotificationSettingService settings;
     private final Map<NotificationChannel, ChannelSender> senders = new EnumMap<>(NotificationChannel.class);
     private final NotificationProperties properties;
     private final SchedulerProperties scheduler;
@@ -48,10 +49,11 @@ public class NotificationDispatchService {
     private final TransactionTemplate tx;
 
     NotificationDispatchService(NotificationOutboxRepository outbox, NotificationRepository notifications,
-            List<ChannelSender> senders, NotificationProperties properties, SchedulerProperties scheduler,
+            NotificationSettingService settings, List<ChannelSender> senders, NotificationProperties properties, SchedulerProperties scheduler,
             TimeProvider time, TransactionTemplate tx) {
         this.outbox = outbox;
         this.notifications = notifications;
+        this.settings = settings;
         senders.forEach(sender -> this.senders.put(sender.channel(), sender));
         this.properties = properties;
         this.scheduler = scheduler;
@@ -90,10 +92,16 @@ public class NotificationDispatchService {
             row.cancelExpired("유효 기한이 지나 보내지 않음");
             return true;
         }
-        ChannelSender sender = senders.get(NotificationChannel.valueOf(row.getChannel()));
+        NotificationChannel channel = NotificationChannel.valueOf(row.getChannel());
+        ChannelSender sender = senders.get(channel);
         Notification notification = notifications.findById(row.getNotificationId()).orElse(null);
         if (sender == null || notification == null) {
             return false;
+        }
+        // 수신 설정은 발송 시점에 읽는다. 예약해 둔 알림도 그 사이 설정을 끄면 나가지 않는다 (PRD 4.5, D-6).
+        if (!settings.isEnabled(notification.getUserId(), channel)) {
+            row.skipByPreference();
+            return true;
         }
         OutgoingNotification message = new OutgoingNotification(row.getId(), notification.getUserId(),
                 NotificationType.valueOf(notification.getType()), notification.getStudyId(), notification.getTitle(),

@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.25"
+version: "0.26"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
@@ -316,7 +316,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | notification_id | BIGINT FK | |
 | channel | VARCHAR(10) | `PUSH` / `EMAIL` |
 | dedupe_key | VARCHAR(100) UNIQUE | 알림의 키에 `:{채널}`을 붙인 값. 예: `CHECKIN_OPEN:{studyId}:{userId}:PUSH` |
-| status | VARCHAR(10) | `PENDING` / `SENT` / `FAILED` / `CANCELLED` |
+| status | VARCHAR(10) | `PENDING` / `SENT` / `FAILED` / `CANCELLED` / `SKIPPED`(수신 설정이 꺼져 있어 보내지 않음, PLAN D-6) |
 | scheduled_at | DATETIME(6) | 예정 발송 시각 (일정 알림은 미리 기록). 알림의 `visible_at`과 같다 |
 | attempts | TINYINT | 처음 0 |
 | next_attempt_at | DATETIME(6) | 백오프. 처음은 `scheduled_at` |
@@ -328,10 +328,10 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 - 워커는 `status='PENDING' AND next_attempt_at <= now`를 한 번에 상한 건수만큼 읽는다. 인덱스 `(status, next_attempt_at)`.
 - **일정 알림 취소(T-040)**: 참여자가 나가거나 스터디가 취소되면 미발송 일정 알림(`CHECKIN_REMINDER_DAY`·`_HOUR`·`CHECKIN_OPEN`)을 취소한다. 예정 시각이 아직 오지 않아 알림 센터에 보이지 않는 `PENDING` 행은 알림과 함께 **삭제**해 같은 키로 다시 예약할 수 있게 하고, 예정 시각이 지났지만 아직 안 나간 `PENDING` 행은 `CANCELLED`로 바꾼다. 이미 보낸 알림은 남긴다. 주최자 혼자일 때 일정을 수정하면 주최자 몫을 같은 방식으로 지우고 새로 만든다 (ARCHITECTURE 4.6).
 - **일정 알림 유효 기한(PLAN D-18)**: 하루 전 알림은 1시간 전 알림 시각까지, 1시간 전 알림은 체크인 오픈까지, 체크인 오픈 알림은 체크인 마감까지다.
-- 수신 설정은 발송 시점에 읽는다. 꺼져 있으면 건너뛴다. 상태를 `CANCELLED`로 둘지 `SKIPPED`를 추가할지는 11장 2번.
+- 수신 설정은 발송 시점에 읽는다. 꺼져 있으면 보내지 않고 `SKIPPED`로 바꾼다(취소와 구분). 이미 `SKIPPED`가 된 건은 설정을 다시 켜도 보내지 않는다. 알림 센터의 알림(`notification`)은 채널 설정과 무관하게 남는다.
 
 ### `notification_setting`
-PK `(user_id, channel)`, `enabled BOOLEAN`. 행이 없으면 기본값(켜짐, 제안).
+PK `(user_id, channel)`, `enabled BOOLEAN`, `updated_at DATETIME(6)`. 행이 없으면 기본값(켜짐, 제안). 채널은 `PUSH`/`EMAIL`.
 
 ### `push_subscription`
 | 컬럼 | 타입 | 설명 |
@@ -432,5 +432,5 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 
 **구현하며 정할 항목**
 1. 신고 사유 분류 목록 (`report.reason`)
-2. 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 vs `SKIPPED` 추가)
+2. ~~수신 설정으로 건너뛴 알림의 상태 표기~~ 결정됨 (PLAN D-6: `SKIPPED` 추가)
 3. ~~일회용 코드 자릿수와 수명~~ 결정됨 (PLAN D-7: 6자리 숫자, 체크인 마감까지, 5회 실패 시 입력 불가)

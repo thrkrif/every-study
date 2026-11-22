@@ -93,6 +93,12 @@ public class NotificationOutbox {
         this.lastError = truncate(reason);
     }
 
+    /** 수신 설정이 꺼져 있어 보내지 않는다. 설정을 다시 켜도 이미 건너뛴 건은 보내지 않는다. */
+    public void skipByPreference() {
+        this.status = OutboxStatus.SKIPPED;
+        this.lastError = null;
+    }
+
     /** 실패를 기록하고 {@code retryAt} 에 다시 시도한다. */
     public void retryLater(String error, Instant retryAt) {
         this.attempts++;
