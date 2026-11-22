@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.13"
+version: "0.14"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.15
@@ -111,7 +111,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | latitude, longitude | DECIMAL(9,6) | 체크인 거리 계산 기준 |
 | start_at | DATETIME(6) | 시작 시각 (UTC) |
 | duration_min | SMALLINT | 진행 시간(분). 같은 날(KST) 안에 끝나야 한다. 자정(24:00)에 끝나는 것까지 받는다 |
-| session_date | DATE | `start_at`의 **KST 날짜**. 종료 처리와 목록 조회에 쓴다 |
+| session_date | DATE | `start_at`의 **KST 날짜**. 종료 처리와 목록 조회에 쓴다. 일정을 수정하면(PRD 4.2, 주최자 혼자일 때만) 같은 트랜잭션에서 다시 계산한다 |
 | capacity | TINYINT | 정원 (주최자 포함). 범위는 PRD 4.14 |
 | min_attendance_rate | TINYINT NULL | 입장 기준: 최소 출석률(%). `NULL`이면 기준 없음 |
 | allow_newcomer | BOOLEAN | 입장 기준: 신규 허용 (기본 `TRUE`) |

@@ -158,6 +158,31 @@ public class Study {
         updatedAt = now;
     }
 
+    /** 제목·소개를 고친다. 값의 형식 검사는 호출한 쪽이 끝냈다. */
+    public void editText(String title, String description, Instant now) {
+        this.title = title;
+        this.description = description;
+        this.updatedAt = now;
+    }
+
+    /** 일정·장소를 고친다 (PRD 4.2: 주최자 혼자일 때만). {@code sessionDate} 는 {@code startAt} 의 KST 날짜다. */
+    public void reschedule(Instant startAt, int durationMin, LocalDate sessionDate, Place place, Instant now) {
+        this.startAt = startAt;
+        this.durationMin = durationMin;
+        this.sessionDate = sessionDate;
+        this.placeName = place.name();
+        this.placeAddress = place.address();
+        this.latitude = place.latitude();
+        this.longitude = place.longitude();
+        this.updatedAt = now;
+    }
+
+    /** 정원을 바꾼다. 범위와 현재 참여자 수 검사는 호출한 쪽이 끝냈다. */
+    public void changeCapacity(int capacity, Instant now) {
+        this.capacity = capacity;
+        this.updatedAt = now;
+    }
+
     /** 파투한다 (PRD 4.13A). 진행 중인 스터디만 파투할 수 있다. */
     public void cancel(CancelReason reason, Instant now) {
         if (status != StudyStatus.ACTIVE) {

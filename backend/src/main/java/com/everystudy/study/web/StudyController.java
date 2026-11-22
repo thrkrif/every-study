@@ -8,11 +8,13 @@ import com.everystudy.study.service.StudyCreationService;
 import com.everystudy.study.service.StudyJoinService;
 import com.everystudy.study.service.StudyLeaveService;
 import com.everystudy.study.service.StudyQueryService;
+import com.everystudy.study.service.StudyUpdateService;
 import com.everystudy.study.service.StudyViews;
 import com.everystudy.study.service.StudyWaitingService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import java.net.URI;
 import java.util.List;
@@ -21,8 +23,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,9 +42,11 @@ class StudyController {
     private final StudyJoinService joining;
     private final StudyWaitingService waiting;
     private final StudyLeaveService leaving;
+    private final StudyUpdateService updating;
 
     StudyController(StudyCreationService creation, StudyQueryService queries, StudyJoinService joining,
-            StudyWaitingService waiting, StudyLeaveService leaving) {
+            StudyWaitingService waiting, StudyLeaveService leaving, StudyUpdateService updating) {
+        this.updating = updating;
         this.leaving = leaving;
         this.waiting = waiting;
         this.creation = creation;
@@ -89,6 +95,25 @@ class StudyController {
             @Valid @RequestBody CreateStudyRequest request) {
         long id = creation.create(user.userId(), request.toCommand());
         return ResponseEntity.created(URI.create("/api/v1/studies/" + id)).body(new CreatedStudy(id));
+    }
+
+    /** 수정. 제목·소개는 언제든, 일정·장소는 주최자 혼자일 때만 고친다. 고친 뒤의 상세를 돌려준다. */
+    @PatchMapping("/{id}")
+    StudyViews.Detail update(@AuthenticationPrincipal LoginUser user, @PathVariable long id,
+            @Valid @RequestBody UpdateStudyRequest request) {
+        updating.update(id, user.userId(), request.toChanges());
+        return queries.detail(id, user.userId());
+    }
+
+    record CapacityRequest(@NotNull(message = "필수 값입니다") Integer capacity) {
+    }
+
+    /** 정원 변경(증액·감소). 고친 뒤의 상세를 돌려준다. */
+    @PutMapping("/{id}/capacity")
+    StudyViews.Detail changeCapacity(@AuthenticationPrincipal LoginUser user, @PathVariable long id,
+            @Valid @RequestBody CapacityRequest request) {
+        updating.changeCapacity(id, user.userId(), request.capacity());
+        return queries.detail(id, user.userId());
     }
 
     /** 참여 신청. 승인 없이 바로 확정되어 {@code 201}, 본문은 없다. 결과는 상세의 {@code myState} 로 본다. */
