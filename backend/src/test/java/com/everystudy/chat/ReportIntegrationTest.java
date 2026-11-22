@@ -127,7 +127,7 @@ class ReportIntegrationTest extends IntegrationTestSupport {
         assertThat((List<Integer>) JsonPath.read(body(mvc.get().uri("/api/v1/admin/reports").cookie(admin)
                 .exchange()), "$.items[*].id")).isEmpty();
         assertThat((List<Integer>) JsonPath.read(body(mvc.get().uri("/api/v1/admin/reports?status=all")
-                .cookie(admin).exchange()), "$.items[*].id")).containsExactly(second, first);
+                .cookie(admin).exchange()), "$.items[*].id")).containsExactly(first, second);
         assertThat(mvc.get().uri("/api/v1/admin/reports?status=nope").cookie(admin).exchange()).hasStatus(400);
         assertThat(mvc.get().uri("/api/v1/admin/reports").cookie(reporter).exchange()).hasStatus(403);
     }
