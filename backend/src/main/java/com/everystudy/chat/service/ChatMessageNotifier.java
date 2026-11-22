@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
  * 새 메시지 알림 (PRD 4.12, PLAN D-12·T-050). 받는 사람은 방의 {@code ACTIVE} 참여자 중 <b>보낸 사람 본인, 방을 열어 둔
  * 사람, 보낸 사람을 차단한 사람</b>을 뺀 나머지다. 채널은 푸시뿐이고(이메일 없음), 방·사람마다 {@code notifyWindow}
  * 시간 창에 한 건만 보낸다(키에 시간 창 번호를 넣어 같은 창의 메시지는 한 건으로 묶인다). 수신 설정은 발송 시점에 워커가 본다.
+ *
+ * <p>구독 레지스트리는 웹소켓 설정(인터셉터 → 메시지 서비스)과 순환하므로 지연 주입한다.
  *
  * <p>메시지 내용은 알림에 싣지 않는다(잠금 화면 노출 방지). 메시지 저장과 같은 트랜잭션에서 기록한다.
  */
@@ -32,7 +35,8 @@ class ChatMessageNotifier {
     private final ChatProperties properties;
     private final TimeProvider time;
 
-    ChatMessageNotifier(StudySessions sessions, ChatReadRepository reads, ChatSubscriptions subscriptions,
+    ChatMessageNotifier(StudySessions sessions, ChatReadRepository reads,
+            @Lazy ChatSubscriptions subscriptions,
             NotificationRecorder notifications, ChatProperties properties, TimeProvider time) {
         this.sessions = sessions;
         this.reads = reads;
