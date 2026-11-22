@@ -14,7 +14,10 @@ public enum StudyErrorCode implements ErrorCode {
     ALREADY_JOINED(HttpStatus.CONFLICT, "이미 참여 중인 스터디입니다"),
     STUDY_NOT_FULL(HttpStatus.CONFLICT, "정원에 여유가 있어 대기할 수 없습니다. 바로 참여해 주세요"),
     ALREADY_WAITING(HttpStatus.CONFLICT, "이미 대기 중인 스터디입니다"),
-    SESSION_STARTED(HttpStatus.CONFLICT, "이미 시작했거나 종료·파투된 스터디라 나갈 수 없습니다");
+    SESSION_STARTED(HttpStatus.CONFLICT, "이미 시작했거나 종료·파투된 스터디라 나갈 수 없습니다"),
+    STUDY_CLOSED(HttpStatus.CONFLICT, "종료·파투된 스터디는 수정할 수 없습니다"),
+    SCHEDULE_LOCKED(HttpStatus.CONFLICT, "참여자가 있거나 이미 시작해 일정·장소를 수정할 수 없습니다. 새 스터디를 만들어 주세요"),
+    CAPACITY_BELOW_MEMBERS(HttpStatus.CONFLICT, "정원을 현재 참여자 수보다 적게 줄일 수 없습니다");
 
     private final HttpStatus status;
     private final String title;

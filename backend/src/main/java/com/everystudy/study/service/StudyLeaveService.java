@@ -71,7 +71,7 @@ public class StudyLeaveService {
     private final AttendanceEventRecorder events;
     private final HostPenaltyRecorder penalties;
     private final NotificationRecorder notifications;
-    private final ApplicantEligibility eligibility;
+    private final WaitingNotifier waitingNotifier;
     private final StudyProperties properties;
     private final StudyLockProperties lock;
     private final TimeProvider time;
@@ -80,7 +80,7 @@ public class StudyLeaveService {
 
     StudyLeaveService(StudyRepository studies, StudyMemberRepository members, StudyWaitingRepository waiting,
             HostTransferRepository transfers, AttendanceEventRecorder events, HostPenaltyRecorder penalties,
-            NotificationRecorder notifications, ApplicantEligibility eligibility, StudyProperties properties,
+            NotificationRecorder notifications, WaitingNotifier waitingNotifier, StudyProperties properties,
             StudyLockProperties lock, TimeProvider time, RandomSource random,
             ApplicationEventPublisher eventPublisher) {
         this.studies = studies;
@@ -90,7 +90,7 @@ public class StudyLeaveService {
         this.events = events;
         this.penalties = penalties;
         this.notifications = notifications;
-        this.eligibility = eligibility;
+        this.waitingNotifier = waitingNotifier;
         this.properties = properties;
         this.lock = lock;
         this.time = time;
@@ -127,7 +127,7 @@ public class StudyLeaveService {
             events.recordLateCancel(studyId, userId, now);
         }
         if (activeBefore >= study.getCapacity()) {
-            notifyWaiters(study, userId, now);
+            waitingNotifier.notifySeatOpened(study, String.valueOf(userId), now);
         }
         return new Left(type, null);
     }
@@ -173,7 +173,7 @@ public class StudyLeaveService {
         }
         notifyNewHost(study, newHostId, now);
         if (activeBefore >= study.getCapacity()) {
-            notifyWaiters(study, hostId, now);
+            waitingNotifier.notifySeatOpened(study, String.valueOf(hostId), now);
         }
         return new Left(null, HostOutcome.TRANSFERRED);
     }
@@ -249,31 +249,7 @@ public class StudyLeaveService {
         }
     }
 
-    /**
-     * 자리가 새로 났으니 대기자에게 알린다 (PRD 4.14). 알림 시점에 신청 자격을 다시 검사해 지금도 신청할 수 있는 사람에게만
-     * 보낸다 (PLAN X-20). 체크인이 열린 뒤에는 신청이 닫혀 있어 보내지 않는다 (X-16). 자격을 잃은 대기자의 행은 지우지 않는다.
-     */
-    private void notifyWaiters(Study study, long leftUserId, Instant now) {
-        Instant applicationsCloseAt = StudyTimeline.checkinOpensAt(study.getStartAt(), properties);
-        if (!now.isBefore(applicationsCloseAt)) {
-            return;
-        }
-        String title = "참여하려던 스터디에 자리가 났어요";
-        String body = "'" + abbreviate(study.getTitle()) + "' 에 자리가 생겼어요. 먼저 신청하는 분이 참여해요.";
-        for (StudyWaiting waiter : waiting.findByStudyId(study.getId())) {
-            long waiterId = waiter.getUserId();
-            if (!eligibility.isEligible(study, waiterId, now)) {
-                continue;
-            }
-            // 같은 사람이 나갔다 다시 들어와 또 나가도 새 자리이므로 나간 시각을 키에 넣는다.
-            String key = "WAITING_OPENED:" + study.getId() + ":" + waiterId + ":" + leftUserId + ":"
-                    + now.toEpochMilli();
-            notifications.record(NotificationRequest.allChannels(waiterId, NotificationType.WAITING_OPENED,
-                    study.getId(), title, body, key, now, applicationsCloseAt));
-        }
-    }
-
     private static String abbreviate(String title) {
-        return title.length() <= 60 ? title : title.substring(0, 59) + "…";
+        return WaitingNotifier.abbreviate(title);
     }
 }

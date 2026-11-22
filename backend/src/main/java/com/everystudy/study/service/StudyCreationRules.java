@@ -24,11 +24,9 @@ final class StudyCreationRules {
     }
 
     static List<FieldViolation> check(CreateStudyCommand command, Instant now, StudyProperties properties) {
-        List<FieldViolation> violations = new ArrayList<>();
-        checkStart(command.startAt(), now, properties, violations);
-        checkDuration(command.startAt(), command.durationMin(), properties, violations);
+        List<FieldViolation> violations = checkSchedule(command.startAt(), command.durationMin(), now, properties);
 
-        if (command.capacity() < properties.capacityMin() || command.capacity() > properties.capacityMax()) {
+        if (!capacityInRange(command.capacity(), properties)) {
             violations.add(new FieldViolation("capacity",
                     "정원은 " + properties.capacityMin() + "~" + properties.capacityMax() + "명이어야 합니다"));
         }
@@ -38,6 +36,20 @@ final class StudyCreationRules {
                     "최소 출석률은 " + properties.minAttendanceRateOptions() + " 중 하나여야 합니다"));
         }
         return violations;
+    }
+
+    /** 일정(시작 시각·진행 시간) 규칙만 검사한다. 개설과 일정 수정이 같은 규칙을 쓴다. */
+    static List<FieldViolation> checkSchedule(Instant startAt, int durationMin, Instant now,
+            StudyProperties properties) {
+        List<FieldViolation> violations = new ArrayList<>();
+        checkStart(startAt, now, properties, violations);
+        checkDuration(startAt, durationMin, properties, violations);
+        return violations;
+    }
+
+    /** 정원 범위 검사. 개설과 정원 변경이 같은 규칙을 쓴다. */
+    static boolean capacityInRange(int capacity, StudyProperties properties) {
+        return capacity >= properties.capacityMin() && capacity <= properties.capacityMax();
     }
 
     /** 시작 시각의 KST 날짜. 종료 처리와 목록 조회의 기준이다 (DATA-MODEL 4장 {@code session_date}). */
