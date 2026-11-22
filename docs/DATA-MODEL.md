@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.19"
+version: "0.20"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
@@ -242,7 +242,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 
 - **대상 판정 (T-034)**: `NO_SHOW_CANDIDATE`와 `LATE` 이벤트만 이의를 낼 수 있다. 노쇼 확정(`NO_SHOW`)은 이의 기간이 끝난 뒤에만 생기므로 대상이 아니다. 신청 시점에 그 이벤트가 (스터디, 사용자)의 **현재 판정**이어야 한다(정정·확정 이벤트가 뒤따르면 신청할 수 없다).
 - **기한**: `due_at` = 대상 이벤트의 `occurred_at` + `everystudy.attendance.appeal-window-hours`(PRD 4.9). 정각까지는 받고 1초라도 넘으면 `APPEAL_CLOSED`. 노쇼 후보 통지의 만료와 같은 기준이다.
-- `status`가 `OPEN`인 동안만 주최자 의견(`host_opinion`)을 받고, 다시 보내면 덮어쓴다. 소속 모듈은 `attendance`다(ARCHITECTURE 3장).
+- `status`가 `OPEN`인 동안만 주최자 의견(`host_opinion`)을 받고, 다시 보내면 덮어쓴다. 소속 모듈은 `attendance`다(ARCHITECTURE 3장). 주최자는 `study_id`로 자기 스터디의 이의를 조회한다(`GET /studies/{id}/appeals`, API 5장). `study_id` FK 인덱스를 쓰므로 인덱스를 더하지 않는다.
 ## 6. 신뢰 지표와 제재
 
 ### `user_trust_summary` (캐시)

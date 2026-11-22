@@ -388,6 +388,22 @@ describe("StudyDetailView", () => {
       expect(calls("DELETE", "/studies/1/members/me")).toHaveLength(0);
     });
 
+    it("주최자에게만 들어온 이의 보기 링크가 있다", async () => {
+      mockMember({ ...DETAIL, myState: "HOST" });
+      const host = renderDetail("1");
+      expect(
+        await screen.findByRole("link", { name: "들어온 이의 보기" }),
+      ).toHaveAttribute("href", "/studies/1/appeals");
+      host.unmount();
+
+      mockMember({ ...DETAIL, myState: "MEMBER" });
+      renderDetail("1");
+      await screen.findByRole("heading", { name: "참여자 2명" });
+      expect(
+        screen.queryByRole("link", { name: "들어온 이의 보기" }),
+      ).not.toBeInTheDocument();
+    });
+
     it("주최자는 남은 참여자가 없으면 취소된다는 안내를 확인한 뒤 나간다", async () => {
       mockMember({ ...DETAIL, myState: "HOST" }, (path, method) => {
         if (path === "/studies/1/leave-preview")

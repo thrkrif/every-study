@@ -15,6 +15,9 @@ public interface AppealRepository extends JpaRepository<Appeal, Long> {
 
     List<Appeal> findByAttendanceEventIdIn(Collection<Long> attendanceEventIds);
 
+    /** 한 스터디의 이의, 최근 신청부터. 주최자 화면에 쓴다. */
+    List<Appeal> findByStudyIdOrderByIdDesc(Long studyId);
+
     /** 내 이의, 최근 것부터. {@code beforeId} 보다 id 가 작은 것만. */
     List<Appeal> findByUserIdAndIdLessThanOrderByIdDesc(Long userId, Long beforeId, Pageable pageable);
 }

@@ -155,6 +155,28 @@ class AppealIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("주최자는 자기 스터디의 이의를 닉네임·사유와 함께 최근 것부터 보고, 다른 사람은 403, 없는 스터디는 404")
+    void studyAppeals() {
+        long second = study();
+        file(event(studyId, memberId, "NO_SHOW_CANDIDATE", now.minus(Duration.ofHours(2))), member,
+                "{\"reason\":\"첫째\"}");
+        file(event(studyId, otherId, "LATE", now.minus(Duration.ofHours(1))), member, "{\"reason\":\"무시됨\"}");
+        file(event(second, memberId, "LATE", now.minus(Duration.ofHours(1))), member, "{\"reason\":\"다른 스터디\"}");
+
+        assertThat(mvc.get().uri("/api/v1/studies/" + studyId + "/appeals").cookie(host).exchange()).hasStatusOk()
+                .bodyJson().satisfies(json -> {
+                    assertThat(json).extractingPath("$.length()").isEqualTo(1);
+                    assertThat(json).extractingPath("$[0].reason").isEqualTo("첫째");
+                    assertThat(json).extractingPath("$[0].applicantNickname").isEqualTo("참여자");
+                    assertThat(json).extractingPath("$[0].verdictType").isEqualTo("NO_SHOW_CANDIDATE");
+                    assertThat(json).extractingPath("$[0].status").isEqualTo("OPEN");
+                });
+        assertCode(mvc.get().uri("/api/v1/studies/" + studyId + "/appeals").cookie(member).exchange(), 403,
+                "FORBIDDEN");
+        assertCode(mvc.get().uri("/api/v1/studies/999999/appeals").cookie(host).exchange(), 404, "NOT_FOUND");
+    }
+
+    @Test
     @DisplayName("내 이의 내역은 최근 것부터 커서로 나뉘고 남의 이의는 보이지 않는다")
     void myAppeals() throws Exception {
         for (int i = 0; i < 3; i++) {

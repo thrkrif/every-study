@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.21"
+version: "0.22"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.19
+  - docs/DATA-MODEL.md@0.20
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -333,6 +333,7 @@ covers:
 |---|---|---|
 | `POST /api/v1/attendance-events/{eventId}/appeals` | 본인 | `{ "reason": "..." }`(공백 제외 1~500자). 판정당 1회, 기한 후 `409 APPEAL_CLOSED`. 성공 `201`과 이의 응답 |
 | `GET /api/v1/me/appeals?cursor&size` | 회원 | 내 이의 내역, 최근 신청부터(커서). 응답 `{ items: [이의], nextCursor }` |
+| `GET /api/v1/studies/{id}/appeals` | 주최자 | 그 스터디에 들어온 이의, 최근 신청부터(커서 없이 전부). 응답 `[{ id, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt }]`. 신청자는 닉네임만 보이고(탈퇴했으면 `null`) 주최자가 아니면 `403`, 없는 스터디는 `404`. 주최자가 1차 의견을 쓸 이의를 찾는 경로다 (T-037) |
 | `PUT /api/v1/appeals/{id}/host-opinion` | 주최자 | 1차 의견 `{ "opinion": "..." }`(공백 제외 1~500자). 결정 전에는 다시 보내면 덮어쓴다(멱등), 결정된 이의는 `409 APPEAL_CLOSED`. 응답은 이의 |
 
 - **이의 응답**: `{ id, attendanceEventId, studyId, studyTitle, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`. `status`는 `OPEN`/`ACCEPTED`/`REJECTED`, `verdictType`은 이의를 낸 판정 종류(`NO_SHOW_CANDIDATE`·`LATE`).
