@@ -21,6 +21,35 @@ public class AttendanceEventRecorder {
         this.events = events;
     }
 
+    /**
+     * 세션 무효 또는 파투: 진행되지 않은 세션이라 이 사람의 지표에 영향이 없다 (PRD 4.6·4.7). 같은 (스터디, 사용자)에 이미
+     * 있으면 남기지 않는다(판정 작업의 재실행, PLAN X-9).
+     *
+     * @return 새로 남겼으면 {@code true}
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean recordVoided(long studyId, long userId, Instant occurredAt) {
+        return recordVerdictOnce(studyId, userId, AttendanceEventType.VOIDED, occurredAt);
+    }
+
+    /**
+     * 노쇼 후보: 주최자는 체크인했는데 이 참여자는 하지 않았다 (PRD 4.6). 이미 있으면 남기지 않는다.
+     *
+     * @return 새로 남겼으면 {@code true}
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean recordNoShowCandidate(long studyId, long userId, Instant occurredAt) {
+        return recordVerdictOnce(studyId, userId, AttendanceEventType.NO_SHOW_CANDIDATE, occurredAt);
+    }
+
+    private boolean recordVerdictOnce(long studyId, long userId, AttendanceEventType type, Instant occurredAt) {
+        if (events.existsByStudyIdAndUserIdAndType(studyId, userId, type)) {
+            return false;
+        }
+        events.save(AttendanceEvent.of(studyId, userId, type, occurredAt));
+        return true;
+    }
+
     /** 사전 취소(시작 3시간 전까지): 출석률 분모에서 제외된다 (PRD 4.6·4.7). */
     @Transactional(propagation = Propagation.MANDATORY)
     public void recordEarlyCancel(long studyId, long userId, Instant occurredAt) {

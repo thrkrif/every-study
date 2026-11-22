@@ -9,6 +9,7 @@ import com.everystudy.study.repository.StudyRepository;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +33,16 @@ public class StudySessions {
      */
     public record Session(long studyId, boolean active, long hostId, Instant startAt, double latitude,
             double longitude, boolean activeMember, Instant checkinOpensAt, Instant checkinClosesAt) {
+    }
+
+    /**
+     * 출석 판정 대상 하나의 사실 (PLAN T-031).
+     *
+     * @param cancelled       파투({@code CANCELLED})인가. 주최자 포기·운영자 강제 종료 모두 해당한다
+     * @param activeMemberIds 지금 {@code ACTIVE} 인 참여자 (주최자가 아직 참여자면 포함)
+     */
+    public record JudgementTarget(long studyId, String title, boolean cancelled, long hostId,
+            List<Long> activeMemberIds) {
     }
 
     private final StudyRepository studies;
@@ -71,6 +82,37 @@ public class StudySessions {
         return members.findByStudyIdAndStatusOrderByJoinedAtAscIdAsc(studyId, MemberStatus.ACTIVE).stream()
                 .map(StudyMember::getUserId)
                 .toList();
+    }
+
+    /**
+     * 판정할 때가 된 스터디 id: 아직 판정하지 않았고 체크인 마감 시각이 {@code now} 보다 앞선다. 오래된 것부터 {@code limit} 건.
+     */
+    @Transactional(readOnly = true)
+    public List<Long> findJudgementDueIds(Instant now, int limit) {
+        Instant startedBefore = now.minusSeconds(properties.checkinClosesAfterMinutes() * 60L);
+        return studies.findUnjudgedIdsStartedBefore(startedBefore, PageRequest.of(0, limit));
+    }
+
+    /**
+     * 판정 대상을 잠그고 읽는다. 락을 잡은 뒤 조건(판정 전, 체크인 마감 경과)을 다시 확인해 아니면 빈 값이다. 호출한 쪽
+     * 트랜잭션이 끝날 때까지 락이 유지되어 체크인과 직렬화된다 (PLAN X-15). 격리 수준은 {@code READ COMMITTED} 로 둔다.
+     *
+     * @throws org.springframework.dao.PessimisticLockingFailureException 락 대기 시간 초과
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Optional<JudgementTarget> lockForJudgement(long studyId, Instant now) {
+        return studies.findByIdForUpdate(studyId, lock.timeout())
+                .filter(study -> study.getJudgedAt() == null)
+                .filter(study -> now.isAfter(StudyTimeline.checkinClosesAt(study.getStartAt(), properties)))
+                .map(study -> new JudgementTarget(study.getId(), study.getTitle(),
+                        study.getStatus() == StudyStatus.CANCELLED, study.getHostId(),
+                        activeMemberIds(study.getId())));
+    }
+
+    /** {@link #lockForJudgement} 로 잠근 스터디의 판정을 끝낸다. {@code voided} 면 주최자 미도착 무효로도 표시한다. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void markJudged(long studyId, boolean voided, Instant now) {
+        studies.findById(studyId).orElseThrow().markJudged(voided, now);
     }
 
     private Session session(Study study, long userId) {
