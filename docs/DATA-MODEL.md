@@ -2,7 +2,7 @@
 status: draft
 version: "0.22"
 based_on:
-  - docs/PRD.md@0.14
+  - docs/PRD.md@0.15
   - docs/ARCHITECTURE.md@0.18
 covers:
   - backend/src/main/java/com/everystudy/user/**
@@ -365,6 +365,7 @@ PK `(user_id, channel)`, `enabled BOOLEAN`. 행이 없으면 기본값(켜짐, �
 | deleted_at | DATETIME(6) NULL | 운영자 삭제 (내용은 비운다) |
 | created_at | DATETIME(6) | |
 
+- 방을 닫을 때(`StudyEnded`·`StudyCancelled`) `status=CLOSED`, `closed_at`, `purge_after = closed_at + 보관 기간`을 같은 트랜잭션에서 기록하고, 이미 닫힌 방은 그대로 둔다. 삭제 작업은 방 하나에서 한 번에 상한 건수만 지우고, 메시지가 없어지면 공지·읽음 위치도 지운 뒤 `purged_at`을 남긴다 (T-049).
 - 인덱스 `(room_id, id)`. 이전 대화 조회는 `id < before`를 최근 순으로 읽는다. 삭제 작업은 `chat_room.purge_after <= now AND purged_at IS NULL`인 방의 메시지를 상한 건수씩 지운다.
 
 ### `chat_notice`

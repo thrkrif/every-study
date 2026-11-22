@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.24"
+version: "0.25"
 based_on:
-  - docs/PRD.md@0.14
+  - docs/PRD.md@0.15
   - docs/ARCHITECTURE.md@0.18
   - docs/DATA-MODEL.md@0.22
-  - docs/API.md@0.25
+  - docs/API.md@0.26
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -395,11 +395,12 @@ based_on:
   - 문서: 해당 없음
   - 결과: `study.event`에 `MemberJoined`·`MemberLeft`·`HostChanged`를 추가해 참여·나가기·승계에서 발행하고, `chat.service.ChatSystemMessages`가 동기 리스너로 받아 같은 트랜잭션에서 시스템 메시지를 저장 · `ChatSubscriptions`가 커밋 뒤 방 구독을 끊고 본인에게 `SUBSCRIPTION_ENDED`를 보냄 · 내가 정한 세부 결정(API 6장에 기록): 문구는 "OO님이 입장했어요/나갔어요/새 주최자가 됐어요"(탈퇴 회원은 "탈퇴한 사용자") · 주최자가 나가면 "나갔어요"와 승계 시 "새 주최자" 두 건 · 나간 사람이 자기 나감 안내를 받지 않도록 구독 종료를 먼저 처리 · 단일 서버 내장 브로커의 구독 등록을 직접 지우는 방식이라 외부 브로커로 바꿀 때 `ChatSubscriptions`를 함께 바꿈
 
-- [ ] T-049 채팅방 폐쇄와 메시지 보관 만료 삭제
+- [x] T-049 채팅방 폐쇄와 메시지 보관 만료 삭제
   - 선행: T-030, T-048 · 결정 D-16
   - 참조: PRD 4.14(종료 처리), ADR-0005, DATA-MODEL 8장·10장
   - 완료: `chat`이 `StudyEnded`(그리고 D-16에 따라 `StudyCancelled`)를 받아 방 `CLOSED`, 전체 구독 종료, 전송 거부, `purge_after` 설정 · 보관 만료 메시지를 상한 건수씩 삭제하고 `purged_at` 표시 · 테스트: 고정 `Clock`으로 보관 기간 경계, 두 번 실행해도 결과 동일, 폐쇄된 방 REST 조회는 `CLOSED` 반환
   - 문서: DATA-MODEL 8·10장 확인
+  - 결과: `chat.service.ChatRoomLifecycle`이 `StudyEnded`·`StudyCancelled`를 동기 리스너로 받아 방을 닫고(`purge_after` = 닫은 시각 + `everystudy.chat.retention` 7일) 커밋 뒤 `ROOM_CLOSED`를 보낸 다음 방 구독을 모두 끊음 · `ChatPurgeService`(10분마다)가 보관 만료 방의 메시지를 방마다 상한 건수씩 지우고 다 지우면 공지·읽음 위치를 지운 뒤 `purged_at` 표시 · 이 PR에서 PRD 4.12·4.14에 D-16(파투도 같은 경로) 문구를 반영(v0.15) · 내가 정한 세부 결정: 보관 기간은 설정값 `retention`(기본 7d) · 이미 닫힌 방은 처음 시각 유지(멱등) · 닫힌 방 전송은 인터셉터가 `CHAT_CLOSED`로 거부
 
 - [ ] T-050 새 메시지 알림
   - 선행: T-043, T-047 · 결정 D-12

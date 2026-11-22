@@ -4,6 +4,7 @@ import com.everystudy.chat.domain.ChatMessage;
 import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -15,4 +16,11 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
 
     @Query("SELECT COALESCE(MAX(m.id), 0) FROM ChatMessage m WHERE m.roomId = :roomId")
     long latestId(@Param("roomId") long roomId);
+
+    /** 방의 메시지를 오래된 것부터 {@code limit} 건 영구 삭제한다. @return 지운 건수 */
+    @Modifying
+    @Query(value = "DELETE FROM chat_message WHERE room_id = :roomId ORDER BY id LIMIT :limit", nativeQuery = true)
+    int deleteOldest(@Param("roomId") long roomId, @Param("limit") int limit);
+
+    boolean existsByRoomId(Long roomId);
 }

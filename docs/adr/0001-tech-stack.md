@@ -1,7 +1,7 @@
 ---
 status: draft
 based_on:
-  - docs/PRD.md@0.14
+  - docs/PRD.md@0.15
 ---
 
 # ADR-0001: 기술 스택

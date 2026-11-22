@@ -2,7 +2,7 @@
 status: draft
 version: "0.18"
 based_on:
-  - docs/PRD.md@0.14
+  - docs/PRD.md@0.15
 covers:
   - backend/src/main/java/com/everystudy/common/**
   - frontend/src/lib/api/**
@@ -140,7 +140,7 @@ covers:
 - 인증은 `/ws` 핸드셰이크의 쿠키(HTTP 보안 필터)가 하고, `Origin`은 프론트 오리진 하나만 허용한다. 구독·전송 시마다 STOMP 채널 인터셉터(`chat.web.ChatSocketInterceptor`)가 **참여 여부(`ACTIVE`)를 서버에서 검사**하고 거부는 `ERROR` 프레임이다 (T-047).
 - 전달은 저장이 커밋된 뒤(`AFTER_COMMIT`) `/topic/studies/{id}/chat`으로 보낸다. 이 전달은 유실돼도 REST 조회로 복구되기 때문에 `AFTER_COMMIT`이 맞다 (3장).
 - 나가기 시 해당 사용자의 구독을 끊고 이후 접근을 막는다 (강퇴 기능은 없다).
-- **스터디 종료 시 채팅방을 폐쇄**(상태 `CLOSED`, 전체 구독 종료·전송 거부)하고, 메시지는 보관 기간(PRD 4.14, 설정값)이 지나면 스케줄러가 **영구 삭제**한다. 삭제는 한 번에 처리하는 건수에 상한을 둔다.
+- **스터디 종료·파투 시 채팅방을 폐쇄**(상태 `CLOSED`, 전체 구독 종료·전송 거부)하고, 메시지는 보관 기간(PRD 4.14, 설정 `everystudy.chat.retention`)이 지나면 스케줄러가 **영구 삭제**한다 (T-049, PLAN D-16). 폐쇄는 `chat`이 `StudyEnded`·`StudyCancelled`를 동기 리스너로 받아 하고, 커밋 뒤 방 주제로 `ROOM_CLOSED`를 보내고 구독을 모두 끊는다. 삭제는 한 번에 처리하는 건수에 상한을 둔다.
 - 서버 증설 시: Spring의 STOMP 브로커 릴레이는 **RabbitMQ/ActiveMQ 같은 STOMP 브로커**와 연결한다. PRD 4.12의 "Redis pub/sub"은 별도 브리지를 직접 구현해야 하므로, 증설 시점에 **RabbitMQ 릴레이를 우선 검토**한다 (ADR-0005).
 
 ### 4.9 정책 설정값 (제안)

@@ -49,11 +49,22 @@ public class ChatSubscriptions {
 
     /** 이 사용자의 이 방 구독을 모두 끊고 본인에게 알린다. */
     void endFor(long studyId, long userId, String reason) {
-        String topic = ChatBroadcaster.topicOf(studyId);
         String name = Long.toString(userId);
+        unsubscribe(ChatBroadcaster.topicOf(studyId), name);
+        template.convertAndSendToUser(name, "/queue/events", SubscriptionEnded.of(studyId, reason));
+    }
+
+    /** 방이 닫혀 이 방의 구독을 모두 끊는다. 구독자에게는 방 주제로 폐쇄 이벤트가 이미 갔다. */
+    void endAll(long studyId) {
+        unsubscribe(ChatBroadcaster.topicOf(studyId), null);
+    }
+
+    /** {@code userName} 이 {@code null} 이면 그 주제의 모든 구독을 끊는다. */
+    private void unsubscribe(String topic, String userName) {
         Set<SimpSubscription> subscriptions = users.findSubscriptions(subscription ->
-                topic.equals(subscription.getDestination()) && subscription.getSession().getUser() != null
-                        && name.equals(subscription.getSession().getUser().getName()));
+                topic.equals(subscription.getDestination())
+                        && (userName == null || subscription.getSession().getUser() != null
+                                && userName.equals(subscription.getSession().getUser().getName())));
         for (SimpSubscription subscription : subscriptions) {
             SimpMessageHeaderAccessor accessor = SimpMessageHeaderAccessor.create(SimpMessageType.UNSUBSCRIBE);
             accessor.setSessionId(subscription.getSession().getId());
@@ -61,6 +72,5 @@ public class ChatSubscriptions {
             broker.getSubscriptionRegistry()
                     .unregisterSubscription(MessageBuilder.createMessage(new byte[0], accessor.getMessageHeaders()));
         }
-        template.convertAndSendToUser(name, "/queue/events", SubscriptionEnded.of(studyId, reason));
     }
 }

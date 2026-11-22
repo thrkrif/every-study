@@ -66,4 +66,9 @@ public class ChatReadRepository {
         jdbc.sql("DELETE FROM block WHERE blocker_id = :blocker AND blocked_id = :blocked")
                 .param("blocker", blockerId).param("blocked", blockedId).update();
     }
+
+    /** 방의 읽음 위치를 모두 지운다 (메시지 삭제와 함께). */
+    public void deleteReadStates(long roomId) {
+        jdbc.sql("DELETE FROM chat_read_state WHERE room_id = :roomId").param("roomId", roomId).update();
+    }
 }

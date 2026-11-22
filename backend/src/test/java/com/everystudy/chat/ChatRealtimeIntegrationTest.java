@@ -23,10 +23,12 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.messaging.converter.JacksonJsonMessageConverter;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompFrameHandler;
 import org.springframework.messaging.simp.stomp.StompHeaders;
 import org.springframework.messaging.simp.stomp.StompSession;
@@ -60,6 +62,12 @@ class ChatRealtimeIntegrationTest extends WebSocketIntegrationTestSupport {
 
     @Autowired
     TransactionTemplate tx;
+
+    @Autowired
+    ApplicationEventPublisher publisher;
+
+    @Autowired
+    SimpMessagingTemplate template;
 
     private final Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 
@@ -291,6 +299,32 @@ class ChatRealtimeIntegrationTest extends WebSocketIntegrationTestSupport {
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM chat_message WHERE kind = 'TEXT' AND content = '나간 뒤'",
                 Integer.class)).isZero();
         hostSession.disconnect();
+    }
+
+    @Test
+    @DisplayName("방이 닫히면 구독자에게 ROOM_CLOSED 가 가고 구독이 모두 끊겨 이후 메시지를 받지 못한다")
+    void closingEndsAllSubscriptions() throws Exception {
+        BlockingQueue<Map<String, Object>> hostTopic = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> memberTopic = new LinkedBlockingQueue<>();
+        StompSession hostSession = connect(hostToken, FRONTEND);
+        hostSession.subscribe("/topic/studies/" + studyId + "/chat", handler(hostTopic));
+        StompSession memberSession = connect(memberToken, FRONTEND);
+        memberSession.subscribe("/topic/studies/" + studyId + "/chat", handler(memberTopic));
+        Thread.sleep(400);
+
+        tx.executeWithoutResult(s -> publisher.publishEvent(new com.everystudy.study.event.StudyEnded(studyId)));
+
+        assertThat(hostTopic.poll(5, TimeUnit.SECONDS)).containsEntry("type", "ROOM_CLOSED");
+        assertThat(memberTopic.poll(5, TimeUnit.SECONDS)).containsEntry("type", "ROOM_CLOSED");
+
+        template.convertAndSend("/topic/studies/" + studyId + "/chat", (Object) Map.of("type", "AFTER_CLOSE"));
+        assertThat(hostTopic.poll(1, TimeUnit.SECONDS)).isNull();
+        assertThat(memberTopic.poll(1, TimeUnit.SECONDS)).isNull();
+
+        BlockingQueue<String> errors = new LinkedBlockingQueue<>();
+        StompSession again = connect(memberToken, FRONTEND, errors);
+        again.send("/app/studies/" + studyId + "/chat", Map.of("content", "닫힌 뒤"));
+        assertThat(errors.poll(5, TimeUnit.SECONDS)).isEqualTo("CHAT_CLOSED");
     }
 
     // ---- 도우미 ----

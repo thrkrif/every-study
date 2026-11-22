@@ -25,12 +25,20 @@ public class ChatBroadcaster {
         static ChatEvent notice(ChatRoomService.Notice notice) {
             return new ChatEvent("NOTICE", null, notice);
         }
+
+        static ChatEvent roomClosed() {
+            return new ChatEvent("ROOM_CLOSED", null, null);
+        }
     }
 
     record MessageSent(long studyId, ChatRoomService.MessageView message) {
     }
 
     record NoticeChanged(long studyId, ChatRoomService.Notice notice) {
+    }
+
+    /** 방이 닫혔다. 구독자에게 알리고 모두의 구독을 끊는다. */
+    record RoomClosing(long studyId) {
     }
 
     /** 사용자가 방에서 나가 구독을 끊어야 한다. */
@@ -57,6 +65,12 @@ public class ChatBroadcaster {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     void onSubscriptionEnding(SubscriptionEnding event) {
         subscriptions.endFor(event.studyId(), event.userId(), event.reason());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    void onRoomClosing(RoomClosing event) {
+        template.convertAndSend(topicOf(event.studyId()), ChatEvent.roomClosed());
+        subscriptions.endAll(event.studyId());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
