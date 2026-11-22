@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.39"
+version: "0.40"
 based_on:
   - docs/PRD.md@0.17
-  - docs/ARCHITECTURE.md@0.19
+  - docs/ARCHITECTURE.md@0.20
   - docs/DATA-MODEL.md@0.34
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
@@ -76,7 +76,7 @@ covers:
 | 422 | `CHECKIN_WINDOW_CLOSED` | 체크인 가능 시간 아님 |
 | 422 | `CHECKIN_CODE_INVALID` | 코드 오류·만료·시도 초과 |
 | 422 | `HOST_NOT_CHECKED_IN` | 주최자 체크인 전이라 코드 체크인 불가 |
-| 429 | `RATE_LIMITED` | 호출 제한 |
+| 429 | `RATE_LIMITED` | 호출 제한. 응답 헤더 `Retry-After`(초)에 다시 시도할 수 있는 시점을 준다. 대상과 한도는 9장 |
 | 500 | `INTERNAL_ERROR` | 서버가 처리하지 못한 오류. 원인은 응답에 넣지 않는다(`detail` 없음). `traceId`로 서버 로그를 찾는다 |
 
 표에 없는 HTTP 표준 오류(허용하지 않는 메서드 `405`, 받을 수 없는 응답 형식 `406`, 지원하지 않는 본문 형식 `415` 등)는 `code` 없이 같은 형식(`status`, `title`, `traceId`)으로 응답한다. 클라이언트는 `status`로 구분한다.
@@ -428,4 +428,4 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 **확정 (2026-11-13)**: 대기 등록은 정원이 찼을 때만(`STUDY_NOT_FULL`), 참여자가 있으면 일정·장소 수정 불가(`SCHEDULE_LOCKED`, 일정을 바꾸려면 주최자가 방을 나가 새 스터디를 만든다), 숨김 스터디 없음, 비회원도 상세에서 참여자 닉네임·지표 열람(비회원은 참여할 수 없고 프로필도 공개, PRD 4.3).
 
 **구현하며 정할 항목**
-1. 호출 제한(`429`) 대상과 수치: 체크인 코드 입력, 신청, 신고, 채팅 전송, 비회원 목록·상세 조회.
+1. ~~호출 제한(`429`) 대상과 수치~~ 결정됨 (PLAN D-5, 모두 설정 `everystudy.rate-limit.*`): 체크인 코드 입력 회원당 분당 10회, 참여 신청 회원당 분당 20회, 신고 회원당 시간당 20회, 채팅 전송 회원당 분당 60회(REST·STOMP 공통), 비회원 스터디 목록·상세 조회 IP당 분당 120회(로그인한 회원은 제한 없음). 고정 시간 창이고 서버 1대의 메모리에서 센다.
