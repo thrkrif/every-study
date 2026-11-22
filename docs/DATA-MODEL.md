@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.16"
+version: "0.17"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.16
+  - docs/ARCHITECTURE.md@0.17
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -195,10 +195,10 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
 | study_id | BIGINT PK FK | 스터디당 1개 |
-| code | CHAR(6) | 일회용 코드 (자릿수는 제안) |
-| issued_at, expires_at | DATETIME(6) | |
+| code | CHAR(6) | 일회용 코드 (6자리 숫자) |
+| issued_at, expires_at | DATETIME(6) | `expires_at`은 체크인 마감 시각 |
 
-- 주최자 체크인이 성공한 뒤에만 발급한다 (PRD 4.6). 입력 실패 횟수 제한은 서버 1대 가정으로 메모리에서 센다 (서버 증설 시 DB·외부 저장소로 이동, ADR-0005).
+- 주최자 체크인이 성공한 뒤에만 발급한다 (PRD 4.6). 재발급하면 같은 행을 덮어써 이전 코드는 무효가 된다. 입력 실패 횟수 제한(5회)은 서버 1대 가정으로 메모리에서 센다 (서버 증설 시 DB·외부 저장소로 이동, ADR-0005).
 
 ### `attendance_event` (추가만, 수정·삭제 없음)
 | 컬럼 | 타입 | 설명 |
@@ -424,4 +424,4 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 **구현하며 정할 항목**
 1. 신고 사유 분류 목록 (`report.reason`)
 2. 수신 설정으로 건너뛴 알림의 상태 표기 (`CANCELLED` 재사용 vs `SKIPPED` 추가)
-3. 일회용 코드 자릿수와 수명
+3. ~~일회용 코드 자릿수와 수명~~ 결정됨 (PLAN D-7: 6자리 숫자, 체크인 마감까지, 5회 실패 시 입력 불가)

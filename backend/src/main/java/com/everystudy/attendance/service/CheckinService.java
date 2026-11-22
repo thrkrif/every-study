@@ -1,8 +1,10 @@
 package com.everystudy.attendance.service;
 
 import com.everystudy.attendance.domain.Checkin;
+import com.everystudy.attendance.domain.CheckinCode;
 import com.everystudy.attendance.domain.CheckinMethod;
 import com.everystudy.attendance.domain.CheckinResult;
+import com.everystudy.attendance.repository.CheckinCodeRepository;
 import com.everystudy.attendance.repository.CheckinRepository;
 import com.everystudy.common.error.BusinessException;
 import com.everystudy.common.error.CommonErrorCode;
@@ -14,6 +16,7 @@ import com.everystudy.trust.service.AttendanceEventRecorder;
 import com.everystudy.user.service.PublicUser;
 import com.everystudy.user.service.UserDirectory;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -54,17 +57,28 @@ public class CheckinService {
     public record Attendance(Mine mine, List<MemberStatus> members) {
     }
 
+    /** 발급한 코드와 만료 시각(체크인 마감). */
+    public record IssuedCode(String code, Instant expiresAt) {
+    }
+
+    private static final SecureRandom RANDOM = new SecureRandom();
+
     private final StudySessions sessions;
     private final CheckinRepository checkins;
+    private final CheckinCodeRepository codes;
+    private final CheckinCodeAttempts attempts;
     private final AttendanceEventRecorder events;
     private final UserDirectory users;
     private final AttendanceProperties properties;
     private final TimeProvider time;
 
-    CheckinService(StudySessions sessions, CheckinRepository checkins, AttendanceEventRecorder events,
-            UserDirectory users, AttendanceProperties properties, TimeProvider time) {
+    CheckinService(StudySessions sessions, CheckinRepository checkins, CheckinCodeRepository codes,
+            CheckinCodeAttempts attempts, AttendanceEventRecorder events, UserDirectory users,
+            AttendanceProperties properties, TimeProvider time) {
         this.sessions = sessions;
         this.checkins = checkins;
+        this.codes = codes;
+        this.attempts = attempts;
         this.events = events;
         this.users = users;
         this.properties = properties;
@@ -98,8 +112,85 @@ public class CheckinService {
         int distance = CheckinRules.requireWithinRadius(latitude, longitude, session.latitude(), session.longitude(),
                 properties.checkinRadiusMeters());
 
+        return record(session, userId, now, CheckinMethod.LOCATION, distance, accuracyM);
+    }
+
+    /**
+     * 주최자가 일회용 코드를 발급(재발급)한다. 이전 코드는 무효가 된다. 코드는 체크인 마감 시각까지 유효하다. 검사 순서:
+     * 스터디 없음 {@code NOT_FOUND} → 주최자 아님 {@code FORBIDDEN} → 종료·파투 {@code STUDY_CLOSED} → 시간창
+     * {@code CHECKIN_WINDOW_CLOSED} → 주최자 미체크인 {@code HOST_NOT_CHECKED_IN} (PLAN X-28).
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public IssuedCode issueCode(long studyId, long userId) {
+        Session session = sessions.lock(studyId, userId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND));
+        if (session.hostId() != userId || !session.activeMember()) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+        if (!session.active()) {
+            throw new BusinessException(StudyErrorCode.STUDY_CLOSED);
+        }
+        Instant now = time.now();
+        CheckinRules.requireWindowOpen(now, session.checkinOpensAt(), session.checkinClosesAt());
+        requireHostCheckedIn(studyId, session.hostId());
+
+        String code = "%06d".formatted(RANDOM.nextInt(1_000_000));
+        CheckinCode entity = codes.findById(studyId).orElse(null);
+        if (entity == null) {
+            entity = CheckinCode.issue(studyId, code, now, session.checkinClosesAt());
+        } else {
+            entity.reissue(code, now, session.checkinClosesAt());
+        }
+        codes.save(entity);
+        return new IssuedCode(code, session.checkinClosesAt());
+    }
+
+    /**
+     * 일회용 코드로 체크인한다. 위치 권한 거부·GPS 실패 시의 유일한 대체 수단이고, 출석·지각은 시각 기준으로 위치 체크인과
+     * 똑같이 판정한다. 검사 순서: 스터디 없음 {@code NOT_FOUND} → 참여자 아님 {@code FORBIDDEN} → (이미 체크인했으면
+     * 처음 결과) → 종료·파투 {@code STUDY_CLOSED} → 시간창 {@code CHECKIN_WINDOW_CLOSED} → 주최자 미체크인
+     * {@code HOST_NOT_CHECKED_IN} → 코드 오류·만료·시도 초과 {@code CHECKIN_CODE_INVALID} (PLAN X-28).
+     * 틀린 입력은 메모리의 실패 횟수에 남고, 횟수를 넘기면 맞는 코드도 거부한다.
+     */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Result checkInByCode(long studyId, long userId, String input) {
+        Session session = sessions.lock(studyId, userId)
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND));
+        if (!session.activeMember()) {
+            throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        }
+        var existing = checkins.findByStudyIdAndUserId(studyId, userId);
+        if (existing.isPresent()) {
+            return resultOf(existing.get());
+        }
+        if (!session.active()) {
+            throw new BusinessException(StudyErrorCode.STUDY_CLOSED);
+        }
+        Instant now = time.now();
+        CheckinRules.requireWindowOpen(now, session.checkinOpensAt(), session.checkinClosesAt());
+        requireHostCheckedIn(studyId, session.hostId());
+
+        boolean accepted = !attempts.isLocked(studyId, userId, properties.codeMaxFailures())
+                && codes.findById(studyId).filter(code -> code.accepts(input, now)).isPresent();
+        if (!accepted) {
+            attempts.recordFailure(studyId, userId, now, session.checkinClosesAt());
+            throw new BusinessException(AttendanceErrorCode.CHECKIN_CODE_INVALID);
+        }
+        return record(session, userId, now, CheckinMethod.CODE, null, null);
+    }
+
+    private void requireHostCheckedIn(long studyId, long hostId) {
+        if (checkins.findByStudyIdAndUserId(studyId, hostId).isEmpty()) {
+            throw new BusinessException(AttendanceErrorCode.HOST_NOT_CHECKED_IN);
+        }
+    }
+
+    /** 체크인 행과 출석·지각 이벤트를 같은 트랜잭션에서 남긴다. 판정은 방식과 상관없이 시각 기준이다. */
+    private Result record(Session session, long userId, Instant now, CheckinMethod method, Integer distance,
+            Integer accuracyM) {
+        long studyId = session.studyId();
         CheckinResult result = CheckinRules.resultAt(now, session.startAt(), properties.attendedWithinMinutes());
-        checkins.save(Checkin.of(studyId, userId, now, CheckinMethod.LOCATION, result, distance, accuracyM));
+        checkins.save(Checkin.of(studyId, userId, now, method, result, distance, accuracyM));
         if (result == CheckinResult.ATTENDED) {
             events.recordAttended(studyId, userId, now);
         } else {
