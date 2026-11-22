@@ -57,6 +57,10 @@ public class AttendanceEvent {
         return id;
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
     public Long getStudyId() {
         return studyId;
     }

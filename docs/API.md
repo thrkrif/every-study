@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.20"
+version: "0.21"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.17
-  - docs/DATA-MODEL.md@0.18
+  - docs/ARCHITECTURE.md@0.18
+  - docs/DATA-MODEL.md@0.19
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -57,6 +57,9 @@ covers:
 | 409 | `STUDY_FULL` | 정원 참 → 클라이언트는 대기 안내 |
 | 409 | `STUDY_NOT_RECRUITING` | 종료·파투 상태이거나 체크인 오픈 이후 |
 | 409 | `ALREADY_JOINED` / `ALREADY_WAITING` | 중복 |
+| 409 | `APPEAL_CLOSED` | 이의를 받는 기간(PRD 4.9)이 지났거나, 주최자 의견을 낼 이의가 이미 결정됨 |
+| 409 | `APPEAL_NOT_ALLOWED` | 이의 대상이 아닌 판정(출석·취소 등), 또는 이미 정정·확정이 뒤따른 판정 |
+| 409 | `ALREADY_APPEALED` | 이 판정에 이미 이의를 냈음 (판정당 1회) |
 | 409 | `SESSION_STARTED` | 이미 시작했거나 종료·파투된 스터디라 참여자가 나갈 수 없음 (PRD 4.6) |
 | 409 | `STUDY_NOT_FULL` | 정원에 여유가 있어 대기할 수 없음 (참여 신청을 안내) |
 | 409 | `ENTRY_CRITERIA_NOT_MET` | 입장 기준(출석률·신규 불허) 미충족 |
@@ -145,7 +148,7 @@ covers:
 | `PUT /api/v1/me/profile` | 회원 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
 | `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디가 있으면 규칙을 먼저 적용한 뒤 처리 |
 | `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
-| `GET /api/v1/me/attendance` | 회원 | 지난 출석 기록 (판정, 이의 가능 여부) |
+| `GET /api/v1/me/attendance?cursor&size` | 회원 | 지난 출석 기록. 스터디마다 **현재 판정** 하나씩, 최근에 쌓인 판정부터(커서, `size` 1~50 기본 20). 응답 `{ items: [{ eventId, studyId, studyTitle, type, occurredAt, appealable, appealDueAt, appealId }], nextCursor }`. `type`은 현재 판정(DATA-MODEL 5장). `appealable`은 이의 대상 판정이고 아직 내지 않았고 기한 안일 때만 `true`, `appealDueAt`은 이의 대상 판정에만 값이 있고 `appealId`는 이미 낸 이의가 있을 때만 값이 있다. `eventId`가 이의 신청 경로(5장)의 값이다 |
 | `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
 | `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off |
 | `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 웹 푸시 구독 등록·해지 |
@@ -328,9 +331,14 @@ covers:
 
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
-| `POST /api/v1/attendance-events/{eventId}/appeals` | 본인 | `{ "reason": "..." }`. 판정당 1회, 기한 후 `409 APPEAL_CLOSED` |
-| `GET /api/v1/me/appeals` | 회원 | 내 이의 내역 |
-| `PUT /api/v1/appeals/{id}/host-opinion` | 주최자 | 1차 의견 `{ "opinion": "..." }` |
+| `POST /api/v1/attendance-events/{eventId}/appeals` | 본인 | `{ "reason": "..." }`(공백 제외 1~500자). 판정당 1회, 기한 후 `409 APPEAL_CLOSED`. 성공 `201`과 이의 응답 |
+| `GET /api/v1/me/appeals?cursor&size` | 회원 | 내 이의 내역, 최근 신청부터(커서). 응답 `{ items: [이의], nextCursor }` |
+| `PUT /api/v1/appeals/{id}/host-opinion` | 주최자 | 1차 의견 `{ "opinion": "..." }`(공백 제외 1~500자). 결정 전에는 다시 보내면 덮어쓴다(멱등), 결정된 이의는 `409 APPEAL_CLOSED`. 응답은 이의 |
+
+- **이의 응답**: `{ id, attendanceEventId, studyId, studyTitle, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`. `status`는 `OPEN`/`ACCEPTED`/`REJECTED`, `verdictType`은 이의를 낸 판정 종류(`NO_SHOW_CANDIDATE`·`LATE`).
+- **이의 대상**: 노쇼 후보(`NO_SHOW_CANDIDATE`)와 지각(`LATE`) 판정만. 기한은 판정이 쌓인 시각부터 PRD 4.9의 기간이다 (DATA-MODEL 5장).
+- 검사 순서(신청): 판정 없음 `404` → 내 판정 아님 `403` → 이의 대상 종류 아님 `409 APPEAL_NOT_ALLOWED` → 이미 냄 `409 ALREADY_APPEALED` → 기한 지남 `409 APPEAL_CLOSED` → 정정·확정이 뒤따름 `409 APPEAL_NOT_ALLOWED`. 사유가 비었거나 500자를 넘으면 `400 VALIDATION_FAILED`.
+- 검사 순서(주최자 의견): 이의 없음 `404` → 그 스터디의 현재 주최자 아님 `403`(참여자 본인 포함) → 이미 결정됨 `409 APPEAL_CLOSED`.
 
 최종 결정은 운영자 API(7장).
 
