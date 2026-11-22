@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { ReportForm } from "@/components/ReportForm";
 import buttonStyles from "@/components/Button.module.css";
 import { TextAreaField } from "@/components/TextAreaField";
 import {
@@ -17,6 +18,7 @@ import {
   type ChatNotice,
 } from "@/lib/api/chat";
 import { isApiError } from "@/lib/api/errors";
+import { blockUser, unblockUser } from "@/lib/api/reports";
 import { fetchStudy } from "@/lib/api/studies";
 import {
   blockedSenders,
@@ -163,6 +165,14 @@ function ChatRoom({
   const [sendError, setSendError] = useState<string | null>(null);
   const [unread, setUnread] = useState(initialUnread);
   const [draft, setDraft] = useState("");
+  /** 신고 입력을 펼쳐 둔 메시지 */
+  const [reporting, setReporting] = useState<number | null>(null);
+  /** 이 화면에서 방금 차단·해제한 사람. 서버 응답이 다시 올 때까지 표시를 바로 바꾼다 */
+  const [blockedNow, setBlockedNow] = useState<ReadonlySet<number>>(new Set());
+  const [unblockedNow, setUnblockedNow] = useState<ReadonlySet<number>>(
+    new Set(),
+  );
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const socketRef = useRef<ChatSocket | null>(null);
   const markedRef = useRef<number | null>(null);
@@ -200,15 +210,18 @@ function ChatRoom({
       live,
     );
     // 이전 대화에서 알게 된 차단한 사람의 새 메시지도 가린다 (서버는 주제 하나로 보내 사람마다 가려 줄 수 없다)
-    const blocked = blockedSenders(merged);
-    return merged.map((message) =>
-      message.senderId !== null &&
-      blocked.has(message.senderId) &&
-      !message.hidden
-        ? { ...message, content: null, hidden: true }
-        : message,
-    );
-  }, [older.items, latest.data, live]);
+    const blocked = new Set([...blockedSenders(merged), ...blockedNow]);
+    for (const id of unblockedNow) blocked.delete(id);
+    return merged.map((message) => {
+      const mustHide =
+        message.senderId !== null && blocked.has(message.senderId);
+      if (mustHide && !message.hidden) {
+        return { ...message, content: null, hidden: true };
+      }
+      // 차단을 풀었는데 서버가 가려 둔 메시지는 다시 받아 오기 전까지 가린 채로 둔다
+      return message;
+    });
+  }, [older.items, latest.data, live, blockedNow, unblockedNow]);
 
   const lastId = lastMessageId(messages);
 
@@ -292,6 +305,31 @@ function ChatRoom({
     return () => observer.disconnect();
   }, [olderCursor, loadOlder]);
 
+  const block = async (userId: number) => {
+    setActionError(null);
+    try {
+      await blockUser(userId);
+      setUnblockedNow((current) => without(current, userId));
+      setBlockedNow((current) => new Set(current).add(userId));
+    } catch {
+      setActionError("차단하지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+    }
+  };
+
+  const unblock = async (userId: number) => {
+    setActionError(null);
+    try {
+      await unblockUser(userId);
+      setBlockedNow((current) => without(current, userId));
+      setUnblockedNow((current) => new Set(current).add(userId));
+      // 가려졌던 메시지의 내용을 다시 받는다 (이전 대화는 다시 위로 올리면 받는다)
+      setOlder({ items: [], cursor: undefined });
+      void refetchLatest();
+    } catch {
+      setActionError("차단을 풀지 못했어요. 잠시 뒤 다시 시도해 주세요.");
+    }
+  };
+
   const send = () => {
     const content = draft.trim();
     if (content.length === 0 || content.length > CHAT_MESSAGE_MAX) return;
@@ -364,12 +402,31 @@ function ChatRoom({
         <ul className={styles.messages}>
           {messages.map((message) => (
             <li key={message.id}>
-              <MessageRow message={message} mine={message.senderId === myId} />
+              <MessageRow
+                message={message}
+                mine={message.senderId === myId}
+                onReport={() => setReporting(message.id)}
+                onBlock={() => void block(message.senderId!)}
+                onUnblock={() => void unblock(message.senderId!)}
+              />
+              {reporting === message.id && (
+                <ReportForm
+                  targetType="MESSAGE"
+                  targetId={message.id}
+                  targetLabel="이 메시지"
+                  onClose={() => setReporting(null)}
+                />
+              )}
             </li>
           ))}
         </ul>
         <div ref={bottomRef} />
       </section>
+      {actionError && (
+        <p className={styles.note} role="alert">
+          ! {actionError}
+        </p>
+      )}
 
       {open && !connected && (
         <p className={styles.note} role="status">
@@ -408,12 +465,24 @@ function ChatRoom({
   );
 }
 
+function without(set: ReadonlySet<number>, id: number): Set<number> {
+  const next = new Set(set);
+  next.delete(id);
+  return next;
+}
+
 function MessageRow({
   message,
   mine,
+  onReport,
+  onBlock,
+  onUnblock,
 }: {
   message: ChatMessage;
   mine: boolean;
+  onReport: () => void;
+  onBlock: () => void;
+  onUnblock: () => void;
 }) {
   if (message.kind === "SYSTEM") {
     return (
@@ -444,6 +513,26 @@ function MessageRow({
       <span className={`${styles.time} num`}>
         {formatClockOf(message.createdAt)}
       </span>
+      {!mine && message.senderId !== null && (
+        <span className={styles.tools}>
+          {message.hidden ? (
+            <Button variant="text" onClick={onUnblock}>
+              차단 해제
+            </Button>
+          ) : (
+            !message.deleted && (
+              <>
+                <Button variant="text" onClick={onReport}>
+                  신고
+                </Button>
+                <Button variant="text" onClick={onBlock}>
+                  차단
+                </Button>
+              </>
+            )
+          )}
+        </span>
+      )}
     </div>
   );
 }

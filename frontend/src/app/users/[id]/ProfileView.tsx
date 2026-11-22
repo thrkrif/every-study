@@ -1,10 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { Button } from "@/components/Button";
+import { ReportForm } from "@/components/ReportForm";
 import { isApiError } from "@/lib/api/errors";
 import { fetchPublicProfile } from "@/lib/api/profile";
-import { useMetaOptions } from "@/lib/session";
+import { useMetaOptions, useSession } from "@/lib/session";
 import { codeNames, formatDay, nicknameOf } from "@/lib/studyFormat";
 import { ProfileMetrics } from "../ProfileMetrics";
 import styles from "./ProfileView.module.css";
@@ -12,6 +14,8 @@ import styles from "./ProfileView.module.css";
 /** 공개 프로필 (PRD 4.1, API 3장). 비회원도 본다. 이메일 같은 개인정보는 응답에 없다 */
 export function ProfileView({ id }: { id: number }) {
   const meta = useMetaOptions();
+  const session = useSession();
+  const [reporting, setReporting] = useState(false);
   const profile = useQuery({
     queryKey: ["public-profile", id],
     queryFn: ({ signal }) => fetchPublicProfile(id, signal),
@@ -61,6 +65,22 @@ export function ProfileView({ id }: { id: number }) {
         <p className={styles.facts}>{facts.join(" · ")}</p>
       </header>
       <ProfileMetrics attendance={data.attendance} hostStats={data.hostStats} />
+      {session.status === "member" && session.me.id !== id && (
+        <section aria-label="신고">
+          {reporting ? (
+            <ReportForm
+              targetType="USER"
+              targetId={id}
+              targetLabel="이 사용자"
+              onClose={() => setReporting(false)}
+            />
+          ) : (
+            <Button variant="text" onClick={() => setReporting(true)}>
+              이 사용자 신고
+            </Button>
+          )}
+        </section>
+      )}
     </main>
   );
 }

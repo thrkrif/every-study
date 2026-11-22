@@ -125,6 +125,13 @@ describe("ChatRoomView", () => {
         latestCalls += 1;
         return json(200, page);
       }
+      if (
+        path === "/blocks/8" &&
+        (init?.method === "PUT" || init?.method === "DELETE")
+      )
+        return new Response(null, { status: 204 });
+      if (path === "/reports" && init?.method === "POST")
+        return json(201, { id: 1 });
       if (path === "/studies/1/chat/read" && init?.method === "PUT")
         return new Response(null, { status: 204 });
       if (path === "/studies/1/chat/notice" && init?.method === "PUT")
@@ -453,5 +460,96 @@ describe("ChatRoomView", () => {
     expect(
       screen.queryByRole("button", { name: "공지 수정" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("상대 메시지를 차단하면 서버에 알리고 그 사람의 메시지가 바로 가려진다", async () => {
+    mock({ pages: [{ items: [msg(1), msg(2)], nextCursor: null }] });
+    renderView();
+    await connected();
+    const user = userEvent.setup();
+    await screen.findByText("메시지 1");
+
+    await user.click(screen.getAllByRole("button", { name: "차단" })[0]);
+
+    await vi.waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url).endsWith("/blocks/8") && init?.method === "PUT",
+      );
+      expect(call).toBeDefined();
+    });
+    expect(
+      await screen.findAllByText("차단한 사용자의 메시지예요."),
+    ).toHaveLength(2);
+    expect(screen.queryByText("메시지 1")).not.toBeInTheDocument();
+    // 이후 실시간으로 오는 그 사람의 메시지도 가린다
+    act(() => {
+      sockets[0].handlers.onTopic({
+        type: "MESSAGE",
+        message: msg(3) as never,
+      });
+    });
+    expect(
+      await screen.findAllByText("차단한 사용자의 메시지예요."),
+    ).toHaveLength(3);
+  });
+
+  it("차단한 사람의 메시지에서 차단 해제를 누르면 서버에 알리고 대화를 다시 받는다", async () => {
+    mock({
+      pages: [
+        {
+          items: [msg(1, { hidden: true, content: null })],
+          nextCursor: null,
+        },
+        { items: [msg(1)], nextCursor: null },
+      ],
+    });
+    renderView();
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "차단 해제" }));
+
+    expect(await screen.findByText("메시지 1")).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith("/blocks/8") && init?.method === "DELETE",
+    );
+    expect(call).toBeDefined();
+  });
+
+  it("메시지를 신고하려면 사유를 골라야 하고, 보내면 접수 안내가 나온다. 내 메시지에는 신고가 없다", async () => {
+    mock({
+      pages: [
+        {
+          items: [msg(2, { senderId: 7, senderNickname: "나" }), msg(1)],
+          nextCursor: null,
+        },
+      ],
+    });
+    renderView();
+    const user = userEvent.setup();
+    await screen.findByText("메시지 1");
+
+    // 내 메시지(2)에는 신고·차단이 없고 상대 메시지(1)에만 있다
+    expect(screen.getAllByRole("button", { name: "신고" })).toHaveLength(1);
+
+    await user.click(screen.getByRole("button", { name: "신고" }));
+    const submit = screen.getByRole("button", { name: "신고하기" });
+    expect(submit).toBeDisabled();
+
+    await user.click(screen.getByLabelText("욕설·비방"));
+    expect(submit).toBeEnabled();
+    await user.click(submit);
+
+    expect(await screen.findByText(/신고를 접수했어요/)).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith("/reports") && init?.method === "POST",
+    );
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({
+      targetType: "MESSAGE",
+      targetId: 1,
+      reason: "ABUSE",
+    });
   });
 });
