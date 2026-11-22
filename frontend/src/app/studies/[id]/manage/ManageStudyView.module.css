@@ -1,0 +1,113 @@
+.page {
+  max-width: var(--form-max-width);
+  margin: 0 auto;
+  padding: var(--space-4) var(--page-gutter) var(--space-10);
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-6);
+}
+
+.back {
+  align-self: flex-start;
+  min-height: var(--touch-min);
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-primary);
+  font-weight: var(--text-label-weight);
+}
+
+.title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+}
+
+.sub {
+  color: var(--color-ink-sub);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  overflow-wrap: anywhere;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.sectionTitle {
+  font-size: var(--text-heading-size);
+  line-height: var(--text-heading-line);
+  font-weight: var(--text-heading-weight);
+}
+
+.band {
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-control);
+  background: var(--color-primary-tint);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.locked {
+  font-size: var(--text-heading-size);
+  line-height: var(--text-heading-line);
+  font-weight: 700;
+}
+
+.picked {
+  font-weight: var(--text-heading-weight);
+}
+
+.result {
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+  font-weight: var(--text-label-weight);
+}
+
+.result[data-tone="ok"] {
+  color: var(--color-ok);
+}
+
+.result[data-tone="error"] {
+  color: var(--color-bad);
+}
+
+.members {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  min-height: var(--touch-min);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.hostMark {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-chip);
+  background: var(--color-ink);
+  color: var(--color-surface);
+  font-size: var(--text-caption-size);
+  line-height: 20px;
+}
+
+.message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-4);
+  text-align: center;
+}

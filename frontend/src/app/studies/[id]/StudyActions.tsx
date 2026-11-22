@@ -249,6 +249,15 @@ export function StudyActions({ study, now, names }: Props) {
         <>
           {result}
           <p className={styles.guide}>{action.text}</p>
+          {action.host && study.status === "ACTIVE" && (
+            <Link
+              href={`/studies/${study.id}/manage`}
+              className={buttonStyles.button}
+              data-variant="secondary"
+            >
+              스터디 관리
+            </Link>
+          )}
           <Button
             variant="secondary"
             disabled={busy}
