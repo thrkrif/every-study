@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.38"
+version: "0.39"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.33
+  - docs/DATA-MODEL.md@0.34
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -390,12 +390,13 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 | `GET /api/v1/admin/reports?status=open&cursor=&size=20` | 운영자 | 신고 큐, 최근 신고부터. `status`는 `open`(기본)·`dismissed`·`resolved`·`all`(그 밖은 `400`). 항목 `{ id, reporterId, reporterNickname, targetType, targetId, targetSummary(스터디 제목·닉네임·메시지 앞 100자, 대상이 없으면 null), reason, detail, status, handledBy, handleNote, createdAt, handledAt }`, 응답 `{ items, nextCursor }` |
 | `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 반려 또는 처리 완료 `{ "note": "..." }`(`note` 필수 300자 이하). `200`과 처리된 신고, 없으면 `404`, 이미 처리됐으면 `409 REPORT_ALREADY_HANDLED`. 감사 로그 `REPORT_DISMISS`·`REPORT_RESOLVE`. 처리 완료는 표시일 뿐 실제 조치는 아래 API로 따로 한다 |
 | `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 강제 종료 = 파투(`cancel_reason=OPERATOR`) `{ "note": "..." }`(`note` 필수 200자 이하, 감사 로그 `STUDY_FORCE_END`). `204`. 참여자 지표 영향 없음(체크인 마감 뒤 판정 작업이 `VOIDED`를 남김). 대기 행 삭제, 참여자·대기자에게 `STUDY_CANCELLED` 알림, 채팅방 폐쇄. 이미 강제 종료됐으면 `204`(멱등), 정상 종료·주최자 포기 파투면 `409 STUDY_CLOSED`, 없으면 `404` |
-| `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 메시지 삭제 |
-| `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여·해제 |
+| `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 메시지 삭제 `{ "note": "..." }`(`note` 필수 200자 이하). 내용을 비우고 지운 시각만 남긴다(이전 대화 조회는 `deleted: true`, 내용 없음). `204`, 이미 지웠으면 `204`(멱등), 없는 메시지·시스템 메시지는 `404`. 감사 로그 `MESSAGE_DELETE`(내용 없음) |
+| `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여 `{ "days": 7, "note": "..." }`(1~365일, `note` 필수). `200`과 제재 `{ id, userId, kind, source, reason, startsAt, endsAt, revokedAt, createdBy, reviewRequired, active }`, 없는 회원 `404`. 대상에게 `SANCTION_APPLIED` 알림. 해제 `DELETE`는 `{ "note" }` 본문, `204`(멱등), 그 회원의 제재가 아니면 `404`. 감사 로그 `SANCTION_GRANT`·`SANCTION_REVOKE` |
 | `GET /api/v1/admin/appeals?status=open&cursor=&size=20` | 운영자 | 이의 목록, 최근 신청부터. `status`는 `open`(기본)·`accepted`·`rejected`·`all`(그 밖은 `400`). 항목 `{ id, studyId, studyTitle, userId, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`, 응답 `{ items, nextCursor }` |
 | `POST /api/v1/admin/appeals/{id}/decision` | 운영자 | 이의 최종 결정 `{ "accept": true, "note": "..." }`(`note` 필수, 150자 이하, 신청자 알림에 실린다). `200`과 결정된 이의. 인정: 판정 무효화(지각이면 출석 정정)와 지표 재계산, 근거를 잃은 자동 제재 해제. 기각: 노쇼 후보는 즉시 확정과 제재 판정. 이미 결정된 이의는 `409 APPEAL_CLOSED` |
 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` | 운영자 | 개별 출석 정정 `{ "result": "ATTENDED" \| "CLEARED", "note": "..." }`(`note` 필수 200자 이하). `ATTENDED`는 출석으로 집계, `CLEARED`는 판정 무효화. 대상은 현재 판정이 `NO_SHOW_CANDIDATE`·`LATE`·`NO_SHOW`인 이벤트이며 이미 정정됐거나 열린 이의가 있으면 `409 CORRECTION_NOT_ALLOWED`, 없으면 `404`. 응답 `{ eventId, studyId, userId, verdict }`. 지표 재계산과 근거를 잃은 자동 제재 해제, 감사 로그 `ATTENDANCE_CORRECT` |
-| `GET /api/v1/admin/sanctions?userId=` | 운영자 | 자동 제재 조회·해제 |
+| `GET /api/v1/admin/sanctions?userId=&activeOnly=false&reviewRequired=false&cursor=&size=20` | 운영자 | 제재 조회(자동·수동), 최근 것부터 커서. `userId`로 회원을, `activeOnly`로 지금 유효한 것만, `reviewRequired`로 운영자 검토 대상(주최자 합계가 검토 단계)만 거른다. 응답 `{ items, nextCursor }` |
+| `DELETE /api/v1/admin/sanctions/{id}` | 운영자 | 자동·수동 제재 해제 `{ "note" }`. `204`(멱등), 없으면 `404`. 해제하면 바로 신청·개설을 다시 할 수 있다 |
 | `GET /api/v1/admin/audit-logs?cursor=&size=50&action=&targetType=` | 운영자 | 감사 로그. 최근 것부터 커서(`size` 1~100). `action`은 알려진 행위 이름만(아니면 `400`), `targetType`은 그대로 비교한다. 응답 `{ "items": [ { id, actorId(시스템이면 null), action, targetType, targetId, detail, createdAt } ], "nextCursor": null }` |
 
 - 모든 운영자 쓰기 API는 `audit_log`에 기록한다. 응답 코드는 `204` 또는 변경된 리소스.
