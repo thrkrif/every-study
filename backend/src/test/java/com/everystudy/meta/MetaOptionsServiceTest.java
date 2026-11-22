@@ -22,9 +22,9 @@ class MetaOptionsServiceTest {
     @Test
     @DisplayName("수치는 설정 객체에서 읽는다. 설정을 바꾸면 응답이 바뀐다")
     void numbersComeFromSettings() {
-        MetaOptions defaults = options(DEFAULT_STUDY, new AttendanceProperties(150));
+        MetaOptions defaults = options(DEFAULT_STUDY, new AttendanceProperties(150, 10));
         MetaOptions changed = options(
-                new StudyProperties(3, 8, 7, 30, 15, 60, List.of(80, 90), 10, 30, 180), new AttendanceProperties(200));
+                new StudyProperties(3, 8, 7, 30, 15, 60, List.of(80, 90), 10, 30, 180), new AttendanceProperties(200, 10));
 
         assertThat(defaults.study())
                 .isEqualTo(new MetaOptions.Study(2, 6, 14, 10, 10, 30, List.of(50, 60, 70, 80, 90, 100)));
@@ -36,7 +36,7 @@ class MetaOptionsServiceTest {
     @Test
     @DisplayName("직군은 대분류 아래 세부 직무를, 지역은 시·도 → 시 → 구를 children 으로 담는다")
     void codeTrees() {
-        MetaOptions options = options(DEFAULT_STUDY, new AttendanceProperties(150));
+        MetaOptions options = options(DEFAULT_STUDY, new AttendanceProperties(150, 10));
 
         MetaOptions.Option it = options.jobs().getFirst();
         assertThat(it.code()).isEqualTo("IT");

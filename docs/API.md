@@ -1,16 +1,17 @@
 ---
 status: draft
-version: "0.17"
+version: "0.18"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.15
-  - docs/DATA-MODEL.md@0.15
+  - docs/ARCHITECTURE.md@0.16
+  - docs/DATA-MODEL.md@0.16
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
   - backend/src/main/java/com/everystudy/meta/web/**
   - backend/src/main/java/com/everystudy/study/web/**
   - backend/src/main/java/com/everystudy/notification/web/**
+  - backend/src/main/java/com/everystudy/attendance/web/**
 ---
 
 # API 명세
@@ -304,6 +305,9 @@ covers:
 | `POST /api/v1/studies/{id}/checkins/code` | 참여자 | 코드 체크인 `{ "code": "123456" }`. 위치 거부·GPS 실패 시의 유일한 대체 수단 |
 | `PUT /api/v1/studies/{id}/checkin-code` | 주최자 | 일회용 코드 발급(재발급). 주최자 체크인 후에만, 아니면 `HOST_NOT_CHECKED_IN` |
 | `GET /api/v1/studies/{id}/attendance` | 참여자 | 체크인 현황. 참여자는 자기 것, 주최자는 전원의 **체크인 여부만** 본다 (노쇼 확정 권한 없음, PRD 4.6) |
+
+- 위치 체크인 검사 순서(PLAN X-27): 스터디 없음 `404` → 참여자가 아님 `403` → 이미 체크인했으면 처음 결과 `200` → 종료·파투 `409 STUDY_CLOSED` → 시간창 `422 CHECKIN_WINDOW_CLOSED` → 반경 `422 CHECKIN_OUT_OF_RANGE`. `accuracyM`은 필수이며 저장만 하고 판정에 쓰지 않는다. 락 대기 시간이 지나면 `LOCK_TIMEOUT`.
+- 체크인 현황 응답: `{ "mine": { "checkedIn": true, "result": "ATTENDED", "method": "LOCATION", "checkedInAt": "..." }, "members": [ { "userId", "nickname", "checkedIn" } ] }`. 체크인 전에는 `mine`에 `checkedIn: false`만 있고, `members`는 주최자에게만 담긴다.
 
 체크인 시간창과 판정 경계는 서버가 PRD 4.6 설정으로 판단하며, 클라이언트는 `GET /studies/{id}`의 `checkinOpensAt`, `checkinClosesAt`으로 버튼 상태만 정한다.
 

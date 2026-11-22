@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.15"
+version: "0.16"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.15
+  - docs/ARCHITECTURE.md@0.16
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -11,6 +11,7 @@ covers:
   - backend/src/main/java/com/everystudy/chat/**
   - backend/src/main/java/com/everystudy/notification/**
   - backend/src/main/java/com/everystudy/trust/**
+  - backend/src/main/java/com/everystudy/attendance/**
   - backend/src/main/java/com/everystudy/common/audit/**
   - backend/src/main/resources/db/migration/**
 ---
