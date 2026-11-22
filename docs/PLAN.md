@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.45"
+version: "0.46"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.20
@@ -384,6 +384,7 @@ based_on:
   - 참조: PRD 4.5·5장 화면 12
   - 완료: 채널별 on/off와 푸시 구독 상태 표시 · 테스트: 토글 저장 실패 시 이전 값으로 되돌림
   - 문서: 해당 없음
+  - 부분 진행(2026-11-22, 체크는 T-044 뒤에): `/notifications/settings`(`NotificationSettingsView`)에 채널별(푸시·이메일) 켜고 끄기 구현 · 누르면 바로 바뀌고 저장 실패 시 이전 값으로 되돌려 안내 · 알림 센터에 "알림 설정" 링크 · `lib/api/notifications.ts`에 설정 호출과 새 알림 종류 추가. **남은 일**: 푸시 구독 상태 표시와 구독 시작·해제는 PWA·푸시 구독(T-044) 뒤에 이 화면에 더한다
 
 - [x] T-046 채팅 REST와 차단
   - 선행: T-015, T-020 · 결정 X-13
