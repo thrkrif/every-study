@@ -56,6 +56,17 @@ public class ChatMessage {
         return message;
     }
 
+    /** 입장·나감·새 주최자 안내. 보낸 사람이 없다 (DATA-MODEL 8장). */
+    public static ChatMessage system(long roomId, String content, Instant now) {
+        ChatMessage message = new ChatMessage();
+        message.roomId = roomId;
+        message.senderId = null;
+        message.kind = ChatMessageKind.SYSTEM;
+        message.content = content;
+        message.createdAt = now;
+        return message;
+    }
+
     public Long getId() {
         return id;
     }
