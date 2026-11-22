@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.22"
+version: "0.23"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.20
+  - docs/DATA-MODEL.md@0.21
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -60,6 +60,7 @@ covers:
 | 409 | `APPEAL_CLOSED` | 이의를 받는 기간(PRD 4.9)이 지났거나, 주최자 의견을 낼 이의가 이미 결정됨 |
 | 409 | `APPEAL_NOT_ALLOWED` | 이의 대상이 아닌 판정(출석·취소 등), 또는 이미 정정·확정이 뒤따른 판정 |
 | 409 | `ALREADY_APPEALED` | 이 판정에 이미 이의를 냈음 (판정당 1회) |
+| 409 | `CHAT_CLOSED` | 채팅방이 닫혀(`CLOSED`) 이전 대화·공지·읽음을 쓸 수 없음 (방 상태 조회는 된다, PRD 4.14) |
 | 409 | `SESSION_STARTED` | 이미 시작했거나 종료·파투된 스터디라 참여자가 나갈 수 없음 (PRD 4.6) |
 | 409 | `STUDY_NOT_FULL` | 정원에 여유가 있어 대기할 수 없음 (참여 신청을 안내) |
 | 409 | `ENTRY_CRITERIA_NOT_MET` | 입장 기준(출석률·신규 불허) 미충족 |
@@ -353,6 +354,12 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 | `GET /api/v1/studies/{id}/chat/messages?before=&size=` | 참여자 | 이전 대화 (커서). 차단한 사용자 메시지는 숨김 처리 표시 |
 | `PUT /api/v1/studies/{id}/chat/notice` | 주최자 | 공지 고정·수정 |
 | `PUT /api/v1/studies/{id}/chat/read` | 참여자 | `{ "lastReadMessageId": 123 }` |
+
+- **방 상태** 응답: `{ status, notice: { content, updatedAt } | null, unreadCount }`. 참여자(`ACTIVE`)만 쓴다: 스터디 없음 `404`, 참여자 아님·나간 사람 `403`. 닫힌 방도 상태는 준다(`status: "CLOSED"`).
+- **이전 대화**: `before`(메시지 id, 1 이상, 없으면 맨 끝)보다 앞선 메시지를 **최근 것부터** `size`(1~100, 기본 30)건. 응답 `{ items: [{ id, kind, senderId, senderNickname, content, hidden, deleted, createdAt }], nextCursor }`이고 `nextCursor`는 다음 요청의 `before`로 넘길 문자열(더 없으면 `null`). `kind`는 `TEXT`/`SYSTEM`(시스템 메시지는 `senderId`가 `null`). 내가 차단한 사람의 메시지는 `hidden: true`, 운영자가 지운 메시지는 `deleted: true`이고 둘 다 `content`가 `null`이다. 닫힌 방은 `409 CHAT_CLOSED`.
+- **공지**: `{ "content": "..." }`(공백 제외 1~500자)를 보내면 고정하고, 다시 보내면 고쳐 쓴다(지우는 API는 없다). 응답 `{ content, updatedAt }`. 현재 주최자이면서 `ACTIVE` 참여자일 때만 되고, 시작 후 나간 주최자는 `403`이다 (PLAN X-13). 닫힌 방은 `409 CHAT_CLOSED`.
+- **읽음**: `lastReadMessageId`(0 이상)를 올리기만 하고 방의 마지막 메시지 번호를 넘으면 그 번호로 맞춘다. `204`. 닫힌 방은 `409 CHAT_CLOSED`.
+- **차단**(7장 `blocks`): `PUT`·`DELETE` 모두 `204`이고 멱등이다. 자기 자신은 `400 VALIDATION_FAILED`, 없는 사용자는 `404`.
 
 **WebSocket (STOMP)**
 | 항목 | 값 |

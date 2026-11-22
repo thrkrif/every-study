@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.20"
+version: "0.21"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
@@ -365,13 +365,13 @@ PK `(user_id, channel)`, `enabled BOOLEAN`. 행이 없으면 기본값(켜짐, �
 | deleted_at | DATETIME(6) NULL | 운영자 삭제 (내용은 비운다) |
 | created_at | DATETIME(6) | |
 
-- 인덱스 `(room_id, id)`. 삭제 작업은 `chat_room.purge_after <= now AND purged_at IS NULL`인 방의 메시지를 상한 건수씩 지운다.
+- 인덱스 `(room_id, id)`. 이전 대화 조회는 `id < before`를 최근 순으로 읽는다. 삭제 작업은 `chat_room.purge_after <= now AND purged_at IS NULL`인 방의 메시지를 상한 건수씩 지운다.
 
 ### `chat_notice`
-`room_id` PK, `content VARCHAR(500)`, `updated_by`, `updated_at`. 방당 공지 1건 (PRD 4.12).
+`room_id` PK, `content VARCHAR(500)`, `updated_by`, `updated_at`. 방당 공지 1건 (PRD 4.12). 공지를 지우는 기능은 없고 고쳐 쓰기만 한다 (T-046).
 
 ### `chat_read_state`
-PK `(room_id, user_id)`, `last_read_message_id BIGINT`. "읽지 않음" 개수는 `id > last_read_message_id`로 센다.
+PK `(room_id, user_id)`, `last_read_message_id BIGINT`. "읽지 않음" 개수는 `id > last_read_message_id`로 세되, 지워진 메시지·내가 보낸 메시지·내가 차단한 사람의 메시지는 빼고 시스템 메시지는 센다 (T-046). 읽음 위치는 올리기만 하고(`GREATEST`) 방의 마지막 메시지 번호를 넘지 않게 맞춘다. 행이 없으면 0이다.
 
 ## 9. 신고와 운영
 
@@ -392,7 +392,7 @@ PK `(room_id, user_id)`, `last_read_message_id BIGINT`. "읽지 않음" 개수�
 - 메시지 신고 시점에 내용 사본을 남기지는 않는다. 보관 기간 안에 처리한다 (PRD 4.14 "신고 대응용 보관"). 인덱스 `(status, created_at)`.
 
 ### `block`
-PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 기능 (PRD 4.12).
+PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 기능 (PRD 4.12). 소속 모듈은 `chat`이고 차단·해제는 멱등이다 (T-046).
 
 ### `audit_log`
 | 컬럼 | 타입 | 설명 |

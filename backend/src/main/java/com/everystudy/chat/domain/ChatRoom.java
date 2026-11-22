@@ -35,6 +35,18 @@ public class ChatRoom {
     protected ChatRoom() {
     }
 
+    public Long getId() {
+        return id;
+    }
+
+    public Long getStudyId() {
+        return studyId;
+    }
+
+    public ChatRoomStatus getStatus() {
+        return status;
+    }
+
     public static ChatRoom openFor(long studyId, Instant now) {
         ChatRoom room = new ChatRoom();
         room.studyId = studyId;
