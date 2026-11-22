@@ -4,6 +4,8 @@ import com.everystudy.auth.domain.RefreshToken;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
@@ -23,4 +25,8 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("update RefreshToken t set t.revokedAt = :now where t.familyId = :familyId and t.revokedAt is null")
     int revokeFamily(@Param("familyId") String familyId, @Param("now") Instant now);
+
+    /** 만료 시각이 {@code now} 이하인(이미 쓸 수 없는) 토큰의 id. 정리 작업이 쓴다. */
+    @Query("select t.id from RefreshToken t where t.expiresAt <= :now order by t.id")
+    List<Long> findIdsByExpiresAtLessThanEqual(@Param("now") Instant now, Pageable pageable);
 }

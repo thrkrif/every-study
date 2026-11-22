@@ -13,6 +13,8 @@ spring:
             client-secret: test-google-client-value
 
 everystudy:
+  scheduler:
+    enabled: false   # 스케줄 작업은 통합 테스트가 서비스를 직접 불러 검증한다
   auth:
     token:
       signing-key: test-only-signing-key-not-used-anywhere-else
