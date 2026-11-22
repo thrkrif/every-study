@@ -193,6 +193,15 @@ public class Study {
         updatedAt = now;
     }
 
+    /** 종료한다 (PRD 4.14, 세션 날짜 다음날 00:00 KST). 진행 중인 스터디만 종료할 수 있다. */
+    public void end(Instant now) {
+        if (status != StudyStatus.ACTIVE) {
+            throw new IllegalStateException("진행 중인 스터디만 종료할 수 있습니다");
+        }
+        status = StudyStatus.ENDED;
+        updatedAt = now;
+    }
+
     public Long getId() {
         return id;
     }
