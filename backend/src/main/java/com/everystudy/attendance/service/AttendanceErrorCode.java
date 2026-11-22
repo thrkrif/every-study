@@ -1,0 +1,29 @@
+package com.everystudy.attendance.service;
+
+import com.everystudy.common.error.ErrorCode;
+import org.springframework.http.HttpStatus;
+
+/** 출석 모듈의 오류 코드 (API 명세 1장). */
+public enum AttendanceErrorCode implements ErrorCode {
+
+    CHECKIN_OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_CONTENT, "스터디 장소 반경 밖이라 체크인할 수 없습니다"),
+    CHECKIN_WINDOW_CLOSED(HttpStatus.UNPROCESSABLE_CONTENT, "체크인 가능한 시간이 아닙니다");
+
+    private final HttpStatus status;
+    private final String title;
+
+    AttendanceErrorCode(HttpStatus status, String title) {
+        this.status = status;
+        this.title = title;
+    }
+
+    @Override
+    public HttpStatus status() {
+        return status;
+    }
+
+    @Override
+    public String title() {
+        return title;
+    }
+}

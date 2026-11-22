@@ -32,4 +32,16 @@ public class AttendanceEventRecorder {
     public void recordLateCancel(long studyId, long userId, Instant occurredAt) {
         events.save(AttendanceEvent.of(studyId, userId, AttendanceEventType.LATE_CANCEL, occurredAt));
     }
+
+    /** 출석: 시작 10분 이내 체크인 (PRD 4.6). 판정 이벤트는 한 번만 남는다 (PLAN X-9). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordAttended(long studyId, long userId, Instant occurredAt) {
+        events.save(AttendanceEvent.of(studyId, userId, AttendanceEventType.ATTENDED, occurredAt));
+    }
+
+    /** 지각: 시작 10분 초과 ~ 30분 이내 체크인 (PRD 4.6). */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void recordLate(long studyId, long userId, Instant occurredAt) {
+        events.save(AttendanceEvent.of(studyId, userId, AttendanceEventType.LATE, occurredAt));
+    }
 }

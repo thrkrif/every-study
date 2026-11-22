@@ -2,7 +2,7 @@
 status: draft
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.15
+  - docs/ARCHITECTURE.md@0.16
 ---
 
 # ADR-0003: 모듈러 모놀리스와 패키지 규칙
