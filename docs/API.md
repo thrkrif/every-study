@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.29"
+version: "0.30"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.25
+  - docs/DATA-MODEL.md@0.26
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -151,7 +151,7 @@ covers:
 | `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
 | `GET /api/v1/me/attendance?cursor&size` | 회원 | 지난 출석 기록. 스터디마다 **현재 판정** 하나씩, 최근에 쌓인 판정부터(커서, `size` 1~50 기본 20). 응답 `{ items: [{ eventId, studyId, studyTitle, type, occurredAt, appealable, appealDueAt, appealId }], nextCursor }`. `type`은 현재 판정(DATA-MODEL 5장). `appealable`은 이의 대상 판정이고 아직 내지 않았고 기한 안일 때만 `true`, `appealDueAt`은 이의 대상 판정에만 값이 있고 `appealId`는 이미 낸 이의가 있을 때만 값이 있다. `eventId`가 이의 신청 경로(5장)의 값이다 |
 | `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
-| `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off |
+| `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off. 응답 `{ "push": true, "email": true }`(저장된 값이 없으면 둘 다 `true`). `PUT`은 보낸 채널만 바꾸고(`null`·생략은 유지) 바뀐 전체 설정을 돌려준다. 꺼진 채널은 발송 시점에 건너뛴다(알림 센터에는 남음) |
 | `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 웹 푸시 구독 등록·해지 |
 | `GET /api/v1/users/{id}` | 공개 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1). 응답은 아래 **공개 프로필 응답** |
 

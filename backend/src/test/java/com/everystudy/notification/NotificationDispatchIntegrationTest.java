@@ -88,6 +88,35 @@ class NotificationDispatchIntegrationTest extends IntegrationTestSupport {
     }
 
     @Test
+    @DisplayName("예약해 둔 알림도 발송 시점에 그 채널 수신 설정이 꺼져 있으면 보내지 않고 SKIPPED 로 남긴다. 다시 켜도 되살아나지 않는다")
+    void skipsWhenChannelDisabled() {
+        long id = outbox("PUSH", "2026-11-23T03:00:00Z", "2026-11-23T05:00:00Z");
+        jdbc.update("INSERT INTO notification_setting (user_id, channel, enabled, updated_at) VALUES (?, 'PUSH', FALSE, ?)",
+                userId, utc(Instant.parse(T0)));
+
+        assertThat(dispatch.dispatchDue()).isEqualTo(1);
+
+        assertThat(push.sent()).isEmpty();
+        assertThat(status(id)).isEqualTo("SKIPPED");
+        jdbc.update("UPDATE notification_setting SET enabled = TRUE WHERE user_id = ?", userId);
+        assertThat(dispatch.dispatchDue()).isZero();
+        assertThat(push.sent()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("다른 채널을 꺼도 푸시는 나가고, 설정 행이 없으면 켜짐이다")
+    void otherChannelDisabledDoesNotAffect() {
+        long id = outbox("PUSH", "2026-11-23T03:00:00Z", "2026-11-23T05:00:00Z");
+        jdbc.update("INSERT INTO notification_setting (user_id, channel, enabled, updated_at) VALUES (?, 'EMAIL', FALSE, ?)",
+                userId, utc(Instant.parse(T0)));
+
+        assertThat(dispatch.dispatchDue()).isEqualTo(1);
+
+        assertThat(status(id)).isEqualTo("SENT");
+        assertThat(push.sent()).hasSize(1);
+    }
+
+    @Test
     @DisplayName("예정 시각 전의 건은 보내지 않고, 그 시각이 되면 보낸다")
     void notBeforeScheduled() {
         long id = outbox("PUSH", "2026-11-23T03:00:01Z", "2026-11-23T05:00:00Z");

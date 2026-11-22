@@ -263,6 +263,43 @@ class NotificationIntegrationTest extends IntegrationTestSupport {
                 "T:" + userId + ":" + title);
     }
 
+    @Test
+    @DisplayName("수신 설정은 처음에 모두 켜짐이고, 보낸 채널만 바뀌며, 저장된 값이 다시 조회된다")
+    void notificationSettings() throws Exception {
+        String uri = "/api/v1/me/notification-settings";
+        MvcTestResult first = mvc.get().uri(uri).cookie(meCookie).exchange();
+        assertThat(first).hasStatus(200);
+        assertThat((Boolean) JsonPath.read(body(first), "$.push")).isTrue();
+        assertThat((Boolean) JsonPath.read(body(first), "$.email")).isTrue();
+
+        Cookie csrf = csrf();
+        MvcTestResult changed = put(uri, "{\"email\": false}", csrf);
+        assertThat(changed).hasStatus(200);
+        assertThat((Boolean) JsonPath.read(body(changed), "$.push")).isTrue();
+        assertThat((Boolean) JsonPath.read(body(changed), "$.email")).isFalse();
+
+        put(uri, "{\"push\": false}", csrf);
+        MvcTestResult again = mvc.get().uri(uri).cookie(meCookie).exchange();
+        assertThat((Boolean) JsonPath.read(body(again), "$.push")).isFalse();
+        assertThat((Boolean) JsonPath.read(body(again), "$.email")).isFalse();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notification_setting WHERE user_id = ?", Integer.class,
+                meId)).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("수신 설정 변경에 CSRF 헤더가 없으면 403 이고 바뀌지 않는다")
+    void notificationSettingsRequireCsrf() {
+        MvcTestResult denied = mvc.put().uri("/api/v1/me/notification-settings").cookie(meCookie)
+                .contentType("application/json").content("{\"push\": false}").exchange();
+        assertThat(denied).hasStatus(403);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM notification_setting", Integer.class)).isZero();
+    }
+
+    private MvcTestResult put(String uri, String json, Cookie csrf) {
+        return mvc.put().uri(uri).cookie(meCookie, csrf).header("X-XSRF-TOKEN", csrf.getValue())
+                .contentType("application/json").content(json).exchange();
+    }
+
     private MvcTestResult post(String uri, Cookie csrf) {
         return mvc.post().uri(uri).cookie(meCookie, csrf).header("X-XSRF-TOKEN", csrf.getValue()).exchange();
     }
