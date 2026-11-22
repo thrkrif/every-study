@@ -47,6 +47,9 @@ public class Appeal {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "decided_by")
+    private Long decidedBy;
+
     @Column(name = "decided_at")
     private Instant decidedAt;
 
@@ -69,6 +72,13 @@ public class Appeal {
     /** 주최자의 1차 의견. 결정 전에는 다시 보내면 덮어쓴다. */
     public void writeHostOpinion(String opinion) {
         this.hostOpinion = opinion;
+    }
+
+    /** 운영자가 결정한다. 이미 결정된 이의는 호출한 쪽이 막는다. */
+    public void decide(boolean accepted, long operatorId, Instant now) {
+        this.status = accepted ? AppealStatus.ACCEPTED : AppealStatus.REJECTED;
+        this.decidedBy = operatorId;
+        this.decidedAt = now;
     }
 
     public boolean isOpen() {

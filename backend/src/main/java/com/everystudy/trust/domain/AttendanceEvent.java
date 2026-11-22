@@ -53,6 +53,14 @@ public class AttendanceEvent {
         return event;
     }
 
+    /** 운영자 정정처럼 사유를 남기는 이벤트. 사유는 200자까지다. */
+    public static AttendanceEvent corrected(long studyId, long userId, AttendanceEventType type, Instant occurredAt,
+            String note) {
+        AttendanceEvent event = of(studyId, userId, type, occurredAt);
+        event.note = note == null || note.length() <= 200 ? note : note.substring(0, 200);
+        return event;
+    }
+
     public Long getId() {
         return id;
     }

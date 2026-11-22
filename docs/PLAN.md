@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.32"
+version: "0.33"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.28
-  - docs/API.md@0.32
+  - docs/DATA-MODEL.md@0.29
+  - docs/API.md@0.33
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -455,11 +455,13 @@ based_on:
   - 완료: 메시지 삭제는 내용을 비움 · 수동 이용 정지 부여·해제, 자동 제재 조회·해제, 운영자 검토 대상 주최자 목록 · 모든 조치 감사 로그 · 테스트: 삭제된 메시지 이력 조회 시 내용 없음, 해제 후 즉시 신청 가능
   - 문서: API 7장 확인
 
-- [ ] T-056 이의 최종 결정
+- [x] T-056 이의 최종 결정
   - 선행: T-035a, T-052 · 결정 X-12
   - 참조: PRD 4.9, ARCHITECTURE 4.5, DATA-MODEL 5장(`NO_SHOW_CLEARED`), API 7장(`admin/appeals`)
   - 완료: 인정 시 정정 이벤트 추가(지각 인정의 집계는 X-12 결정대로)와 지표 재계산, 관련 자동 제재 재판정 · 기각 시 `NO_SHOW` 확정 이벤트 추가와 T-035a의 제재 판정 재사용 · 결과 알림과 감사 로그 · 테스트: 인정 후 지표 복구, 기각 후 확정·제재 1회, 같은 이의 두 번 결정 거부
   - 문서: DATA-MODEL 5장, API 7장 확인
+  - 결과: `attendance.service.AppealDecisionService`와 `AdminAppealController`(`GET/POST /api/v1/admin/appeals`) · 이의 행을 잠그고 한 번만 결정(`APPEAL_CLOSED`) · 인정은 `AttendanceEventRecorder.recordAppealAccepted`(`NO_SHOW_CLEARED`, 지각이면 `ATTENDED`)와 `ParticipantSanctionService.reassessAfterCorrection`(근거를 잃은 자동 제재 해제), 기각은 후보를 즉시 `NO_SHOW`로 확정하고 `judgeAfterNoShow` 재사용 · 신청자 알림 `APPEAL_RESULT`(V19) · 내가 정한 세부 결정: ① 사유(`note`)는 필수·150자 이하이고 알림 본문에 실음 ② 제재 재판정은 정정된 판정 시각 이후에 시작된 자동 제한·정지만 대상이고 정정된 기록으로 그 단계에 못 이르면 해제(제한 먼저, 정지는 그다음) ③ 노쇼 후보 인정은 `NO_SHOW_CLEARED`만(지각만 출석 정정) ④ 기각된 지각은 판정 유지, 별도 제재 판정 없음 ⑤ 결과 알림 유효 기간 `everystudy.attendance.appeal-result-notice-days`(기본 7일)
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AppealDecisionIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-057 운영자 개별 출석 정정
   - 선행: T-056 · 결정 X-7
