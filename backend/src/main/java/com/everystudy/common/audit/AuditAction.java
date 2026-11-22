@@ -25,6 +25,8 @@ public enum AuditAction {
     ATTENDANCE_CORRECT,
     /** 신고 기각 (운영자). */
     REPORT_DISMISS,
+    /** 신고 처리 완료 (운영자). */
+    REPORT_RESOLVE,
     /** 스터디 강제 종료 (운영자). */
     STUDY_FORCE_END,
     /** 메시지 삭제 (운영자). */

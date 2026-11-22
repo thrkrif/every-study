@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.36"
+version: "0.37"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.31
-  - docs/API.md@0.36
+  - docs/DATA-MODEL.md@0.32
+  - docs/API.md@0.37
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -439,11 +439,13 @@ based_on:
   - 결과: `SecurityConfig`가 `/api/v1/admin/**`을 `ROLE_ADMIN`만 통과(비회원 401·일반 회원 403) · `user.service.AdminProperties`(`everystudy.admin.emails`, 환경변수 `ADMIN_EMAILS`; `.env.example`·`deploy/compose.yaml`에 키 추가)와 `SocialUserService`가 로그인 때 목록의 이메일이면 `ADMIN` 승격 · `GET /api/v1/admin/audit-logs`(`common.audit.AuditLogQueryService`·`AuditLogController`, 커서·`action`·`targetType` 필터) · 내가 정한 세부 결정: ① 운영자 지정은 이메일 목록(ID는 가입 전에 알 수 없어서), 승격은 로그인 때와 같은 트랜잭션 ② 자동 강등 없음 ③ 역할은 토큰에 있어 변경 반영에 최대 15분 ④ 감사 로그 목록은 기본 50건, 최대 100건
   - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AdminAccessIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-053 신고 접수와 신고 큐 처리
+- [x] T-053 신고 접수와 신고 큐 처리
   - 선행: T-046, T-052 · 결정 D-4
   - 참조: PRD 4.11, DATA-MODEL 9장(`report`)·11장 1번, API 7장
   - 완료: 스터디·사용자·메시지 신고 접수 · 신고 큐 조회, 반려·처리 완료와 감사 로그 · 테스트: 사유 코드 외 값 `VALIDATION_FAILED`, `note` 없는 처리 거부
   - 문서: DATA-MODEL 9장·11장 1번 갱신
+  - 결과: `chat.service.ReportService`·`ReportController`(`POST /api/v1/reports`, `GET /api/v1/admin/reports`, `POST .../dismiss`·`/resolve`) · 테이블 `report`(V20), 감사 로그 `REPORT_RESOLVE` 추가 · 내가 정한 세부 결정: ① 신고는 `chat` 모듈 소속(ARCHITECTURE 3장) ② 같은 신고자·같은 대상의 열린 신고는 하나만(`ALREADY_REPORTED`), 처리 뒤에는 다시 신고 가능 ③ 메시지 신고는 그 방의 `ACTIVE` 참여자만, 내 메시지·시스템·지워진 메시지는 불가 ④ 처리 완료는 표시일 뿐이고 실제 조치는 T-054·T-055 의 API ⑤ 처리 사유 `note`는 300자 ⑥ 큐 항목에 대상 요약(제목·닉네임·메시지 앞 100자)을 붙임
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`ReportIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-054 운영자 강제 종료
   - 선행: T-031, T-040, T-049, T-053 · 결정 D-16
@@ -584,7 +586,7 @@ based_on:
 | D-1 | **결정됨(2026-11-16, ADR-0001)**: Spring Boot 4.1.x, JDK 21, Gradle 9.x, Next.js 16.x, Node 24(CI 반영), ESLint·Prettier, Vitest 5·Testing Library. 패치 버전은 T-001·T-002에서 최신 안정 버전을 확인하고, JUnit·Testcontainers는 Boot 4.1이 관리하는 버전을 T-001에서 확정한다 | ADR-0001, ci.yml | T-001, T-002 |
 | D-2 | **결정됨(2026-11-16, ADR-0003 후속 결정)**: 모듈 경계 검사 도구는 ArchUnit 1.5.1(코어만 사용). T-003에서 함께 정한 것: 모듈의 공개 면은 `service`·`event` 패키지, `web`은 같은 모듈의 `domain` 타입을 쓸 수 있고 `repository`는 못 쓴다 | ADR-0003 | T-003 |
 | D-3 | **일부 결정(2026-11-18, ARCHITECTURE 9장)**: M1 배포는 클라우드 VM 1대 + 도메인 + Caddy(HTTPS), MySQL은 같은 VM의 컨테이너, 이미지는 SSH로 전달(`deploy/`). 임시 호스트·터널은 쓰지 않는다. 남은 것: 업체·도메인 이름(사람), 백업(T-065). 원래 항목: 호스팅 업체·도메인·DB 운영 방식·백업. M1의 HTTPS 임시 배포에 필요한 최소 결정(임시 호스트·터널 허용 여부 포함)을 먼저 | ARCHITECTURE 9장·11장 1번 | T-013, T-065 |
-| D-4 | 신고 사유 분류 목록 | DATA-MODEL 11장 1번 | T-053 |
+| D-4 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 9장).** 신고 사유는 6종: `SPAM_AD`(광고·홍보), `ABUSE`(욕설·비방), `INAPPROPRIATE_RECRUIT`(부적절한 모집), `HARASSMENT`(괴롭힘·성적 불쾌감), `FRAUD`(사기·위장), `OTHER`(기타, 상세 필수) | DATA-MODEL 11장 1번 | T-053 |
 | D-5 | 호출 제한 수치 (대상은 API 9장 1번에 있음) | API 9장 1번 | T-064 |
 | D-6 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 7장·11장 2번).** 수신 설정 때문에 건너뛴 알림은 `SKIPPED` 상태를 추가해 표기한다 | DATA-MODEL 11장 2번 | T-043 |
 | D-7 | **결정됨(2026-11-22, 사용자 확인. DATA-MODEL 5장·11장 3번, ARCHITECTURE 4.4).** 일회용 코드 자릿수·수명·입력 시도 제한 횟수 | 6자리 숫자, 체크인 마감 시각까지 유효, 한 사람이 한 스터디에서 5번 틀리면 입력 불가(`everystudy.attendance.code-max-failures`) | T-028 |

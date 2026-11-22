@@ -71,6 +71,10 @@ public class ChatMessage {
         return id;
     }
 
+    public Long getRoomId() {
+        return roomId;
+    }
+
     public Long getSenderId() {
         return senderId;
     }

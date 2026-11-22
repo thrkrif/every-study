@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.36"
+version: "0.37"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.31
+  - docs/DATA-MODEL.md@0.32
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -60,6 +60,8 @@ covers:
 | 409 | `APPEAL_CLOSED` | 이의를 받는 기간(PRD 4.9)이 지났거나, 주최자 의견을 낼 이의가 이미 결정됨 |
 | 409 | `APPEAL_NOT_ALLOWED` | 이의 대상이 아닌 판정(출석·취소 등), 또는 이미 정정·확정이 뒤따른 판정 |
 | 403 | `APPEAL_RESTRICTED` | 이의가 반복해서 기각되어 한동안 새 이의를 낼 수 없음(PRD 4.9). `until` 포함 |
+| 409 | `ALREADY_REPORTED` | 같은 대상에 이미 열린 신고가 있음 |
+| 409 | `REPORT_ALREADY_HANDLED` | 이미 처리된 신고 |
 | 409 | `ALREADY_APPEALED` | 이 판정에 이미 이의를 냈음 (판정당 1회) |
 | 409 | `CHAT_CLOSED` | 채팅방이 닫혀(`CLOSED`) 이전 대화·공지·읽음을 쓸 수 없음 (방 상태 조회는 된다, PRD 4.14) |
 | 409 | `SESSION_STARTED` | 이미 시작했거나 종료·파투된 스터디라 참여자가 나갈 수 없음 (PRD 4.6) |
@@ -383,10 +385,10 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
-| `POST /api/v1/reports` | 회원 | `{ "targetType": "STUDY\|USER\|MESSAGE", "targetId", "reason", "detail" }` |
+| `POST /api/v1/reports` | 회원 | `{ "targetType": "STUDY\|USER\|MESSAGE", "targetId", "reason", "detail" }`. `reason`은 `SPAM_AD`·`ABUSE`·`INAPPROPRIATE_RECRUIT`·`HARASSMENT`·`FRAUD`·`OTHER`(그 밖은 `400`, `OTHER`는 `detail` 필수, `detail` 500자 이하). `201`과 `{ "id" }`. 없는 대상·시스템/지워진 메시지 `404`, 내 메시지·자기 자신 `400`, 그 방 참여자가 아닌 메시지 신고 `403`, 같은 대상에 열린 신고가 있으면 `409 ALREADY_REPORTED` |
 | `PUT /api/v1/blocks/{userId}` · `DELETE` | 회원 | 사용자 차단·해제 |
-| `GET /api/v1/admin/reports?status=` | 운영자 | 신고 큐 |
-| `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 반려 또는 처리 완료 (`note` 필수) |
+| `GET /api/v1/admin/reports?status=open&cursor=&size=20` | 운영자 | 신고 큐, 최근 신고부터. `status`는 `open`(기본)·`dismissed`·`resolved`·`all`(그 밖은 `400`). 항목 `{ id, reporterId, reporterNickname, targetType, targetId, targetSummary(스터디 제목·닉네임·메시지 앞 100자, 대상이 없으면 null), reason, detail, status, handledBy, handleNote, createdAt, handledAt }`, 응답 `{ items, nextCursor }` |
+| `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 반려 또는 처리 완료 `{ "note": "..." }`(`note` 필수 300자 이하). `200`과 처리된 신고, 없으면 `404`, 이미 처리됐으면 `409 REPORT_ALREADY_HANDLED`. 감사 로그 `REPORT_DISMISS`·`REPORT_RESOLVE`. 처리 완료는 표시일 뿐 실제 조치는 아래 API로 따로 한다 |
 | `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 강제 종료 = 파투. 참여자 지표 영향 없음 |
 | `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 메시지 삭제 |
 | `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여·해제 |

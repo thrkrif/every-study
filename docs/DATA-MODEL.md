@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.31"
+version: "0.32"
 based_on:
   - docs/PRD.md@0.17
   - docs/ARCHITECTURE.md@0.19
@@ -392,13 +392,14 @@ PK `(room_id, user_id)`, `last_read_message_id BIGINT`. "읽지 않음" 개수�
 | reporter_id | BIGINT FK | |
 | target_type | VARCHAR(10) | `STUDY` / `USER` / `MESSAGE` |
 | target_id | BIGINT | |
-| reason | VARCHAR(20) | 고정 분류 (부적절한 모집, 욕설 등. 목록은 11장 1번) |
+| reason | VARCHAR(30) | 고정 분류 6종(PLAN D-4): `SPAM_AD`(광고·홍보), `ABUSE`(욕설·비방), `INAPPROPRIATE_RECRUIT`(부적절한 모집), `HARASSMENT`(괴롭힘·성적 불쾌감), `FRAUD`(사기·위장), `OTHER`(기타, `detail` 필수) |
 | detail | VARCHAR(500) NULL | |
 | status | VARCHAR(10) | `OPEN` / `DISMISSED` / `RESOLVED` |
 | handled_by | BIGINT NULL FK | |
 | handle_note | VARCHAR(300) NULL | 사유 (PRD 4.11 조치 1) |
 | created_at, handled_at | DATETIME(6) | |
 
+- **접수 규칙 (T-053)**: 소속 모듈은 `chat`이다. 같은 신고자가 같은 대상에 `OPEN` 신고가 있으면 거부한다(`ALREADY_REPORTED`, 처리된 뒤에는 다시 신고할 수 있다). 메시지 신고는 그 방의 `ACTIVE` 참여자만 하고, 내 메시지·시스템 메시지·지워진 메시지는 신고할 수 없다. 사용자 신고는 자기 자신을 못 한다. 운영자는 `OPEN` 신고만 한 번 반려(`DISMISSED`)하거나 처리 완료(`RESOLVED`)하고, 처리 완료는 표시일 뿐 실제 조치(강제 종료·메시지 삭제·이용 정지)는 각 운영자 API로 따로 한다.
 - 메시지 신고 시점에 내용 사본을 남기지는 않는다. 보관 기간 안에 처리한다 (PRD 4.14 "신고 대응용 보관"). 인덱스 `(status, created_at)`.
 
 ### `block`
@@ -436,6 +437,6 @@ PK `(blocker_id, blocked_id)`, `created_at`. 채팅 메시지 숨김용 최소 �
 **확정 (2026-11-13)**: 닉네임 중복 불허, 나갔다가 재신청 허용(같은 행 재활성화, 직전 취소 기록은 이벤트에 남음), 이의 증빙은 텍스트만, 만료 리프레시 토큰 정리, 참여자가 있으면 일정·장소 수정 불가, 스터디 숨김 없음.
 
 **구현하며 정할 항목**
-1. 신고 사유 분류 목록 (`report.reason`)
+1. ~~신고 사유 분류 목록~~ 결정됨 (PLAN D-4: 6종)
 2. ~~수신 설정으로 건너뛴 알림의 상태 표기~~ 결정됨 (PLAN D-6: `SKIPPED` 추가)
 3. ~~일회용 코드 자릿수와 수명~~ 결정됨 (PLAN D-7: 6자리 숫자, 체크인 마감까지, 5회 실패 시 입력 불가)
