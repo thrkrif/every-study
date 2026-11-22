@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.34"
+version: "0.35"
 based_on:
   - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.19
-  - docs/DATA-MODEL.md@0.29
-  - docs/API.md@0.34
+  - docs/DATA-MODEL.md@0.30
+  - docs/API.md@0.35
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -465,11 +465,13 @@ based_on:
   - 결과: `attendance.service.AppealDecisionService`와 `AdminAppealController`(`GET/POST /api/v1/admin/appeals`) · 이의 행을 잠그고 한 번만 결정(`APPEAL_CLOSED`) · 인정은 `AttendanceEventRecorder.recordAppealAccepted`(`NO_SHOW_CLEARED`, 지각이면 `ATTENDED`)와 `ParticipantSanctionService.reassessAfterCorrection`(근거를 잃은 자동 제재 해제), 기각은 후보를 즉시 `NO_SHOW`로 확정하고 `judgeAfterNoShow` 재사용 · 신청자 알림 `APPEAL_RESULT`(V19) · 내가 정한 세부 결정: ① 사유(`note`)는 필수·150자 이하이고 알림 본문에 실음 ② 제재 재판정은 정정된 판정 시각 이후에 시작된 자동 제한·정지만 대상이고 정정된 기록으로 그 단계에 못 이르면 해제(제한 먼저, 정지는 그다음) ③ 노쇼 후보 인정은 `NO_SHOW_CLEARED`만(지각만 출석 정정) ④ 기각된 지각은 판정 유지, 별도 제재 판정 없음 ⑤ 결과 알림 유효 기간 `everystudy.attendance.appeal-result-notice-days`(기본 7일)
   - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AppealDecisionIntegrationTest`)는 CI 에서 확인
 
-- [ ] T-057 운영자 개별 출석 정정
+- [x] T-057 운영자 개별 출석 정정
   - 선행: T-056 · 결정 X-7
   - 참조: PRD 9장(운영자 개별 정정), DATA-MODEL 5장·9장(`ATTENDANCE_CORRECT`)
   - 완료: X-7에서 정한 경로로 정정 이벤트 추가, 지표 재계산, 감사 로그 · 테스트: 정정 전후 지표 변화, 사유 없는 정정 거부
   - 문서: API 7장에 경로 추가(X-7)
+  - 결과: `attendance.service.AttendanceCorrectionService`와 `AdminAttendanceController` · 이의 인정과 같은 정정 이벤트(`recordCorrection`)·지표 재계산·`reassessAfterCorrection`(근거를 잃은 자동 제재 해제)·감사 로그 `ATTENDANCE_CORRECT` · 내가 정한 세부 결정: ① 정정 대상은 현재 판정이 `NO_SHOW_CANDIDATE`·`LATE`·`NO_SHOW`인 이벤트만(출석·취소·무효는 대상 아님) ② 열린 이의가 있으면 거부하고 이의 결정으로 처리하게 함 ③ 사용자에게는 알림을 보내지 않음(필요하면 T-059 이후 검토) ④ 오류는 `409 CORRECTION_NOT_ALLOWED`
+  - 로컬 검증: 단위 테스트 통과, 통합 테스트(`AttendanceCorrectionIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-058 이의 반복 기각 제한
   - 선행: T-056 · 결정 D-11
@@ -611,7 +613,7 @@ based_on:
 | X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음. **일부 반영(T-035a)**: `SANCTION_WARNING`·`SANCTION_APPLIED`(참여자)는 API 8장에 추가됨. `HOST_WARNING`(주최자)도 T-035b에서 추가됨. `CHAT_MESSAGE`도 T-050에서 추가됨. X-4 의 알림 type 은 모두 반영(문구는 T-039 가 점검) | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
 | X-5 | **결정됨(2026-11-17, 오른쪽 제안대로. API 4장 상세 응답 필드 표)**: API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
 | X-6 | **결정됨(2026-11-17, 오른쪽 제안대로. API 1장)**: 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음. 함께 정한 것: 닉네임은 2~20자의 한글(완성형)·영문·숫자·밑줄, 영문 대소문자는 구분하지 않고 중복으로 본다(API 3장) | `409 NICKNAME_TAKEN` 추가 | T-006 |
-| X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |
+| X-7 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. API 7장).** 운영자 개별 출석 정정은 `POST /api/v1/admin/attendance-events/{eventId}/corrections`(`result` `ATTENDED`·`CLEARED`, `note` 필수)로 정정 이벤트를 추가한다 | 운영자 개별 출석 정정(PRD 9장, DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없었음 | T-057 |
 | X-8 | **결정됨(2026-11-16, 오른쪽 제안대로. ARCHITECTURE 3장, ADR-0003 후속 결정).** **이벤트→알림 트랜잭션 경계와 모듈 방향.** ARCHITECTURE 3장은 모듈 간 리스너를 `AFTER_COMMIT`으로 실행한다고 하나, 4.6과 ADR-0005는 아웃박스를 비즈니스 트랜잭션 안에서 기록한다고 함(`AFTER_COMMIT`에서 기록하면 커밋 후 실패 시 알림 유실). 또 `study`가 개설 시 `chat_room`을 만들고(PRD 4.12, API 4장) 종료 시 폐쇄하면 `study → chat` 의존이 생겨 3장의 `chat → study` 방향과 순환 | 알림은 `BEFORE_COMMIT` 동기 리스너 또는 `notification` 공개 서비스 직접 호출로 같은 트랜잭션에 기록하고, `AFTER_COMMIT`은 유실돼도 되는 반응(STOMP 전달, 구독 종료)에만 쓴다. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너(같은 트랜잭션)로 받아 방 생성·폐쇄를 하고, `study`는 `chat`을 참조하지 않는다. ARCHITECTURE 3장과 ADR-0003에 반영 | T-003, T-008, T-014, T-015 |
 | X-9 | DATA-MODEL 5장의 `UNIQUE (study_id, user_id, type)`와 재신청 허용(같은 행 재활성화, DATA-MODEL 11장 확정)이 충돌: 나가기→재신청→다시 나가기에서 `EARLY_CANCEL`·`LATE_CANCEL`이 중복되어 거부됨. MySQL은 부분 유일 인덱스가 없음 | 생성 컬럼(ADR-0001 "생성 컬럼으로 우회")으로 판정 종류(`ATTENDED`, `LATE`, `NO_SHOW_CANDIDATE`, `NO_SHOW`, `VOIDED`)일 때만 값을 갖고 취소 종류는 `NULL`인 키를 만들어 `UNIQUE (study_id, user_id, 그 키)`로 둔다. 취소 이벤트의 중복 방지는 `study` 락으로 충분 | T-018 |
 | X-10 | **결정됨(2026-11-19, 오른쪽 첫 제안 `visible_at`. DATA-MODEL 7장, API 3장).** 일정 알림을 미리 예약하면(ARCHITECTURE 4.6) 아웃박스가 `notification` 행을 FK로 참조하므로, 발송 전 예약 알림이 알림 센터(`/me/notifications`)에 미리 보임 | `notification`에 `visible_at`을 두고 알림 센터는 `visible_at <= now`만 보여 준다 (또는 센터는 발송된 건만) | T-014, T-040 |
