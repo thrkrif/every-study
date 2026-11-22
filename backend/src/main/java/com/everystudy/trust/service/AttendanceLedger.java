@@ -61,4 +61,15 @@ public class AttendanceLedger {
                 .map(Verdict::of)
                 .toList();
     }
+
+    /**
+     * {@code cutoff} 보다 앞서 난(이의 기간이 지난) 노쇼 후보 중 확정할 수 있는 것을 id 순으로 {@code limit} 건. {@code afterId} 보다 id 가 큰 것만 본다.
+     * 열린 이의가 있는지는 호출한 쪽이 따진다.
+     */
+    @Transactional(readOnly = true)
+    public List<Verdict> confirmableNoShowCandidates(Instant cutoff, long afterId, int limit) {
+        return events.findConfirmableCandidates(cutoff, afterId, PageRequest.of(0, limit)).stream()
+                .map(Verdict::of)
+                .toList();
+    }
 }

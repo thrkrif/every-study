@@ -1,14 +1,10 @@
 package com.everystudy.trust.service;
 
-import com.everystudy.trust.domain.AttendanceEvent;
 import com.everystudy.trust.domain.AttendanceEventType;
 import com.everystudy.trust.repository.AttendanceEventRepository;
 import com.everystudy.trust.repository.UserTrustSummaryRepository;
 import java.time.Clock;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,21 +52,11 @@ public class TrustSummaryService {
     }
 
     private void recalculate(long userId) {
-        AttendanceTally tally = AttendanceTally.of(currentVerdictsNewestFirst(userId), properties.recentSessions(),
+        List<AttendanceEventType> verdicts = SessionVerdict.currentOf(
+                events.findByUserIdOrderByOccurredAtDescIdDesc(userId)).stream().map(SessionVerdict::type).toList();
+        AttendanceTally tally = AttendanceTally.of(verdicts, properties.recentSessions(),
                 properties.newcomerBelowSessions());
         summaries.upsert(userId, tally.counted(), tally.attended(), tally.late(), tally.noShow(),
                 tally.lateCancel(), tally.rate(), clock.instant());
-    }
-
-    /** 세션(스터디)마다 가장 최근 이벤트 하나가 현재 판정이다 (DATA-MODEL 5장). 세션은 그 판정의 발생 시각 순이다. */
-    private List<AttendanceEventType> currentVerdictsNewestFirst(long userId) {
-        Set<Long> seenStudies = new HashSet<>();
-        List<AttendanceEventType> verdicts = new ArrayList<>();
-        for (AttendanceEvent event : events.findByUserIdOrderByOccurredAtDescIdDesc(userId)) {
-            if (seenStudies.add(event.getStudyId())) {
-                verdicts.add(event.getType());
-            }
-        }
-        return verdicts;
     }
 }

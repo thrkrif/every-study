@@ -19,4 +19,12 @@ public interface UserSanctionRepository extends JpaRepository<UserSanction, Long
             """)
     Optional<Instant> findLatestActiveEnd(@Param("userId") long userId, @Param("kinds") Collection<SanctionKind> kinds,
             @Param("now") Instant now);
+
+    /** 자동으로 건 제재 중 해제되지 않은 것의 가장 늦은 시작 시각. 없으면 빈 값이다. */
+    @Query("""
+            select max(s.startsAt) from UserSanction s
+            where s.userId = :userId and s.kind = :kind and s.source = com.everystudy.trust.domain.SanctionSource.AUTO
+              and s.revokedAt is null
+            """)
+    Optional<Instant> findLatestAutoStart(@Param("userId") long userId, @Param("kind") SanctionKind kind);
 }

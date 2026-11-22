@@ -2,6 +2,7 @@ package com.everystudy.trust.repository;
 
 import com.everystudy.trust.domain.AttendanceEvent;
 import com.everystudy.trust.domain.AttendanceEventType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
@@ -33,4 +34,20 @@ public interface AttendanceEventRepository extends JpaRepository<AttendanceEvent
 
     @Query("select distinct e.userId from AttendanceEvent e order by e.userId")
     List<Long> findAllUserIds();
+
+    /**
+     * 확정할 수 있는 노쇼 후보: 기준 시각보다 앞서 난 후보이고, 아직 (스터디, 사용자)의 현재 판정인 것. id 가
+     * {@code afterId} 보다 큰 것을 작은 것부터 본다.
+     */
+    @Query("""
+            select e from AttendanceEvent e
+            where e.type = com.everystudy.trust.domain.AttendanceEventType.NO_SHOW_CANDIDATE
+              and e.occurredAt < :cutoff and e.id > :afterId
+              and not exists (select 1 from AttendanceEvent n
+                              where n.studyId = e.studyId and n.userId = e.userId
+                                and (n.occurredAt > e.occurredAt or (n.occurredAt = e.occurredAt and n.id > e.id)))
+            order by e.id
+            """)
+    List<AttendanceEvent> findConfirmableCandidates(@Param("cutoff") Instant cutoff, @Param("afterId") Long afterId,
+            Pageable pageable);
 }

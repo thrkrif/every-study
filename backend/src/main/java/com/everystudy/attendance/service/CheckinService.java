@@ -13,6 +13,7 @@ import com.everystudy.study.service.StudyErrorCode;
 import com.everystudy.study.service.StudySessions;
 import com.everystudy.study.service.StudySessions.Session;
 import com.everystudy.trust.service.AttendanceEventRecorder;
+import com.everystudy.trust.service.ParticipantSanctionService;
 import com.everystudy.user.service.PublicUser;
 import com.everystudy.user.service.UserDirectory;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -68,18 +69,20 @@ public class CheckinService {
     private final CheckinCodeRepository codes;
     private final CheckinCodeAttempts attempts;
     private final AttendanceEventRecorder events;
+    private final ParticipantSanctionService sanctions;
     private final UserDirectory users;
     private final AttendanceProperties properties;
     private final TimeProvider time;
 
     CheckinService(StudySessions sessions, CheckinRepository checkins, CheckinCodeRepository codes,
-            CheckinCodeAttempts attempts, AttendanceEventRecorder events, UserDirectory users,
-            AttendanceProperties properties, TimeProvider time) {
+            CheckinCodeAttempts attempts, AttendanceEventRecorder events, ParticipantSanctionService sanctions,
+            UserDirectory users, AttendanceProperties properties, TimeProvider time) {
         this.sessions = sessions;
         this.checkins = checkins;
         this.codes = codes;
         this.attempts = attempts;
         this.events = events;
+        this.sanctions = sanctions;
         this.users = users;
         this.properties = properties;
         this.time = time;
@@ -195,6 +198,7 @@ public class CheckinService {
             events.recordAttended(studyId, userId, now);
         } else {
             events.recordLate(studyId, userId, now);
+            sanctions.judgeAfterLate(userId, studyId, now);
         }
         return new Result(result, distance);
     }

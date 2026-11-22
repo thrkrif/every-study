@@ -14,7 +14,7 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * 제재 한 건 (DATA-MODEL 6장). {@code startsAt <= now < endsAt} 이고 해제되지 않았으면 유효하다.
- * 제재를 거는 기능(자동 제재 T-035, 운영자 조치)은 그 작업에서 만든다. 지금은 신청 시 검사만 한다.
+ * 자동 제재는 {@code ParticipantSanctionService}(T-035a)가 건다. 운영자 조치는 T-055 에서 더한다.
  */
 @Entity
 @Table(name = "user_sanction")
@@ -53,5 +53,24 @@ public class UserSanction {
     private Long createdBy;
 
     protected UserSanction() {
+    }
+
+    public static UserSanction auto(long userId, SanctionKind kind, String reason, Instant startsAt, Instant endsAt) {
+        UserSanction sanction = new UserSanction();
+        sanction.userId = userId;
+        sanction.kind = kind;
+        sanction.source = SanctionSource.AUTO;
+        sanction.reason = reason;
+        sanction.startsAt = startsAt;
+        sanction.endsAt = endsAt;
+        return sanction;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public Instant getEndsAt() {
+        return endsAt;
     }
 }
