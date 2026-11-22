@@ -55,6 +55,15 @@ public class ChatReadRepository {
                 .param("blocker", blockerId).param("ids", candidates).query(Long.class).list());
     }
 
+    /** {@code candidates} 중 {@code blockedId} 를 차단한 사용자. */
+    public Set<Long> blockersAmong(long blockedId, Collection<Long> candidates) {
+        if (candidates.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(jdbc.sql("SELECT blocker_id FROM block WHERE blocked_id = :blocked AND blocker_id IN (:ids)")
+                .param("blocked", blockedId).param("ids", candidates).query(Long.class).list());
+    }
+
     /** 차단한다. 이미 차단했으면 아무 일도 없다 (멱등). */
     public void block(long blockerId, long blockedId, Instant now) {
         jdbc.sql("INSERT IGNORE INTO block (blocker_id, blocked_id, created_at) VALUES (:blocker, :blocked, :now)")

@@ -1,5 +1,6 @@
 package com.everystudy.chat.service;
 
+import java.util.HashSet;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -45,6 +46,23 @@ public class ChatSubscriptions {
         this.users = users;
         this.broker = simple;
         this.template = template;
+    }
+
+    /** 지금 이 방 주제를 구독 중인(방을 열어 둔) 사용자. 새 메시지 알림에서 제외한다 (PLAN D-12). */
+    Set<Long> viewersOf(long studyId) {
+        String topic = ChatBroadcaster.topicOf(studyId);
+        Set<Long> viewers = new HashSet<>();
+        for (SimpSubscription subscription : users.findSubscriptions(s -> topic.equals(s.getDestination()))) {
+            if (subscription.getSession().getUser() == null) {
+                continue;
+            }
+            try {
+                viewers.add(Long.parseLong(subscription.getSession().getUser().getName()));
+            } catch (NumberFormatException ignored) {
+                // 회원 ID 가 아닌 이름은 구독자로 세지 않는다.
+            }
+        }
+        return viewers;
     }
 
     /** 이 사용자의 이 방 구독을 모두 끊고 본인에게 알린다. */

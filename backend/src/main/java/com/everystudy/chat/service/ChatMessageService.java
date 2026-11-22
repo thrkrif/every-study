@@ -35,15 +35,18 @@ public class ChatMessageService {
     private final UserDirectory users;
     private final TimeProvider time;
     private final ApplicationEventPublisher events;
+    private final ChatMessageNotifier notifier;
 
     ChatMessageService(StudySessions sessions, ChatRoomRepository rooms, ChatMessageRepository messages,
-            UserDirectory users, TimeProvider time, ApplicationEventPublisher events) {
+            UserDirectory users, TimeProvider time, ApplicationEventPublisher events,
+            ChatMessageNotifier notifier) {
         this.sessions = sessions;
         this.rooms = rooms;
         this.messages = messages;
         this.users = users;
         this.time = time;
         this.events = events;
+        this.notifier = notifier;
     }
 
     /**
@@ -87,6 +90,7 @@ public class ChatMessageService {
                 userId, sender == null ? null : sender.nickname(), saved.getContent(), false, false,
                 saved.getCreatedAt());
         events.publishEvent(new ChatBroadcaster.MessageSent(studyId, view));
+        notifier.notifyNewMessage(studyId, userId);
         return view;
     }
 
