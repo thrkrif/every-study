@@ -38,4 +38,19 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
             WHERE n.userId = :userId AND n.readAt IS NULL AND n.visibleAt <= :now
             """)
     int markAllVisibleRead(@Param("userId") long userId, @Param("now") Instant now);
+
+    /** 이 스터디(와 사용자)의 일정 알림 중 아직 아웃박스 행이 하나도 없는 것을 지운다. 아웃박스를 먼저 정리한 뒤 부른다. */
+    @Modifying
+    @Query("""
+            DELETE FROM Notification n
+            WHERE n.studyId = :studyId AND n.userId = :userId AND n.type IN :types
+              AND NOT EXISTS (SELECT 1 FROM NotificationOutbox o WHERE o.notificationId = n.id)
+            """)
+    int deleteWithoutOutbox(@Param("studyId") long studyId, @Param("userId") long userId,
+            @Param("types") java.util.Collection<String> types);
+
+    /** 이 스터디에 일정 알림이 남아 있는 사용자. */
+    @Query("SELECT DISTINCT n.userId FROM Notification n WHERE n.studyId = :studyId AND n.type IN :types")
+    List<Long> findUserIdsByStudyAndTypes(@Param("studyId") long studyId,
+            @Param("types") java.util.Collection<String> types);
 }

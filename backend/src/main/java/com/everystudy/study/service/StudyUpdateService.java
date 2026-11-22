@@ -41,15 +41,17 @@ public class StudyUpdateService {
     private final StudyRepository studies;
     private final StudyMemberRepository members;
     private final WaitingNotifier waitingNotifier;
+    private final StudyScheduleNotifier scheduleNotifier;
     private final StudyProperties properties;
     private final StudyLockProperties lock;
     private final TimeProvider time;
 
     StudyUpdateService(StudyRepository studies, StudyMemberRepository members, WaitingNotifier waitingNotifier,
-            StudyProperties properties, StudyLockProperties lock, TimeProvider time) {
+            StudyScheduleNotifier scheduleNotifier, StudyProperties properties, StudyLockProperties lock, TimeProvider time) {
         this.studies = studies;
         this.members = members;
         this.waitingNotifier = waitingNotifier;
+        this.scheduleNotifier = scheduleNotifier;
         this.properties = properties;
         this.lock = lock;
         this.time = time;
@@ -83,6 +85,7 @@ public class StudyUpdateService {
             }
             study.reschedule(startAt, durationMin, StudyCreationRules.sessionDate(startAt),
                     changes.place() != null ? changes.place() : study.getPlace(), now);
+            scheduleNotifier.reschedule(study, userId);
         }
         if (changes.title() != null || changes.description() != null) {
             study.editText(changes.title() != null ? changes.title() : study.getTitle(),

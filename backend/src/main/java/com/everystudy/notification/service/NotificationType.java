@@ -15,5 +15,9 @@ public enum NotificationType {
     /** 참여 신청 제한 또는 이용 정지를 부여했다는 안내 (PRD 4.8). */
     SANCTION_APPLIED,
     /** 주최자 경고: 90일 감점 합계가 경고 단계 (PRD 4.13C). */
-    HOST_WARNING
+    HOST_WARNING,
+    /** 일정 알림: 모임 하루 전 (PRD 4.5). 참여 확정 때 예약한다. */
+    CHECKIN_REMINDER_DAY,
+    /** 일정 알림: 모임 1시간 전 (PRD 4.5). */
+    CHECKIN_REMINDER_HOUR
 }
