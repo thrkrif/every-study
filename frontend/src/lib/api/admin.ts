@@ -73,3 +73,121 @@ export function correctAttendance(
     },
   );
 }
+
+/** 운영자 신고 큐의 신고 한 건 (`GET /admin/reports`). 대상 요약은 대상이 없으면 null */
+export type AdminReport = {
+  id: number;
+  reporterId: number;
+  reporterNickname: string | null;
+  targetType: "STUDY" | "USER" | "MESSAGE";
+  targetId: number;
+  targetSummary: string | null;
+  reason: string;
+  detail: string | null;
+  status: "OPEN" | "DISMISSED" | "RESOLVED";
+  handledBy: number | null;
+  handleNote: string | null;
+  createdAt: string;
+  handledAt: string | null;
+};
+
+export type AdminReportPage = {
+  items: AdminReport[];
+  nextCursor: string | null;
+};
+
+/** 신고 처리·강제 종료·메시지 삭제·정지 부여·해제의 사유 길이 상한 (API 7장) */
+export const REPORT_NOTE_MAX = 300;
+export const ACTION_NOTE_MAX = 200;
+
+export function fetchAdminReports(
+  cursor: string | undefined,
+  signal?: AbortSignal,
+): Promise<AdminReportPage> {
+  const params = new URLSearchParams({ status: "open", size: "20" });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<AdminReportPage>(`/admin/reports?${params}`, { signal });
+}
+
+export function handleReport(
+  reportId: number,
+  action: "dismiss" | "resolve",
+  note: string,
+): Promise<AdminReport> {
+  return apiFetch<AdminReport>(`/admin/reports/${reportId}/${action}`, {
+    method: "POST",
+    body: { note },
+  });
+}
+
+export function forceEndStudy(studyId: number, note: string): Promise<void> {
+  return apiFetch<void>(`/admin/studies/${studyId}/force-end`, {
+    method: "POST",
+    body: { note },
+  });
+}
+
+export function deleteChatMessage(
+  messageId: number,
+  note: string,
+): Promise<void> {
+  return apiFetch<void>(`/admin/chat-messages/${messageId}`, {
+    method: "DELETE",
+    body: { note },
+  });
+}
+
+/** 제재 한 건 (`GET /admin/sanctions`). `reviewRequired` 는 주최자 합계가 운영자 검토 단계인 개설 제한 */
+export type AdminSanction = {
+  id: number;
+  userId: number;
+  kind: "JOIN_RESTRICT" | "SUSPEND" | "HOST_RESTRICT";
+  source: "AUTO" | "OPERATOR";
+  reason: string;
+  startsAt: string;
+  endsAt: string;
+  revokedAt: string | null;
+  createdBy: number | null;
+  reviewRequired: boolean;
+  active: boolean;
+};
+
+export type AdminSanctionPage = {
+  items: AdminSanction[];
+  nextCursor: string | null;
+};
+
+export function fetchSanctions(
+  filter: { activeOnly: boolean; reviewRequired: boolean },
+  cursor: string | undefined,
+  signal?: AbortSignal,
+): Promise<AdminSanctionPage> {
+  const params = new URLSearchParams({
+    activeOnly: String(filter.activeOnly),
+    reviewRequired: String(filter.reviewRequired),
+    size: "20",
+  });
+  if (cursor) params.set("cursor", cursor);
+  return apiFetch<AdminSanctionPage>(`/admin/sanctions?${params}`, { signal });
+}
+
+export function suspendUser(
+  userId: number,
+  days: number,
+  note: string,
+): Promise<AdminSanction> {
+  return apiFetch<AdminSanction>(`/admin/users/${userId}/suspensions`, {
+    method: "POST",
+    body: { days, note },
+  });
+}
+
+export function revokeSanction(
+  sanctionId: number,
+  note: string,
+): Promise<void> {
+  return apiFetch<void>(`/admin/sanctions/${sanctionId}`, {
+    method: "DELETE",
+    body: { note },
+  });
+}
