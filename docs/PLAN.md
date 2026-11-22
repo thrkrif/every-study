@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.21"
+version: "0.22"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.20
-  - docs/API.md@0.22
+  - docs/DATA-MODEL.md@0.21
+  - docs/API.md@0.23
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -374,11 +374,12 @@ based_on:
   - 완료: 채널별 on/off와 푸시 구독 상태 표시 · 테스트: 토글 저장 실패 시 이전 값으로 되돌림
   - 문서: 해당 없음
 
-- [ ] T-046 채팅 REST와 차단
+- [x] T-046 채팅 REST와 차단
   - 선행: T-015, T-020 · 결정 X-13
   - 참조: PRD 4.12, ADR-0005 채팅, DATA-MODEL 8장·9장(`block`), API 6장·7장(`blocks`)
   - 완료: 방 상태·공지·읽지 않음 수, 커서 이력 조회, 공지 수정(주최자), 읽음 갱신 · 사용자 차단·해제와 차단한 사용자 메시지 숨김 표시 · `chat`은 `study`의 공개 서비스로 참여 여부만 조회(의존 방향 `chat → study`) · 주최자 권한은 `study.host_id` 일치 **그리고** `study_member` `ACTIVE`로 검사한다(시작 후 나간 주최자는 `host_id`가 남으므로, X-13) · 테스트: 비참여자·나간 사용자 `403`, 비주최자 공지 수정 `403`, 시작 후 나간 주최자의 공지 수정 `403`, 읽지 않음 수 계산
   - 문서: DATA-MODEL 8장, API 6장 확인
+  - 결과: `chat.service.ChatRoomService`(방 상태·이전 대화·공지·읽음)와 `BlockService`, 마이그레이션 V13(`chat_message`·`chat_notice`·`chat_read_state`·`block`) · 참여 여부는 `study.service.StudySessions`로만 조회(`chat → study`) · 내가 정한 세부 결정(API 6장·DATA-MODEL 8·9장에 기록): 닫힌 방은 상태 조회만 되고 이전 대화·공지·읽음은 `409 CHAT_CLOSED`(PRD 4.14 "열람 차단", T-049가 폐쇄 처리를 더한다) · 이전 대화는 최근 순, `nextCursor`는 다음 `before` 값, `size` 1~100(기본 30) · 차단·지운 메시지는 `hidden`/`deleted`로 내용 없이 표시 · 읽지 않음 수는 내 메시지·차단한 사람·지운 메시지를 빼고 시스템 메시지는 셈 · 읽음 위치는 올리기만 하고 마지막 메시지 번호로 맞춤 · 공지는 고쳐 쓰기만 하고 지우는 API는 없음 · 차단은 멱등, 자기 자신 `400`, 없는 사용자 `404`
 
 - [ ] T-047 실시간 채팅: 연결·권한·전달
   - 선행: T-046
