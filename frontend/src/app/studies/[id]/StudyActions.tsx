@@ -249,6 +249,13 @@ export function StudyActions({ study, now, names }: Props) {
         <>
           {result}
           <p className={styles.guide}>{action.text}</p>
+          <Link
+            href={`/studies/${study.id}/chat`}
+            className={buttonStyles.button}
+            data-variant="primary"
+          >
+            채팅
+          </Link>
           {action.host && study.status === "ACTIVE" && (
             <Link
               href={`/studies/${study.id}/manage`}

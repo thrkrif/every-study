@@ -12,6 +12,7 @@ export function TextAreaField({
   rows = 6,
   placeholder,
   optional = false,
+  disabled = false,
 }: {
   label: string;
   /** 비워도 되는 칸이면 이름 옆에 "(선택)"을 붙인다 */
@@ -23,6 +24,7 @@ export function TextAreaField({
   maxLength?: number;
   rows?: number;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const id = useId();
   const messageId = `${id}-message`;
@@ -38,6 +40,7 @@ export function TextAreaField({
         value={value}
         rows={rows}
         maxLength={maxLength}
+        disabled={disabled}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={error ? true : undefined}
