@@ -6,7 +6,14 @@ export type NotificationType =
   | "HOST_ASSIGNED"
   | "WAITING_OPENED"
   | "CHECKIN_OPEN"
-  | "NO_SHOW_NOTICE";
+  | "NO_SHOW_NOTICE"
+  | "CHECKIN_REMINDER_DAY"
+  | "CHECKIN_REMINDER_HOUR"
+  | "SANCTION_WARNING"
+  | "SANCTION_APPLIED"
+  | "HOST_WARNING"
+  | "CHAT_MESSAGE"
+  | "APPEAL_RESULT";
 
 /** 알림 센터의 한 건 (`GET /me/notifications`) */
 export type NotificationItem = {
@@ -44,4 +51,25 @@ export function markNotificationRead(id: number): Promise<void> {
 
 export function markAllNotificationsRead(): Promise<void> {
   return apiFetch<void>("/me/notifications/read-all", { method: "POST" });
+}
+
+/** 알림 수신 설정 (`GET/PUT /me/notification-settings`, API 3장). 채널마다 받으면 true */
+export type NotificationSettings = { push: boolean; email: boolean };
+
+export function fetchNotificationSettings(
+  signal?: AbortSignal,
+): Promise<NotificationSettings> {
+  return apiFetch<NotificationSettings>("/me/notification-settings", {
+    signal,
+  });
+}
+
+/** 보낸 채널만 바꾸고 바뀐 전체 설정을 돌려받는다 */
+export function saveNotificationSettings(
+  change: Partial<NotificationSettings>,
+): Promise<NotificationSettings> {
+  return apiFetch<NotificationSettings>("/me/notification-settings", {
+    method: "PUT",
+    body: change,
+  });
 }

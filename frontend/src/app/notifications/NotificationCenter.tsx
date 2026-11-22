@@ -122,6 +122,9 @@ export function NotificationCenter({ now = () => new Date() }: CenterProps) {
     <main className={styles.page}>
       <div className={styles.head}>
         <h1 className={styles.title}>알림</h1>
+        <Link href="/notifications/settings" className={styles.settingsLink}>
+          알림 설정
+        </Link>
         <Button
           variant="text"
           disabled={unread === 0 || readAll.isPending}
