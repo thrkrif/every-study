@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.14"
+version: "0.15"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.15
@@ -125,7 +125,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 - "모집 중 / 마감"은 저장하지 않는다. `status='ACTIVE'`, 체크인 오픈 전, 현재 참여자 수 < `capacity`로 **계산**한다 (ARCHITECTURE 4.2).
 - 인덱스
   - `(status, district_code, start_at)` 목록 탐색. 목록은 늘 `status = ACTIVE AND start_at > 현재`로 시작하고 지역은 구 코드 `IN`으로 거른다 (API 4장)
-  - `(host_id, status)` 내 주최 스터디
+  - `(host_id, status)` 주최 스터디 조회. 내 스터디 목록(`GET /me/studies`)은 `study_member (user_id, status)`에서 시작해 `study`로 조인한다
   - `(status, session_date)` 종료 처리 작업 (`ACTIVE`이고 `session_date`가 오늘(KST) 이전)
   - `(status, judged_at, start_at)` 출석 판정 작업
 - `CHECK`: `capacity BETWEEN 2 AND 6`은 쓰지 않는다. 상한이 설정값이라 DB 제약이 아니라 애플리케이션에서 검사한다 (PRD 4.14). 하한 2만 `CHECK (capacity >= 2)`로 둔다.

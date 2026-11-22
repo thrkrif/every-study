@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.16"
+version: "0.17"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.15
-  - docs/DATA-MODEL.md@0.14
+  - docs/DATA-MODEL.md@0.15
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -143,7 +143,7 @@ covers:
 | `GET /api/v1/me` | 회원 | 프로필, `onboarded` 여부. 이용 제한 현황은 제재 작업(PLAN T-035a)에서 더한다 |
 | `PUT /api/v1/me/profile` | 회원 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
 | `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디가 있으면 규칙을 먼저 적용한 뒤 처리 |
-| `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past` | 회원 | 내 스터디 (마이페이지, 다가오는 모임) |
+| `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
 | `GET /api/v1/me/attendance` | 회원 | 지난 출석 기록 (판정, 이의 가능 여부) |
 | `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
 | `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off |
