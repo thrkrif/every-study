@@ -36,16 +36,19 @@ public class StudyQueryService {
     private final StudyWaitingRepository waiting;
     private final StudySearchRepository search;
     private final UserDirectory users;
+    private final PersonMetrics metrics;
     private final StudyProperties properties;
     private final TimeProvider time;
 
     StudyQueryService(StudyRepository studies, StudyMemberRepository members, StudyWaitingRepository waiting,
-            StudySearchRepository search, UserDirectory users, StudyProperties properties, TimeProvider time) {
+            StudySearchRepository search, UserDirectory users, PersonMetrics metrics, StudyProperties properties,
+            TimeProvider time) {
         this.studies = studies;
         this.members = members;
         this.waiting = waiting;
         this.search = search;
         this.users = users;
+        this.metrics = metrics;
         this.properties = properties;
         this.time = time;
     }
@@ -92,8 +95,10 @@ public class StudyQueryService {
         boolean hasNext = rows.size() > query.size();
         List<StudySummaryRow> page = hasNext ? rows.subList(0, query.size()) : rows;
 
-        Map<Long, PublicUser> hosts = users.findPublic(page.stream().map(StudySummaryRow::hostId).toList());
-        List<StudyViews.Summary> items = page.stream().map(row -> summary(row, hosts, now)).toList();
+        List<Long> hostIds = page.stream().map(StudySummaryRow::hostId).toList();
+        Map<Long, PublicUser> hosts = users.findPublic(hostIds);
+        Map<Long, StudyViews.HostStats> hostStats = metrics.hostStatsOf(hostIds);
+        List<StudyViews.Summary> items = page.stream().map(row -> summary(row, hosts, hostStats, now)).toList();
         String nextCursor = null;
         if (hasNext) {
             StudySummaryRow last = page.getLast();
@@ -112,6 +117,8 @@ public class StudyQueryService {
         Study study = studies.findById(studyId).orElseThrow(() -> new BusinessException(CommonErrorCode.NOT_FOUND));
         List<StudyMember> active = members.findByStudyIdAndStatusOrderByJoinedAtAscIdAsc(studyId, MemberStatus.ACTIVE);
         Map<Long, PublicUser> people = peopleOf(study, active);
+        Map<Long, StudyViews.Trust> trusts = metrics.trustOf(people.keySet());
+        Map<Long, StudyViews.HostStats> hostStats = metrics.hostStatsOf(List.of(study.getHostId()));
         Instant now = time.now();
 
         // 체크인이 열린 뒤에 남은 대기 행은 무효다. 삭제는 종료 처리에서 한다 (PLAN X-16).
@@ -138,8 +145,8 @@ public class StudyQueryService {
                 active.size(),
                 study.getTargetJobCodes().stream().sorted().toList(),
                 study.getEntryCriteria(),
-                host(study.getHostId(), people),
-                memberViews(active, people),
+                host(study.getHostId(), people, hostStats),
+                memberViews(active, people, trusts),
                 myState,
                 StudyTimeline.isScheduleEditable(study.getStatus(), study.getStartAt(), others, now),
                 StudyTimeline.checkinOpensAt(study.getStartAt(), properties),
@@ -159,7 +166,8 @@ public class StudyQueryService {
         if (active.stream().noneMatch(member -> member.getUserId() == viewerId)) {
             throw new BusinessException(CommonErrorCode.FORBIDDEN);
         }
-        return memberViews(active, peopleOf(study, active));
+        Map<Long, PublicUser> people = peopleOf(study, active);
+        return memberViews(active, people, metrics.trustOf(people.keySet()));
     }
 
     private Set<String> districtsOf(String regionCode) {
@@ -181,14 +189,15 @@ public class StudyQueryService {
                 .orElseThrow(() -> new BusinessException(UserErrorCode.ONBOARDING_REQUIRED));
     }
 
-    private StudyViews.Summary summary(StudySummaryRow row, Map<Long, PublicUser> hosts, Instant now) {
+    private StudyViews.Summary summary(StudySummaryRow row, Map<Long, PublicUser> hosts,
+            Map<Long, StudyViews.HostStats> hostStats, Instant now) {
         return new StudyViews.Summary(row.id(), row.title(), row.topicCode(), row.districtCode(), row.startAt(),
                 row.durationMin(), row.capacity(), row.memberCount(),
                 StudyTimeline.isRecruiting(StudyStatus.ACTIVE, row.startAt(),
                         row.memberCount(), row.capacity(), now, properties),
                 row.targetJobCodes(),
                 new Study.EntryCriteria(row.minAttendanceRate(), row.allowNewcomer()),
-                host(row.hostId(), hosts));
+                host(row.hostId(), hosts, hostStats));
     }
 
     private Map<Long, PublicUser> peopleOf(Study study, List<StudyMember> active) {
@@ -198,17 +207,19 @@ public class StudyQueryService {
         return users.findPublic(ids);
     }
 
-    private static StudyViews.Host host(long hostId, Map<Long, PublicUser> people) {
+    private static StudyViews.Host host(long hostId, Map<Long, PublicUser> people,
+            Map<Long, StudyViews.HostStats> hostStats) {
         PublicUser host = people.get(hostId);
-        return new StudyViews.Host(hostId, host == null ? null : host.nickname(), StudyViews.HostStats.NONE_YET);
+        return new StudyViews.Host(hostId, host == null ? null : host.nickname(), hostStats.get(hostId));
     }
 
-    private static List<StudyViews.Member> memberViews(List<StudyMember> active, Map<Long, PublicUser> people) {
+    private static List<StudyViews.Member> memberViews(List<StudyMember> active, Map<Long, PublicUser> people,
+            Map<Long, StudyViews.Trust> trusts) {
         return active.stream()
                 .map(member -> {
                     PublicUser user = people.get(member.getUserId());
                     return new StudyViews.Member(member.getUserId(), user == null ? null : user.nickname(),
-                            StudyViews.Trust.NEWCOMER);
+                            trusts.get(member.getUserId()));
                 })
                 .toList();
     }

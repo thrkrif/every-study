@@ -1,6 +1,7 @@
 package com.everystudy.study.service;
 
 import com.everystudy.study.domain.Study;
+import com.everystudy.trust.service.AttendanceMetrics;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -16,18 +17,27 @@ public final class StudyViews {
     public enum MyState { NONE, MEMBER, WAITING, HOST }
 
     /**
-     * 출석 지표 (API 3장 형식). 출석 집계(M3) 전까지는 모두 신규다 (PLAN T-009).
+     * 출석 지표 (API 3장 형식).
      *
      * @param attendanceRate 신규면 {@code null}
      */
     public record Trust(Integer attendanceRate, int windowCount, int noShow, int late, int lateCancel,
             boolean isNewcomer) {
-        static final Trust NEWCOMER = new Trust(null, 0, 0, 0, 0, true);
+
+        static Trust of(AttendanceMetrics metrics) {
+            return new Trust(metrics.attendanceRate(), metrics.windowCount(), metrics.noShow(), metrics.late(),
+                    metrics.lateCancel(), metrics.isNewcomer());
+        }
     }
 
-    /** 주최 지표 (API 3장 형식). 출석 집계(M3) 전까지는 0이고 횟수만 보여 준다. */
+    /**
+     * 주최 지표 (API 3장 형식, PRD 4.13D).
+     *
+     * @param hostedCount           주최한 횟수. 끝난 스터디와, 시작 직전에 나가 다른 사람에게 승계한 스터디를 센다
+     * @param leftWithinWindowCount 그중 시작 직전에 나간 횟수
+     * @param showCountOnly         주최 횟수가 적어 비율 없이 건수만 보여 준다
+     */
     public record HostStats(int hostedCount, int leftWithinWindowCount, boolean showCountOnly) {
-        static final HostStats NONE_YET = new HostStats(0, 0, true);
     }
 
     /** @param nickname 탈퇴한 회원이면 {@code null} (화면은 "탈퇴한 사용자") */

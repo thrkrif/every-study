@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.17"
+version: "0.18"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.17
   - docs/DATA-MODEL.md@0.18
-  - docs/API.md@0.19
+  - docs/API.md@0.20
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -281,11 +281,12 @@ based_on:
   - 결과: `trust.service.TrustSummaryService`(`refresh`·`recalculateAll`)와 순수 계산 `AttendanceTally` · `AttendanceEventRecorder`가 출석률에 영향을 주는 이벤트(출석·지각·사전/직전 취소·세션 무효)를 남길 때 같은 트랜잭션에서 집계 갱신(노쇼 후보는 지표에 반영되지 않아 갱신 안 함) · 집계 행은 `INSERT ... ON DUPLICATE KEY UPDATE` 한 문장으로 써서 첫 집계의 동시 삽입이 호출 트랜잭션을 깨지 않게 함 · 새 설정 `everystudy.trust.recent-sessions`(기본 10) · 노쇼 확정(T-035a)과 이의 정정(T-056)은 이벤트를 남긴 뒤 `TrustSummaryService.refresh`를 부른다
   - 문서: DATA-MODEL 6장에 집계 규칙(최근 10회의 기준, 제외 판정, 동시성 한계) 추가(v0.18)
 
-- [ ] T-033 공개 프로필과 주최 지표
+- [x] T-033 공개 프로필과 주최 지표
   - 선행: T-032
   - 참조: PRD 4.1(공개 정보)·4.13D, API 3장(지표 응답, `GET /users/{id}`)
   - 완료: 공개 프로필, 출석 지표 응답, 주최 지표(주최 횟수, 직전 이탈 횟수, 건수만 표시 조건) · 목록·상세·참여자 목록이 실제 지표 반환 · 테스트: 신규 사용자 `attendanceRate: null`, 주최 횟수 경계(PRD 4.13D)에서 `showCountOnly` 전환, 탈퇴 사용자 표시
-  - 문서: API 3장 확인
+  - 결과: `GET /api/v1/users/{id}`(공개, `study.web.PublicProfileController`·`study.service.PublicProfileService`) · `trust.service.TrustMetricsService`가 출석 지표와 직전 이탈 건수를 한 번에 읽고(`AttendanceMetrics`), `study.service.PersonMetrics`가 주최 횟수를 더해 목록·상세·참여자 목록·프로필이 같은 계산을 쓴다 · 프로필을 `study`에 둔 이유: `study`가 `user`·`trust`를 이미 참조하고 주최 횟수는 `study` 데이터라, `user`나 `trust`에 두면 모듈이 순환한다 · 내가 정한 세부 결정(API 3장에 기록): 출석률은 내림한 정수 · 주최 횟수 = 끝난 스터디(현재 주최자) + 직전 이탈 승계 · 온보딩 전 회원은 404, 탈퇴 회원은 200에 이름 비움 · 새 설정 `everystudy.trust.host-count-only-below`(기본 5)
+  - 문서: API 3장 확인(v0.20)
 
 - [ ] T-034 이의 신청 API와 출석 기록 조회
   - 선행: T-031 · 결정 X-14

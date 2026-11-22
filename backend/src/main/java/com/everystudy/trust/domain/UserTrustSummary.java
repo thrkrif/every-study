@@ -10,8 +10,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * 사용자별 출석 지표 캐시 (DATA-MODEL 6장, PRD 4.7). 원본은 {@code attendance_event} 이고, 갱신은 출석 집계 작업(M3)이 한다.
- * 지금은 입장 기준 검사에서 읽기만 한다.
+ * 사용자별 출석 지표 캐시 (DATA-MODEL 6장, PRD 4.7). 원본은 {@code attendance_event} 이고, 갱신은 {@code TrustSummaryService} 가 한다.
+ * 읽는 쪽은 입장 기준 검사와 공개 지표 응답이다.
  */
 @Entity
 @Table(name = "user_trust_summary")
@@ -52,8 +52,24 @@ public class UserTrustSummary {
     protected UserTrustSummary() {
     }
 
+    public Long getUserId() {
+        return userId;
+    }
+
     public int getCounted() {
         return counted;
+    }
+
+    public int getLate() {
+        return late;
+    }
+
+    public int getNoShow() {
+        return noShow;
+    }
+
+    public int getLateCancel() {
+        return lateCancel;
     }
 
     public BigDecimal getRate() {

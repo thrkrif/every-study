@@ -13,7 +13,7 @@ class HostPenaltyRecorderTest {
     private static final Instant START = Instant.parse("2026-11-25T06:00:00Z");
 
     private final HostPenaltyRecorder recorder =
-            new HostPenaltyRecorder(null, null, new TrustProperties(3, 180, 1, 10));
+            new HostPenaltyRecorder(null, null, new TrustProperties(3, 180, 1, 10, 5));
 
     @Test
     @DisplayName("시작 3시간 전 정각까지는 감점이 아니다")
@@ -34,7 +34,7 @@ class HostPenaltyRecorderTest {
     @Test
     @DisplayName("기준 시간은 설정값을 따른다")
     void followsConfiguredWindow() {
-        HostPenaltyRecorder narrow = new HostPenaltyRecorder(null, null, new TrustProperties(3, 60, 1, 10));
+        HostPenaltyRecorder narrow = new HostPenaltyRecorder(null, null, new TrustProperties(3, 60, 1, 10, 5));
 
         assertThat(narrow.isLeaveWithinPenaltyWindow(START, START.minus(Duration.ofMinutes(61)))).isFalse();
         assertThat(narrow.isLeaveWithinPenaltyWindow(START, START.minus(Duration.ofMinutes(59)))).isTrue();
