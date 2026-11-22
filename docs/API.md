@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.26"
+version: "0.27"
 based_on:
-  - docs/PRD.md@0.15
+  - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.22
+  - docs/DATA-MODEL.md@0.23
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -408,7 +408,8 @@ API가 아니라 서버 내부에서 만드는 알림 목록이다. 문구와 �
 | `HOST_ASSIGNED` | 새 주최자 | 승계 |
 | `NO_SHOW_NOTICE` | 해당 참여자 | 노쇼 후보 통지, 이의 기간 안내 |
 | `APPEAL_RESULT` | 신청자 | 이의 결정 |
-| `SANCTION_APPLIED` | 대상자 | 제재 부여 |
+| `SANCTION_WARNING` | 대상자 | 참여자 경고: 노쇼 확정, 최근 5회 중 지각 3회 (PRD 4.8, 제재 행 없이 알림만) |
+| `SANCTION_APPLIED` | 대상자 | 제재 부여: 참여 신청 제한·이용 정지 (주최자 개설 제한은 T-035b) |
 
 ## 9. 결정 현황
 

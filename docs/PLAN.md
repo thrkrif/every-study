@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.26"
+version: "0.27"
 based_on:
-  - docs/PRD.md@0.15
+  - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.18
-  - docs/DATA-MODEL.md@0.22
-  - docs/API.md@0.26
+  - docs/DATA-MODEL.md@0.23
+  - docs/API.md@0.27
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -295,11 +295,13 @@ based_on:
   - 문서: DATA-MODEL 5장, API 1장(X-14)·3·5장 확인
   - 결과: `attendance.service.AppealService`(신청·주최자 의견·내 이의)와 `MyAttendanceService`(`/me/attendance`), 마이그레이션 V12 `appeal` · 출석 이벤트 읽기는 `trust.service.AttendanceLedger`(공개 서비스)로만 한다 · **`appeal`을 `trust`가 아니라 `attendance` 모듈에 둔 이유**: 주최자 확인에 `study`를 읽어야 하는데 `study`가 이미 `trust`를 참조해 `trust → study`는 순환이다(ARCHITECTURE 3장 갱신) · 내가 정한 세부 결정(DATA-MODEL 5장·API 3·5장에 기록): 이의 대상은 `NO_SHOW_CANDIDATE`·`LATE`뿐 · 기한 = 그 판정 이벤트 시각 + `appeal-window-hours`, 정각까지 허용 · 이의 시점에 그 판정이 현재 판정이 아니면 거부 · 새 오류 `APPEAL_NOT_ALLOWED`·`ALREADY_APPEALED`, `APPEAL_CLOSED`는 결정된 이의에 대한 주최자 의견에도 씀 · 주최자 의견은 결정 전까지 덮어쓰기 · `/me/attendance`는 스터디마다 현재 판정 하나씩 이벤트 id 내림차순 커서
 
-- [ ] T-035a 노쇼 확정과 참여자 제재
+- [x] T-035a 노쇼 확정과 참여자 제재
   - 선행: T-032, T-034 · 결정 D-15, X-4
   - 참조: PRD 4.8·4.6(노쇼 확정), ARCHITECTURE 4.5, DATA-MODEL 6장(`user_sanction`)·10장
   - 완료: 이의 없이 기간이 지난 후보를 `NO_SHOW`로 확정(멱등) · 참여자 제재(PRD 4.8, 환산 노쇼 = 노쇼 + ⌊지각 ÷ 3⌋)를 노쇼 확정과 지각 기록 때 판정해 설정값으로 부여하고 감사 로그와 알림(type 이름은 X-4 결정대로) 기록, 경고 단계는 행 없이 알림만 · 신청 거부 시 `USER_RESTRICTED`와 `until` · 제재 판정 로직은 T-056에서 재사용할 수 있게 공개 서비스로 둔다 · 테스트: 열린 이의가 있는 후보는 확정하지 않음, 단계별 경계(지각만 3회 → 경고, 노쇼 1 + 지각 3 → 제한), 재실행 시 제재 중복 0건
   - 문서: DATA-MODEL 6장, API 1장 확인
+  - 결과: `attendance.service.NoShowConfirmationService`(10분마다, `NoShowConfirmationJob`)가 이의 기간(48시간)이 **지난** 후보를 확정 · 열린 이의가 있으면 건너뛰고 기각되면 확정, 정정으로 현재 판정이 아니면 확정하지 않음 · 열린 이의가 한 번에 처리할 건수보다 많아도 뒤의 후보가 굶지 않게 id 를 따라 쪽을 넘겨 봄 · 판정은 `trust.service.ParticipantSanctionService`(`judgeAfterNoShow`·`judgeAfterLate`, T-056 재사용)가 같은 트랜잭션에서 하고, 순수 계산은 `SanctionJudgement`(단위 테스트) · 지각 판정은 `CheckinService`가 지각 이벤트를 남긴 직후 부름 · 새 알림 type `SANCTION_WARNING`·`SANCTION_APPLIED`(V14, X-4 중 참여자 몫) · 내가 정한 세부 결정: ① 이의 기한 정각에는 확정하지 않고 1초 뒤부터(이의는 기한 정각까지 받으므로 겹치지 않게) ② 제한은 해제되지 않은 자동 제한이 있으면 다시 걸지 않고, 정지는 유효한 정지가 있으면 다시 걸지 않음(정지가 끝난 뒤에도 재발 기준이 계속 충족되면 새 정지) ③ 노쇼 확정마다 경고 알림(제한·정지가 걸리면 그 알림이 대신), 지각은 최근 5회 중 3회 이상일 때만 경고 ④ 같은 시각에 확정된 노쇼는 제한을 부른 건으로 보아 재발로 세지 않음 ⑤ 제재 알림 유효 기간은 설정 `everystudy.trust.notice-valid-days`(기본 7일, D-18에서 종류별 기준이 정해지면 따름) ⑥ 단계 수치는 모두 `everystudy.trust.*` 설정값(PRD 4.8 기본값)
+  - 로컬 검증: Docker Desktop 이 멈춰(ryuk `Created`) 통합 테스트(`NoShowConfirmationIntegrationTest`)는 CI 에서 확인
 
 - [ ] T-035b 주최자 개설 제한과 운영자 검토 표시
   - 선행: T-031, T-035a · 결정 X-4
@@ -575,7 +577,7 @@ based_on:
 | D-12 | 채팅 새 메시지 알림의 채널·묶음 방식 | PRD 4.12 | T-050 |
 | D-13 | 주최자 제재 수치("확인 필요" 표기) 확정. 구현은 설정값이라 먼저 진행 가능 | PRD 4.13C | T-068 |
 | D-14 | 개인정보 처리방침 작성 주체와 검토 방법 | PRD 8장, ARCHITECTURE 7장 | T-066 |
-| D-15 | 참여자 정지 조건 "제한 후 재발"의 정의 (제한 기간 중/후, 집계 범위) | PRD 4.8 | T-035a |
+| D-15 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. PRD 4.8 v0.16, DATA-MODEL 6장).** "제한 후 재발"은 마지막 참여 신청 제한이 시작된 이후 확정된 노쇼 1회 또는 지각 3회이고, 제한 기간이 끝난 뒤에도 계속 누적해 센다 | PRD 4.8 | T-035a |
 | D-16 | **결정됨(2026-11-15)**: 파투(`CANCELLED`) 스터디의 채팅방은 정상 종료와 같은 경로로 폐쇄하고 보관 기간 뒤 메시지를 삭제한다. PRD 4.12·4.14 문구 반영은 T-049 PR에서 한다 | PRD 4.12·4.14 | T-049, T-054 |
 | D-17 | **결정됨(2026-11-22, PRD 4.6, DATA-MODEL 9장)**: 자동 감점·제재·판정 확정과 운영자 조치를 모두 감사 로그에 남기고, PRD 4.6 문구는 "운영자 정정"으로 고쳤다. 주최자는 출석을 바꿀 수 없으므로 주최자 행위는 기록 대상이 아니다. T-019에서 함께 정한 것: 기록은 `common.audit.AuditLogger`(트랜잭션 필수), `action`은 `AuditAction` 이름이고 DB `CHECK`는 두지 않는다 | PRD 4.6·8장, DATA-MODEL 9장 | T-019 |
 | D-18 | 알림 종류별 `expires_at` 기준(예: 일정 알림은 해당 시점 이후 무의미, 대기 알림은 체크인 오픈까지). 권장안: 일정 알림은 다음 알림 시각 또는 체크인 마감, 대기 알림은 체크인 오픈, 그 밖의 즉시 알림은 고정 기간(설정값). 기술 파라미터 기본값(락 대기·백오프·최대 횟수·배치 상한)은 결정 항목이 아니라 진행 규칙 9로 처리 | ARCHITECTURE 4.6, ADR-0005 | T-040 |
@@ -592,7 +594,7 @@ based_on:
 | X-1 | ADR-0002~0005 본문은 "확정(2026-11-13)"인데 머리말 `status`가 `draft`. ARCHITECTURE 3장·4.1·4.6~4.8 제목에 "(제안, ADR-000x)"가 남아 있음 | 머리말을 `confirmed`로, 제목의 "제안"을 "확정"으로 (ADR 오탈자 수준 수정) | 없음 |
 | X-2 | ARCHITECTURE 4.7 작업 목록에 "체크인 오픈 알림" 작업이 따로 있으나, 4.6과 ADR-0005는 개설 시 아웃박스 예약으로 처리. 또 4.6은 "개설 시 예약"이라 하는데 알림 대상인 참여자는 개설 뒤에 생김 | 참여 확정 시 그 참여자의 일정 알림을 예약하고(나가기 시 취소), 4.7의 별도 작업은 지운다 | T-040 |
 | X-3 | **결정됨(해소)**: docs/README.md 1장 표와 계층도에 PLAN을 추가함 (PR #12) | - | - |
-| X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음 | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
+| X-4 | PRD 4.8 경고 알림, 4.13C 주최자 경고, 4.12 새 메시지 알림이 API 8장 알림 목록에 없음. **일부 반영(T-035a)**: `SANCTION_WARNING`·`SANCTION_APPLIED`(참여자)는 API 8장에 추가됨. 남은 것: `HOST_WARNING`(T-035b), `CHAT_MESSAGE`(T-050) | API 8장에 `SANCTION_WARNING`, `HOST_WARNING`, `CHAT_MESSAGE`(이름은 구현 시 확정) 추가 | T-035a, T-035b, T-039, T-050 |
 | X-5 | **결정됨(2026-11-17, 오른쪽 제안대로. API 4장 상세 응답 필드 표)**: API 4장 "상세 응답 주요 필드"에 `scheduleEditable`, `checkinOpensAt`, `checkinClosesAt`이 없음 (다른 절에서만 언급) | 상세 필드 목록에 추가 | T-009 |
 | X-6 | **결정됨(2026-11-17, 오른쪽 제안대로. API 1장)**: 닉네임 중복 불허(DATA-MODEL 3장 확정)에 대응하는 오류 코드가 API 1장 표에 없음. 함께 정한 것: 닉네임은 2~20자의 한글(완성형)·영문·숫자·밑줄, 영문 대소문자는 구분하지 않고 중복으로 본다(API 3장) | `409 NICKNAME_TAKEN` 추가 | T-006 |
 | X-7 | 운영자 개별 출석 정정(PRD 9장 "운영자 개별 정정", DATA-MODEL 9장 `ATTENDANCE_CORRECT`)에 해당하는 API 경로가 없음 | `POST /api/v1/admin/attendance-events/{eventId}/corrections` (`note` 필수)로 정정 이벤트 추가 | T-057 |

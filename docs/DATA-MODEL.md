@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.22"
+version: "0.23"
 based_on:
-  - docs/PRD.md@0.15
+  - docs/PRD.md@0.16
   - docs/ARCHITECTURE.md@0.18
 covers:
   - backend/src/main/java/com/everystudy/user/**
@@ -283,6 +283,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | created_by | BIGINT NULL FK(user) | 수동 조치자 |
 
 - 신청·개설 시점에 `starts_at <= now < ends_at AND revoked_at IS NULL`인 행이 있는지 검사한다. 참여 신청을 막는 것은 `JOIN_RESTRICT`와 `SUSPEND`이고, 여럿이면 가장 늦은 `ends_at`을 `USER_RESTRICTED`의 `until`로 준다. 경고 단계는 제재가 아니라 알림이므로 행을 만들지 않는다.
+- **자동 부여(T-035a)**: 노쇼 확정과 지각 기록 때 같은 트랜잭션에서 단계를 판정한다 (PRD 4.8). `source=AUTO`이고 `created_by`는 `NULL`, `reason`은 단계 이름 수준의 짧은 문구다. 같은 단계는 중복해서 만들지 않는다: 해제되지 않은 자동 `JOIN_RESTRICT`가 있으면 제한을 다시 걸지 않고, 유효한 `SUSPEND`가 있으면 정지를 다시 걸지 않는다. "재발"은 해제되지 않은 자동 `JOIN_RESTRICT` 중 가장 늦은 `starts_at` 이후 확정된 노쇼·지각으로 센다 (PLAN D-15).
 - 인덱스 `(user_id, kind, ends_at)`.
 
 ## 7. 알림
@@ -292,7 +293,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 |---|---|---|
 | id | BIGINT PK | |
 | user_id | BIGINT FK | |
-| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`. 종류를 더하면 `CHECK`도 고친다 |
+| type | VARCHAR(30) | `STUDY_CANCELLED`, `HOST_ASSIGNED`, `WAITING_OPENED`, `CHECKIN_OPEN`, `NO_SHOW_NOTICE`, `SANCTION_WARNING`, `SANCTION_APPLIED`. 종류를 더하면 `CHECK`도 고친다 |
 | study_id | BIGINT NULL FK | 연결 대상 |
 | title | VARCHAR(100) | 중복을 견디는 문장 (ADR-0005) |
 | body | VARCHAR(300) | 같음 |

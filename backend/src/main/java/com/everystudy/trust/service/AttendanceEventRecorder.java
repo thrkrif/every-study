@@ -49,6 +49,21 @@ public class AttendanceEventRecorder {
         return recordVerdictOnce(studyId, userId, AttendanceEventType.NO_SHOW_CANDIDATE, occurredAt);
     }
 
+    /**
+     * 노쇼 확정: 이의 기간이 지나 후보를 확정한다 (PRD 4.6). 이미 있으면 남기지 않는다. 출석률에 반영되므로 집계도 갱신한다.
+     * 제재 판정은 부르는 쪽이 {@link ParticipantSanctionService} 로 이어서 한다.
+     *
+     * @return 새로 남겼으면 {@code true}
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public boolean recordNoShow(long studyId, long userId, Instant occurredAt) {
+        boolean recorded = recordVerdictOnce(studyId, userId, AttendanceEventType.NO_SHOW, occurredAt);
+        if (recorded) {
+            summaries.refresh(userId);
+        }
+        return recorded;
+    }
+
     private boolean recordVerdictOnce(long studyId, long userId, AttendanceEventType type, Instant occurredAt) {
         if (events.existsByStudyIdAndUserIdAndType(studyId, userId, type)) {
             return false;

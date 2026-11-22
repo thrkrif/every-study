@@ -1,6 +1,7 @@
 package com.everystudy.attendance.repository;
 
 import com.everystudy.attendance.domain.Appeal;
+import com.everystudy.attendance.domain.AppealStatus;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -12,6 +13,8 @@ public interface AppealRepository extends JpaRepository<Appeal, Long> {
     Optional<Appeal> findByAttendanceEventId(Long attendanceEventId);
 
     boolean existsByAttendanceEventId(Long attendanceEventId);
+
+    boolean existsByAttendanceEventIdAndStatus(Long attendanceEventId, AppealStatus status);
 
     List<Appeal> findByAttendanceEventIdIn(Collection<Long> attendanceEventIds);
 
