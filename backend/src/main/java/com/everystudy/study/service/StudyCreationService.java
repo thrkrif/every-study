@@ -1,5 +1,6 @@
 package com.everystudy.study.service;
 
+import com.everystudy.common.error.BusinessException;
 import com.everystudy.common.error.FieldViolation;
 import com.everystudy.common.error.InvalidInputException;
 import com.everystudy.common.time.TimeProvider;
@@ -8,9 +9,11 @@ import com.everystudy.study.domain.StudyMember;
 import com.everystudy.study.event.StudyCreated;
 import com.everystudy.study.repository.StudyMemberRepository;
 import com.everystudy.study.repository.StudyRepository;
+import com.everystudy.trust.service.SanctionService;
 import com.everystudy.user.service.UserAccountService;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,15 +25,17 @@ public class StudyCreationService {
     private final StudyRepository studies;
     private final StudyMemberRepository members;
     private final UserAccountService users;
+    private final SanctionService sanctions;
     private final StudyProperties properties;
     private final TimeProvider time;
     private final ApplicationEventPublisher events;
 
     StudyCreationService(StudyRepository studies, StudyMemberRepository members, UserAccountService users,
-            StudyProperties properties, TimeProvider time, ApplicationEventPublisher events) {
+            SanctionService sanctions, StudyProperties properties, TimeProvider time, ApplicationEventPublisher events) {
         this.studies = studies;
         this.members = members;
         this.users = users;
+        this.sanctions = sanctions;
         this.properties = properties;
         this.time = time;
         this.events = events;
@@ -41,13 +46,17 @@ public class StudyCreationService {
      * 같은 트랜잭션에서 만든다. 어느 하나가 실패하면 전부 롤백된다.
      *
      * @return 새 스터디 ID
-     * @throws com.everystudy.common.error.BusinessException 온보딩 전이면 {@code ONBOARDING_REQUIRED}
+     * @throws com.everystudy.common.error.BusinessException 온보딩 전이면 {@code ONBOARDING_REQUIRED}, 개설 제한·이용 정지 중이면
+     *         {@code USER_RESTRICTED}(응답에 {@code until})
      * @throws InvalidInputException 시각·정원·입장 기준이 규칙에 맞지 않음
      */
     @Transactional
     public long create(long hostId, CreateStudyCommand command) {
         users.requireOnboarded(hostId);
         Instant now = time.now();
+        sanctions.hostRestrictedUntil(hostId, now).ifPresent(until -> {
+            throw new BusinessException(StudyErrorCode.USER_RESTRICTED, null, Map.of("until", until));
+        });
         List<FieldViolation> violations = StudyCreationRules.check(command, now, properties);
         if (!violations.isEmpty()) {
             throw new InvalidInputException(violations);

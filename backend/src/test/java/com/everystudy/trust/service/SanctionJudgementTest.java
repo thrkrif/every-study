@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 
 class SanctionJudgementTest {
 
-    private static final TrustProperties PROPERTIES = new TrustProperties(3, 180, 1, 10, 5, 5, 10, 3, 2, 4, 7, 14, 7);
+    private static final TrustProperties PROPERTIES = new TrustProperties(3, 180, 1, 10, 5, 5, 10, 3, 2, 4, 7, 14, 7, 90, 2, 3, 7, 5, 30);
     private static final Instant T = Instant.parse("2026-12-01T00:00:00Z");
 
     /** 최근 것부터 판정을 나열한다. 시각은 모두 제한 시작보다 앞선 것으로 둔다. */
