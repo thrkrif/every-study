@@ -33,10 +33,16 @@ public class ChatBroadcaster {
     record NoticeChanged(long studyId, ChatRoomService.Notice notice) {
     }
 
-    private final SimpMessagingTemplate template;
+    /** 사용자가 방에서 나가 구독을 끊어야 한다. */
+    record SubscriptionEnding(long studyId, long userId, String reason) {
+    }
 
-    ChatBroadcaster(SimpMessagingTemplate template) {
+    private final SimpMessagingTemplate template;
+    private final ChatSubscriptions subscriptions;
+
+    ChatBroadcaster(SimpMessagingTemplate template, ChatSubscriptions subscriptions) {
         this.template = template;
+        this.subscriptions = subscriptions;
     }
 
     public static String topicOf(long studyId) {
@@ -46,6 +52,11 @@ public class ChatBroadcaster {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     void onMessage(MessageSent event) {
         template.convertAndSend(topicOf(event.studyId()), ChatEvent.message(event.message()));
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    void onSubscriptionEnding(SubscriptionEnding event) {
+        subscriptions.endFor(event.studyId(), event.userId(), event.reason());
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

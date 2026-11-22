@@ -11,8 +11,10 @@ import com.everystudy.study.repository.StudyRepository;
 import com.everystudy.trust.service.AttendanceStandingService;
 import com.everystudy.trust.service.SanctionService;
 import com.everystudy.user.service.UserAccountService;
+import com.everystudy.study.event.MemberJoined;
 import java.time.Instant;
 import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +32,13 @@ public class StudyJoinService {
     private final StudyProperties properties;
     private final StudyLockProperties lock;
     private final TimeProvider time;
+    private final ApplicationEventPublisher events;
 
     StudyJoinService(StudyRepository studies, StudyMemberRepository members, UserAccountService accounts,
             ApplicantEligibility eligibility, SanctionService sanctions, AttendanceStandingService standings,
-            StudyProperties properties, StudyLockProperties lock, TimeProvider time) {
+            StudyProperties properties, StudyLockProperties lock, TimeProvider time,
+            ApplicationEventPublisher events) {
+        this.events = events;
         this.studies = studies;
         this.members = members;
         this.accounts = accounts;
@@ -77,5 +82,6 @@ public class StudyJoinService {
 
         existing.ifPresentOrElse(member -> member.rejoin(now),
                 () -> members.save(StudyMember.join(studyId, userId, now)));
+        events.publishEvent(new MemberJoined(studyId, userId));
     }
 }

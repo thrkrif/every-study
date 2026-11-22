@@ -69,7 +69,7 @@ covers:
 - `common`은 어느 모듈에서나 쓸 수 있고, `common`은 기능 모듈에 의존하지 않는다.
 - 의존이 순환하지 않는다. 방향: `study/attendance → trust`, `* → notification`(공개 서비스 호출), `chat → study`(참여 여부 조회, 이벤트 수신). **`study`는 `chat`을 참조하지 않는다.**
 - 모듈 간 결합은 **도메인 이벤트**로 푼다. 이벤트를 받는 방식은 결과가 함께 커밋돼야 하는지로 나눈다.
-  - **같은 트랜잭션(동기 리스너)**: 비즈니스 변경과 함께 커밋되거나 함께 롤백돼야 하는 반응. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너로 받아 채팅방을 만들고 닫는다.
+  - **같은 트랜잭션(동기 리스너)**: 비즈니스 변경과 함께 커밋되거나 함께 롤백돼야 하는 반응. `chat`은 `StudyCreated`·`StudyEnded`·`StudyCancelled`를 동기 리스너로 받아 채팅방을 만들고 닫는다. 또 `MemberJoined`·`MemberLeft`·`HostChanged`를 같은 방식으로 받아 입장·나감·새 주최자 시스템 메시지를 남기고, 나가면 커밋 뒤 그 사용자의 방 구독을 끊는다 (T-048).
   - **`AFTER_COMMIT`**: 유실돼도 되는 반응에만 쓴다 (STOMP 전달, 구독 종료). 커밋 뒤에 실패하면 되돌릴 수 없기 때문이다.
   - **알림**은 유실되면 안 되므로 `AFTER_COMMIT`에서 만들지 않는다. 변경을 일으킨 모듈이 같은 트랜잭션에서 `notification` 공개 서비스를 호출해 아웃박스에 기록한다 (4.6).
 - 루트 패키지명은 **`com.everystudy`**(임시, 확정). 도메인이 정해지면 IDE 리팩터링으로 바꾼다.

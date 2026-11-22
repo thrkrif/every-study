@@ -16,6 +16,8 @@ import com.everystudy.study.domain.Study;
 import com.everystudy.study.domain.StudyMember;
 import com.everystudy.study.domain.StudyStatus;
 import com.everystudy.study.domain.StudyWaiting;
+import com.everystudy.study.event.HostChanged;
+import com.everystudy.study.event.MemberLeft;
 import com.everystudy.study.event.StudyCancelled;
 import com.everystudy.study.repository.HostTransferRepository;
 import com.everystudy.study.repository.StudyMemberRepository;
@@ -121,6 +123,7 @@ public class StudyLeaveService {
 
         long activeBefore = members.countByStudyIdAndStatus(studyId, MemberStatus.ACTIVE);
         member.leave(now, type);
+        eventPublisher.publishEvent(new MemberLeft(studyId, userId));
         if (type == CancelType.EARLY) {
             events.recordEarlyCancel(studyId, userId, now);
         } else {
@@ -152,11 +155,13 @@ public class StudyLeaveService {
 
         if (!now.isBefore(study.getStartAt())) {
             hostMember.leaveAsHost(now);
+            eventPublisher.publishEvent(new MemberLeft(study.getId(), hostId));
             return new Left(null, HostOutcome.LEFT_AFTER_START);
         }
 
         List<StudyMember> others = otherActiveMembers(study.getId(), hostId);
         hostMember.leaveAsHost(now);
+        eventPublisher.publishEvent(new MemberLeft(study.getId(), hostId));
         if (others.isEmpty()) {
             study.cancel(CancelReason.HOST_LEFT, now);
             notifyWaitersCancelled(study, now);
@@ -168,6 +173,7 @@ public class StudyLeaveService {
         long newHostId = others.get(random.nextInt(others.size())).getUserId();
         study.transferHostTo(newHostId, now);
         transfers.save(HostTransfer.of(study.getId(), hostId, newHostId, now));
+        eventPublisher.publishEvent(new HostChanged(study.getId(), hostId, newHostId));
         if (penalties.isLeaveWithinPenaltyWindow(study.getStartAt(), now)) {
             penalties.recordLeftWithinWindow(study.getId(), hostId, now);
         }

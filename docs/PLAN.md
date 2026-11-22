@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.23"
+version: "0.24"
 based_on:
   - docs/PRD.md@0.14
   - docs/ARCHITECTURE.md@0.18
   - docs/DATA-MODEL.md@0.22
-  - docs/API.md@0.24
+  - docs/API.md@0.25
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -388,11 +388,12 @@ based_on:
   - 문서: API 6장 확인
   - 결과: `chat.web.WebSocketConfig`(`/ws`, 단순 브로커, `/app`·`/topic`·`/queue`·`/user`), `ChatSocketInterceptor`(CONNECT·SUBSCRIBE·SEND마다 권한 검사, 거부는 `ERROR`), `ChatSocketController`(저장), `chat.service.ChatMessageService`·`ChatBroadcaster`(커밋 뒤 전달) · 의존성 `spring-boot-starter-websocket`(잠금 파일 갱신) · 내가 정한 세부 결정(API 6장에 기록): 핸드셰이크 인증은 기존 HTTP 보안 필터가 하고 STOMP 사용자는 회원 id · `ERROR`의 `message` 헤더에 오류 코드 · 전송 본문 검증 실패는 연결을 끊지 않고 `/user/queue/events`로 `SEND_REJECTED` · 공지 변경도 방 주제로 `NOTICE` 이벤트 · 차단 숨김은 주제 하나로 서버가 가릴 수 없어 클라이언트가 `senderId`로 가림(REST는 가려서 줌) · 테스트용 `WebSocketIntegrationTestSupport`(임의 포트)를 추가
 
-- [ ] T-048 채팅 시스템 메시지와 구독 종료
+- [x] T-048 채팅 시스템 메시지와 구독 종료
   - 선행: T-020, T-047
   - 참조: PRD 4.12(나가기 의미), ARCHITECTURE 4.8, API 6장(`/user/queue/events`)
   - 완료: 입장·나감·새 주최자 시스템 메시지 · 나가기 시 해당 사용자 구독 종료와 `/user/queue/events` 통지 · `chat`은 `study`의 이벤트를 받아 처리(`study`는 `chat`을 모름) · 테스트: 나간 직후 전송 거부, 승계 시 시스템 메시지 1건
   - 문서: 해당 없음
+  - 결과: `study.event`에 `MemberJoined`·`MemberLeft`·`HostChanged`를 추가해 참여·나가기·승계에서 발행하고, `chat.service.ChatSystemMessages`가 동기 리스너로 받아 같은 트랜잭션에서 시스템 메시지를 저장 · `ChatSubscriptions`가 커밋 뒤 방 구독을 끊고 본인에게 `SUBSCRIPTION_ENDED`를 보냄 · 내가 정한 세부 결정(API 6장에 기록): 문구는 "OO님이 입장했어요/나갔어요/새 주최자가 됐어요"(탈퇴 회원은 "탈퇴한 사용자") · 주최자가 나가면 "나갔어요"와 승계 시 "새 주최자" 두 건 · 나간 사람이 자기 나감 안내를 받지 않도록 구독 종료를 먼저 처리 · 단일 서버 내장 브로커의 구독 등록을 직접 지우는 방식이라 외부 브로커로 바꿀 때 `ChatSubscriptions`를 함께 바꿈
 
 - [ ] T-049 채팅방 폐쇄와 메시지 보관 만료 삭제
   - 선행: T-030, T-048 · 결정 D-16

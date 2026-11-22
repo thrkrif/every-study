@@ -224,7 +224,87 @@ class ChatRealtimeIntegrationTest extends WebSocketIntegrationTestSupport {
         session.disconnect();
     }
 
+    @Test
+    @DisplayName("참여·나가기·승계는 시스템 메시지로 남고, 승계 시 새 주최자 안내가 1건이다")
+    void systemMessages() {
+        Cookie memberCookie = new Cookie("access_token", memberToken);
+        Cookie csrf = csrfOf(memberCookie);
+        long newcomer = outsiderId;
+        Cookie outsiderCookie = new Cookie("access_token", outsiderToken);
+        Cookie outsiderCsrf = csrfOf(outsiderCookie);
+
+        assertThat(mvc.post().uri("/api/v1/studies/" + studyId + "/members").cookie(outsiderCookie, outsiderCsrf)
+                .header("X-XSRF-TOKEN", outsiderCsrf.getValue()).exchange()).hasStatus(201);
+        assertThat(systemMessages(studyId)).containsExactly("외부인님이 입장했어요");
+
+        // 참여자가 나간다
+        assertThat(mvc.delete().uri("/api/v1/studies/" + studyId + "/members/me").cookie(memberCookie, csrf)
+                .header("X-XSRF-TOKEN", csrf.getValue()).exchange()).hasStatusOk();
+        assertThat(systemMessages(studyId)).containsExactly("외부인님이 입장했어요", "참여자님이 나갔어요");
+
+        // 주최자가 시작 전에 나가면 남은 참여자(외부인)에게 승계된다
+        Cookie hostCookie = new Cookie("access_token", hostToken);
+        Cookie hostCsrf = csrfOf(hostCookie);
+        assertThat(mvc.delete().uri("/api/v1/studies/" + studyId + "/members/me").cookie(hostCookie, hostCsrf)
+                .header("X-XSRF-TOKEN", hostCsrf.getValue()).exchange()).hasStatusOk();
+        assertThat(systemMessages(studyId)).containsExactly("외부인님이 입장했어요", "참여자님이 나갔어요",
+                "주최자님이 나갔어요", "외부인님이 새 주최자가 됐어요");
+        assertThat(newcomer).isEqualTo(outsiderId);
+    }
+
+    @Test
+    @DisplayName("나가면 방 구독이 끊겨 이후 메시지를 받지 못하고, 본인에게 SUBSCRIPTION_ENDED 가 가며, 전송은 거부된다")
+    void leavingEndsSubscription() throws Exception {
+        BlockingQueue<Map<String, Object>> memberTopic = new LinkedBlockingQueue<>();
+        BlockingQueue<Map<String, Object>> memberPersonal = new LinkedBlockingQueue<>();
+        BlockingQueue<String> memberErrors = new LinkedBlockingQueue<>();
+        StompSession memberSession = connect(memberToken, FRONTEND, memberErrors);
+        memberSession.subscribe("/topic/studies/" + studyId + "/chat", handler(memberTopic));
+        memberSession.subscribe("/user/queue/events", handler(memberPersonal));
+        BlockingQueue<Map<String, Object>> hostTopic = new LinkedBlockingQueue<>();
+        StompSession hostSession = connect(hostToken, FRONTEND);
+        hostSession.subscribe("/topic/studies/" + studyId + "/chat", handler(hostTopic));
+        Thread.sleep(400);
+
+        Cookie memberCookie = new Cookie("access_token", memberToken);
+        Cookie csrf = csrfOf(memberCookie);
+        assertThat(mvc.delete().uri("/api/v1/studies/" + studyId + "/members/me").cookie(memberCookie, csrf)
+                .header("X-XSRF-TOKEN", csrf.getValue()).exchange()).hasStatusOk();
+
+        Map<String, Object> ended = memberPersonal.poll(5, TimeUnit.SECONDS);
+        assertThat(ended).isNotNull();
+        assertThat(ended.get("type")).isEqualTo("SUBSCRIPTION_ENDED");
+        assertThat(((Number) ended.get("studyId")).longValue()).isEqualTo(studyId);
+        // 남은 사람은 나감 안내를 받는다
+        Map<String, Object> notice = hostTopic.poll(5, TimeUnit.SECONDS);
+        assertThat(notice).isNotNull();
+        assertThat(notice.get("type")).isEqualTo("MESSAGE");
+
+        // 나간 사람에게는 이후 메시지가 가지 않는다
+        hostSession.send("/app/studies/" + studyId + "/chat", Map.of("content", "남은 사람끼리"));
+        assertThat(hostTopic.poll(5, TimeUnit.SECONDS)).isNotNull();
+        assertThat(memberTopic.poll(1, TimeUnit.SECONDS)).isNull();
+
+        // 나간 직후 전송은 거부된다
+        memberSession.send("/app/studies/" + studyId + "/chat", Map.of("content", "나간 뒤"));
+        assertThat(memberErrors.poll(5, TimeUnit.SECONDS)).isEqualTo("FORBIDDEN");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM chat_message WHERE kind = 'TEXT' AND content = '나간 뒤'",
+                Integer.class)).isZero();
+        hostSession.disconnect();
+    }
+
     // ---- 도우미 ----
+
+    private Cookie csrfOf(Cookie access) {
+        return mvc.get().uri("/api/v1/me").cookie(access).exchange().getResponse().getCookie("XSRF-TOKEN");
+    }
+
+    private java.util.List<String> systemMessages(long studyId) {
+        return jdbc.queryForList("""
+                SELECT m.content FROM chat_message m JOIN chat_room r ON r.id = m.room_id
+                WHERE r.study_id = ? AND m.kind = 'SYSTEM' ORDER BY m.id
+                """, String.class, studyId);
+    }
 
     private StompSession connect(String token, String origin) throws Exception {
         return connect(token, origin, new LinkedBlockingQueue<>());
