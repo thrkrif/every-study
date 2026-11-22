@@ -1,7 +1,7 @@
 package com.everystudy.study.web;
 
 import com.everystudy.common.security.LoginUser;
-import com.everystudy.study.repository.MyStudyRepository.Role;
+import com.everystudy.study.domain.MyRole;
 import com.everystudy.study.service.MyStudyQueryService;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -36,7 +36,7 @@ class MyStudyController {
             @RequestParam(required = false) String cursor,
             @RequestParam(defaultValue = "20") @Min(1) @Max(50) int size) {
         return queries.find(user.userId(), new MyStudyQueryService.Query(
-                role == null ? null : Role.valueOf(role.toUpperCase(java.util.Locale.ROOT)),
+                role == null ? null : MyRole.valueOf(role.toUpperCase(java.util.Locale.ROOT)),
                 state.equals("past") ? MyStudyQueryService.State.PAST : MyStudyQueryService.State.UPCOMING,
                 cursor, size));
     }

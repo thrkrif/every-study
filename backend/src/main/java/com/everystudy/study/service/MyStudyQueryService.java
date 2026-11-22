@@ -2,8 +2,8 @@ package com.everystudy.study.service;
 
 import com.everystudy.common.error.FieldViolation;
 import com.everystudy.common.error.InvalidInputException;
+import com.everystudy.study.domain.MyRole;
 import com.everystudy.study.repository.MyStudyRepository;
-import com.everystudy.study.repository.MyStudyRepository.Role;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.format.DateTimeParseException;
@@ -31,12 +31,12 @@ public class MyStudyQueryService {
     }
 
     /** @param role {@code null} 이면 주최·참여 모두 */
-    public record Query(Role role, State state, String cursor, int size) {
+    public record Query(MyRole role, State state, String cursor, int size) {
     }
 
     /** 내 스터디 한 건. {@code role} 은 내 역할({@code HOST}/{@code MEMBER}), {@code status} 는 저장 상태다. */
     public record Item(long id, String title, String topicCode, String districtCode, Instant startAt,
-            int durationMin, int capacity, int memberCount, String status, Role role) {
+            int durationMin, int capacity, int memberCount, String status, MyRole role) {
     }
 
     /** @param nextCursor 다음 페이지가 없으면 {@code null} */

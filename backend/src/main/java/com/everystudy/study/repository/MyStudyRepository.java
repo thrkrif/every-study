@@ -1,5 +1,6 @@
 package com.everystudy.study.repository;
 
+import com.everystudy.study.domain.MyRole;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -17,11 +18,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class MyStudyRepository {
 
-    /** 목록의 조건. */
-    public enum Role { HOST, MEMBER }
-
     /** @param upcoming {@code true} 면 진행 중({@code ACTIVE}), {@code false} 면 끝난 것(종료·파투) */
-    public record Condition(long userId, Role role, boolean upcoming, Cursor cursor, int size) {
+    public record Condition(long userId, MyRole role, boolean upcoming, Cursor cursor, int size) {
     }
 
     /** 직전 페이지의 마지막 항목. */
@@ -30,7 +28,7 @@ public class MyStudyRepository {
 
     /** @param role 이 스터디에서 내 역할 */
     public record Row(long id, String title, String topicCode, String districtCode, Instant startAt, int durationMin,
-            int capacity, int memberCount, String status, Role role) {
+            int capacity, int memberCount, String status, MyRole role) {
     }
 
     private final NamedParameterJdbcTemplate jdbc;
@@ -58,9 +56,9 @@ public class MyStudyRepository {
                 .addValue("limit", condition.size() + 1);
 
         sql.append(condition.upcoming() ? " AND s.status = 'ACTIVE'" : " AND s.status IN ('ENDED', 'CANCELLED')");
-        if (condition.role() == Role.HOST) {
+        if (condition.role() == MyRole.HOST) {
             sql.append(" AND s.host_id = :userId");
-        } else if (condition.role() == Role.MEMBER) {
+        } else if (condition.role() == MyRole.MEMBER) {
             sql.append(" AND s.host_id <> :userId");
         }
         Cursor cursor = condition.cursor();
@@ -86,7 +84,7 @@ public class MyStudyRepository {
                 rs.getInt("capacity"),
                 rs.getInt("member_count"),
                 rs.getString("status"),
-                Role.valueOf(rs.getString("my_role")));
+                MyRole.valueOf(rs.getString("my_role")));
     }
 
     private static LocalDateTime utc(Instant instant) {
