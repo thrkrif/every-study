@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.18"
+version: "0.19"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.16
-  - docs/DATA-MODEL.md@0.16
+  - docs/ARCHITECTURE.md@0.17
+  - docs/DATA-MODEL.md@0.17
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -302,11 +302,12 @@ covers:
 | 메서드 경로 | 권한 | 설명 |
 |---|---|---|
 | `POST /api/v1/studies/{id}/checkins` | 참여자 | 위치 체크인. 본문 `{ "latitude", "longitude", "accuracyM" }`. 판정은 서버. 성공 시 `{ "result": "ATTENDED"\|"LATE", "distanceM": 42 }`. 이미 했으면 같은 결과를 `200`으로 반환(멱등) |
-| `POST /api/v1/studies/{id}/checkins/code` | 참여자 | 코드 체크인 `{ "code": "123456" }`. 위치 거부·GPS 실패 시의 유일한 대체 수단 |
-| `PUT /api/v1/studies/{id}/checkin-code` | 주최자 | 일회용 코드 발급(재발급). 주최자 체크인 후에만, 아니면 `HOST_NOT_CHECKED_IN` |
+| `POST /api/v1/studies/{id}/checkins/code` | 참여자 | 코드 체크인 `{ "code": "123456" }`. 위치 거부·GPS 실패 시의 유일한 대체 수단. 성공 시 `{ "result": "ATTENDED"\|"LATE" }`(`distanceM` 없음), 이미 했으면 같은 결과를 `200`으로 반환(멱등) |
+| `PUT /api/v1/studies/{id}/checkin-code` | 주최자 | 일회용 코드 발급(재발급, 이전 코드는 무효). 주최자 체크인 후에만, 아니면 `HOST_NOT_CHECKED_IN`. 응답 `{ "code": "123456", "expiresAt": "..." }` |
 | `GET /api/v1/studies/{id}/attendance` | 참여자 | 체크인 현황. 참여자는 자기 것, 주최자는 전원의 **체크인 여부만** 본다 (노쇼 확정 권한 없음, PRD 4.6) |
 
 - 위치 체크인 검사 순서(PLAN X-27): 스터디 없음 `404` → 참여자가 아님 `403` → 이미 체크인했으면 처음 결과 `200` → 종료·파투 `409 STUDY_CLOSED` → 시간창 `422 CHECKIN_WINDOW_CLOSED` → 반경 `422 CHECKIN_OUT_OF_RANGE`. `accuracyM`은 필수이며 저장만 하고 판정에 쓰지 않는다. 락 대기 시간이 지나면 `LOCK_TIMEOUT`.
+- 코드 체크인·발급 검사 순서(PLAN X-28): 스터디 없음 `404` → (발급은 주최자가 아님, 체크인은 참여자가 아님) `403` → (체크인만) 이미 체크인했으면 처음 결과 `200` → 종료·파투 `409 STUDY_CLOSED` → 시간창 `422 CHECKIN_WINDOW_CLOSED` → 주최자 미체크인 `422 HOST_NOT_CHECKED_IN` → (체크인만) 코드 오류·만료·발급 전·시도 초과 `422 CHECKIN_CODE_INVALID`. 코드는 6자리 숫자이고 체크인 마감 시각까지 유효하다. 한 사람이 한 스터디에서 5번 틀리면 그 뒤로는 맞는 코드도 `CHECKIN_CODE_INVALID`다. `code`가 6자리 숫자가 아니면 `400 VALIDATION_FAILED`이고 실패 횟수에 세지 않는다. 주최자 화면은 코드를 다시 불러오는 API가 없으므로 `PUT`을 다시 부르면 새 코드가 된다.
 - 체크인 현황 응답: `{ "mine": { "checkedIn": true, "result": "ATTENDED", "method": "LOCATION", "checkedInAt": "..." }, "members": [ { "userId", "nickname", "checkedIn" } ] }`. 체크인 전에는 `mine`에 `checkedIn: false`만 있고, `members`는 주최자에게만 담긴다.
 
 체크인 시간창과 판정 경계는 서버가 PRD 4.6 설정으로 판단하며, 클라이언트는 `GET /studies/{id}`의 `checkinOpensAt`, `checkinClosesAt`으로 버튼 상태만 정한다.

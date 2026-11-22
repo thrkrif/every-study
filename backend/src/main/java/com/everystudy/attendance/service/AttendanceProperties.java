@@ -11,10 +11,13 @@ import org.springframework.validation.annotation.Validated;
  *
  * @param checkinRadiusMeters   체크인을 받는 스터디 장소 반경, 미터 (PRD 4.6)
  * @param attendedWithinMinutes 시작 후 몇 분까지의 체크인이 출석인가. 그 뒤 마감까지는 지각 (PRD 4.6)
+ * @param codeMaxFailures       한 사람이 한 스터디에서 일회용 코드를 틀릴 수 있는 횟수. 이만큼 틀리면 그 뒤로는 맞아도 거부한다
+ *                              (PLAN D-7·X-28)
  */
 @Validated
 @ConfigurationProperties("everystudy.attendance")
 public record AttendanceProperties(
         @Min(1) @DefaultValue("150") int checkinRadiusMeters,
-        @Min(0) @DefaultValue("10") int attendedWithinMinutes) {
+        @Min(0) @DefaultValue("10") int attendedWithinMinutes,
+        @Min(1) @DefaultValue("5") int codeMaxFailures) {
 }
