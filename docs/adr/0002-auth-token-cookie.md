@@ -2,7 +2,7 @@
 status: draft
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.17
+  - docs/ARCHITECTURE.md@0.18
 ---
 
 # ADR-0002: 인증 — 소셜 로그인과 JWT 쿠키

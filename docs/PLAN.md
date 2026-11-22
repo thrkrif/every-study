@@ -1,11 +1,11 @@
 ---
 status: draft
-version: "0.18"
+version: "0.19"
 based_on:
   - docs/PRD.md@0.14
-  - docs/ARCHITECTURE.md@0.17
-  - docs/DATA-MODEL.md@0.18
-  - docs/API.md@0.20
+  - docs/ARCHITECTURE.md@0.18
+  - docs/DATA-MODEL.md@0.19
+  - docs/API.md@0.21
 ---
 
 # PLAN — 모두의 스터디 MVP 구현 계획
@@ -288,11 +288,12 @@ based_on:
   - 결과: `GET /api/v1/users/{id}`(공개, `study.web.PublicProfileController`·`study.service.PublicProfileService`) · `trust.service.TrustMetricsService`가 출석 지표와 직전 이탈 건수를 한 번에 읽고(`AttendanceMetrics`), `study.service.PersonMetrics`가 주최 횟수를 더해 목록·상세·참여자 목록·프로필이 같은 계산을 쓴다 · 프로필을 `study`에 둔 이유: `study`가 `user`·`trust`를 이미 참조하고 주최 횟수는 `study` 데이터라, `user`나 `trust`에 두면 모듈이 순환한다 · 내가 정한 세부 결정(API 3장에 기록): 출석률은 내림한 정수 · 주최 횟수 = 끝난 스터디(현재 주최자) + 직전 이탈 승계 · 온보딩 전 회원은 404, 탈퇴 회원은 200에 이름 비움 · 새 설정 `everystudy.trust.host-count-only-below`(기본 5)
   - 문서: API 3장 확인(v0.20)
 
-- [ ] T-034 이의 신청 API와 출석 기록 조회
+- [x] T-034 이의 신청 API와 출석 기록 조회
   - 선행: T-031 · 결정 X-14
   - 참조: PRD 4.9, DATA-MODEL 5장(`appeal`), API 3장(`/me/attendance`)·5장(이의 신청)
   - 완료: 노쇼·지각 판정당 1회, 본인만 · 주최자 1차 의견 등록 · `/me/appeals`, `/me/attendance`(이의 가능 여부 포함) · 테스트: 기한 후 `409 APPEAL_CLOSED`, 같은 판정 두 번째 이의 거부, 타인 판정 `403`, 비주최자 의견 `403`
   - 문서: DATA-MODEL 5장, API 1장(X-14)·3·5장 확인
+  - 결과: `attendance.service.AppealService`(신청·주최자 의견·내 이의)와 `MyAttendanceService`(`/me/attendance`), 마이그레이션 V12 `appeal` · 출석 이벤트 읽기는 `trust.service.AttendanceLedger`(공개 서비스)로만 한다 · **`appeal`을 `trust`가 아니라 `attendance` 모듈에 둔 이유**: 주최자 확인에 `study`를 읽어야 하는데 `study`가 이미 `trust`를 참조해 `trust → study`는 순환이다(ARCHITECTURE 3장 갱신) · 내가 정한 세부 결정(DATA-MODEL 5장·API 3·5장에 기록): 이의 대상은 `NO_SHOW_CANDIDATE`·`LATE`뿐 · 기한 = 그 판정 이벤트 시각 + `appeal-window-hours`, 정각까지 허용 · 이의 시점에 그 판정이 현재 판정이 아니면 거부 · 새 오류 `APPEAL_NOT_ALLOWED`·`ALREADY_APPEALED`, `APPEAL_CLOSED`는 결정된 이의에 대한 주최자 의견에도 씀 · 주최자 의견은 결정 전까지 덮어쓰기 · `/me/attendance`는 스터디마다 현재 판정 하나씩 이벤트 id 내림차순 커서
 
 - [ ] T-035a 노쇼 확정과 참여자 제재
   - 선행: T-032, T-034 · 결정 D-15, X-4
@@ -593,7 +594,7 @@ based_on:
 | X-11 | **결정됨(2026-11-16, 오른쪽 제안대로, 감사 로그는 `common`. ARCHITECTURE 3장, ADR-0003 후속 결정).** 모듈 소속: ARCHITECTURE 3장에 `schedule` 모듈(일정 변경, 세션 무효)이 있으나 일정은 `study` 테이블에 있음(ARCHITECTURE 5장). `attendance_event`는 `trust` 소속인데 체크인·자동 판정은 `attendance` 소속. 감사 로그 소속 모듈도 없음 | 일정 수정은 `study`, 세션 무효·노쇼 후보 판정은 `attendance`, 이벤트 기록·집계는 `trust`(공개 서비스), 감사 로그는 `common`(여러 모듈이 기록하므로 `admin`에 두면 모두 `admin`에 의존하게 됨)으로 정하고 `schedule` 모듈을 지운다. ARCHITECTURE 3장 갱신 | T-003, T-022, T-031 |
 | X-12 | **결정됨(2026-11-22, 사용자 확인, 권장안대로. DATA-MODEL 6장).** 지각 판정에 대한 이의가 인정되면(`NO_SHOW_CLEARED`, "직전 판정을 무효화") 출석으로 볼지 집계에서 뺄지 정의가 없음 | 이의 인정은 "판정이 틀렸음"이므로 출석으로 집계하는 정정 이벤트(`ATTENDED`)를 추가 | T-032, T-056 |
 | X-13 | **결정됨(2026-11-22, 사용자 확인. ARCHITECTURE 4.3, DATA-MODEL 4장, API 4장).** 주최자가 시작 후 나가면(`LEFT_AFTER_START`) `study_member` 상태, `host_id`, 이미 한 체크인과 출석 집계 처리가 정의되지 않았음 | `study_member`는 `LEFT`, `host_id`와 체크인은 그대로 두어 세션은 진행되고(PRD 4.13A 마지막 항목), 취소 이벤트는 만들지 않는다. 체크인 전이었다면 미도착 규칙(T-031)으로 처리. **T-020에서 함께 정한 세부:** ① 주최자의 나가기 응답은 `outcome`만 담고 `cancelType`은 없다(주최 포기는 참여 취소가 아니라 `study_member.cancel_type`도 `NULL`). ② 종료·파투된 스터디에서는 주최자도 `409 SESSION_STARTED`, 진행 중(`ACTIVE`)이면 시작 후에도 나갈 수 있다. ③ 감점은 **승계로 이어질 때만**(남은 참여자가 있을 때) 부과한다. 기준 시각은 참여자 직전 취소와 같게 시작 3시간 전 정각까지는 감점 없음, 1초라도 넘기면 감점. 기준 시간·점수는 설정값(`everystudy.trust.host-leave-window-minutes` 180, `host-leave-penalty-points` 1). ④ 감점의 감사 로그는 `HOST_PENALTY`, 대상 `STUDY`, 행위자 `NULL`. ⑤ 알림: 새 주최자에게 `HOST_ASSIGNED`(만료는 일정 종료 시각), 파투면 대기자에게만 `STUDY_CANCELLED`(만료는 시작 시각)를 보내고 대기 행은 지운다. 승계 뒤에는 대기 행을 그대로 두고, 정원이 찼던 스터디면 T-018과 같은 규칙으로 자격이 남은 대기자에게 자리 알림을 보낸다. ⑥ 파투는 같은 트랜잭션에서 `StudyCancelled` 이벤트를 발행하고 채팅방 폐쇄는 T-049가 한다 | T-020, T-046 |
-| X-14 | `APPEAL_CLOSED`(API 5장)가 API 1장 오류 표에 없음 | API 1장 표에 `409 APPEAL_CLOSED` 추가 | T-034 |
+| X-14 | **결정됨(2026-11-22, 자동 진행 중 표 한 줄 추가라 권장안대로. API 1장).** `APPEAL_CLOSED`(API 5장)가 API 1장 오류 표에 없음 | API 1장 표에 `409 APPEAL_CLOSED` 추가 | T-034 |
 | X-15 | **결정됨(2026-11-22, 사용자 확인. ADR-0004 결정 1, ARCHITECTURE 4.4).** **체크인과 자동 판정의 경쟁.** ADR-0004 결정 1은 멤버 구성을 바꾸는 작업만 `study` 행 락으로 직렬화한다. 체크인(T-027)과 주최자 미도착 무효·노쇼 후보 판정(T-031)은 락 대상이 아니어서, 마감 직전 체크인이 판정보다 늦게 커밋되면 출석과 노쇼 후보가 함께 남거나, 주최자가 체크인했는데 세션이 무효가 될 수 있음 | ADR-0004 결정 1의 대상에 "체크인, 일회용 코드 체크인, 세션 무효·노쇼 후보 판정"을 추가한다(보강 ADR 또는 ADR-0004 후속 결정). 체크인은 락을 잡은 뒤 서버 시각으로 시간창을 검사하고, 판정은 락을 잡은 뒤 대상 조건(`judged_at IS NULL`, 마감 경과)을 다시 확인한다 | T-027, T-031 |
 | X-16 | **결정됨(2026-11-22, 사용자 확인. DATA-MODEL 4장은 T-017에서 이미 반영, 종료 시 삭제는 T-030).** **체크인 오픈 시 대기 정리.** PRD 4.14와 DATA-MODEL 4장(`study_waiting`)은 체크인이 열리면 대기를 자동 해제(행 삭제)한다고 하나, ADR-0005·ARCHITECTURE 4.7 작업 목록과 DATA-MODEL 10장에는 그 시점에 도는 작업이 없음 | 체크인 오픈 이후의 대기 행은 조회(`myState`, `waitingCount`)와 알림 대상에서 걸러 내고, 행 삭제는 스터디 종료·파투 처리 때 한다. DATA-MODEL 4장 문구를 "체크인 오픈 이후에는 무효로 보고 종료 시 삭제"로 고친다 | T-017, T-030 |
 | X-17 | **결정됨(2026-11-16, API 1장)**: 서버 내부 오류는 `500 INTERNAL_ERROR`, 잘못된 본문·파라미터는 `VALIDATION_FAILED`, 405·415 등 HTTP 표준 오류는 `code` 없이 `status`로 구분한다. T-001에서 구현 | API 1장 | T-004 |

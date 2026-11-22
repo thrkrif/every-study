@@ -7,8 +7,11 @@ import com.everystudy.study.domain.StudyStatus;
 import com.everystudy.study.repository.StudyMemberRepository;
 import com.everystudy.study.repository.StudyRepository;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -74,6 +77,12 @@ public class StudySessions {
     @Transactional(readOnly = true)
     public Optional<Session> read(long studyId, long userId) {
         return studies.findById(studyId).map(study -> session(study, userId));
+    }
+
+    /** 스터디 제목. 없는 스터디는 빠진다. 이의·출석 기록 목록이 스터디 이름을 붙일 때 쓴다. */
+    @Transactional(readOnly = true)
+    public Map<Long, String> titles(Collection<Long> studyIds) {
+        return studies.findAllById(studyIds).stream().collect(Collectors.toMap(Study::getId, Study::getTitle));
     }
 
     /** 지금 {@code ACTIVE} 인 참여자 ID (주최자 포함, 참여 순서). */
