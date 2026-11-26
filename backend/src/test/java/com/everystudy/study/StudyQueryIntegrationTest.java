@@ -72,14 +72,14 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("기본은 모집 중만. 마감 보기를 켜면 시작 전 마감 스터디도 나오고, 시작했거나 끝난 스터디는 어느 쪽에도 없다")
         void recruitingByDefaultAndClosedOnRequest() {
-            long open = study("모집중", "SUWON_JANGAN", inHours(48), 4, List.of());
-            long full = study("정원참", "SUWON_JANGAN", inHours(48), 2, List.of());
+            long open = study("모집중", "SEOUL", inHours(48), 4, List.of());
+            long full = study("정원참", "SEOUL", inHours(48), 2, List.of());
             join(full, memberId);
-            long checkinOpened = study("체크인열림", "SUWON_JANGAN", now.plus(Duration.ofMinutes(5)), 4, List.of());
-            study("시작함", "SUWON_JANGAN", now.minus(Duration.ofMinutes(30)), 4, List.of());
-            long ended = study("끝남", "SUWON_JANGAN", inHours(48), 4, List.of());
+            long checkinOpened = study("체크인열림", "SEOUL", now.plus(Duration.ofMinutes(5)), 4, List.of());
+            study("시작함", "SEOUL", now.minus(Duration.ofMinutes(30)), 4, List.of());
+            long ended = study("끝남", "SEOUL", inHours(48), 4, List.of());
             jdbc.update("UPDATE study SET status = 'ENDED' WHERE id = ?", ended);
-            long cancelled = study("파투", "SUWON_JANGAN", inHours(48), 4, List.of());
+            long cancelled = study("파투", "SEOUL", inHours(48), 4, List.of());
             jdbc.update("UPDATE study SET status = 'CANCELLED' WHERE id = ?", cancelled);
 
             assertThat(ids(mvc.get().uri(STUDIES).exchange())).containsExactly(open);
@@ -90,13 +90,13 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("카드에 참여자 수, 모집 여부, 희망 직군, 입장 기준, 주최자를 담는다")
         void summaryFields() {
-            long id = study("모각코", "SUWON_YEONGTONG", inHours(30), 4, List.of("PUBLIC", "IT"));
+            long id = study("모각코", "BUSAN", inHours(30), 4, List.of("PUBLIC", "IT"));
             join(id, memberId);
 
             MvcTestResult result = mvc.get().uri(STUDIES).exchange();
 
             assertThat(result).hasStatusOk().bodyJson().isStrictlyEqualTo(String.format("""
-                    {"nextCursor": null, "items": [{"id": %d, "title": "모각코", "topicCode": "DEVELOPMENT", "districtCode": "SUWON_YEONGTONG",
+                    {"nextCursor": null, "items": [{"id": %d, "title": "모각코", "topicCode": "DEVELOPMENT", "districtCode": "BUSAN",
                      "startAt": "%s", "durationMin": 120, "capacity": 4, "memberCount": 2, "recruiting": true,
                      "targetJobCodes": ["IT", "PUBLIC"],
                      "entryCriteria": {"minAttendanceRate": 70, "allowNewcomer": true},
@@ -106,25 +106,24 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         }
 
         @Test
-        @DisplayName("지역은 시·도·시·구 어느 단계로든 거른다")
+        @DisplayName("지역은 시·도로 거르고, 없는 지역 코드는 400 이다")
         void regionFilter() {
-            long jangan = study("장안", "SUWON_JANGAN", inHours(30), 4, List.of());
-            long paldal = study("팔달", "SUWON_PALDAL", inHours(31), 4, List.of());
+            long seoul = study("서울", "SEOUL", inHours(30), 4, List.of());
+            long gyeonggi = study("경기", "GYEONGGI", inHours(31), 4, List.of());
 
-            assertThat(ids(mvc.get().uri(STUDIES).param("regionCode", "SUWON_PALDAL").exchange()))
-                    .containsExactly(paldal);
-            assertThat(ids(mvc.get().uri(STUDIES).param("regionCode", "SUWON").exchange()))
-                    .containsExactly(paldal, jangan);
             assertThat(ids(mvc.get().uri(STUDIES).param("regionCode", "GYEONGGI").exchange()))
-                    .containsExactly(paldal, jangan);
+                    .containsExactly(gyeonggi);
+            assertThat(ids(mvc.get().uri(STUDIES).param("regionCode", "SEOUL").exchange()))
+                    .containsExactly(seoul);
+            assertThat(mvc.get().uri(STUDIES).param("regionCode", "SUWON").exchange()).hasStatus(400);
         }
 
         @Test
         @DisplayName("직군 필터는 그 직군이 명시된 스터디만, 고르지 않으면 전체다")
         void jobFilter() {
-            long anyone = study("누구나", "SUWON_JANGAN", inHours(30), 4, List.of());
-            long it = study("IT", "SUWON_JANGAN", inHours(31), 4, List.of("IT"));
-            long publicOnly = study("공무원", "SUWON_JANGAN", inHours(32), 4, List.of("PUBLIC"));
+            long anyone = study("누구나", "SEOUL", inHours(30), 4, List.of());
+            long it = study("IT", "SEOUL", inHours(31), 4, List.of("IT"));
+            long publicOnly = study("공무원", "SEOUL", inHours(32), 4, List.of("PUBLIC"));
 
             assertThat(ids(mvc.get().uri(STUDIES).param("jobCode", "IT").exchange())).containsExactly(it);
             assertThat(ids(mvc.get().uri(STUDIES).exchange())).containsExactly(publicOnly, it, anyone);
@@ -133,9 +132,9 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("내 직군 필터는 내 대분류가 신청할 수 있는 스터디(직군 무관 포함)만 보여 준다")
         void myJobFilter() {
-            long anyone = study("누구나", "SUWON_JANGAN", inHours(30), 4, List.of());
-            long it = study("IT", "SUWON_JANGAN", inHours(31), 4, List.of("IT", "DESIGN"));
-            study("공무원", "SUWON_JANGAN", inHours(32), 4, List.of("PUBLIC"));
+            long anyone = study("누구나", "SEOUL", inHours(30), 4, List.of());
+            long it = study("IT", "SEOUL", inHours(31), 4, List.of("IT", "DESIGN"));
+            study("공무원", "SEOUL", inHours(32), 4, List.of("PUBLIC"));
 
             // 참여자의 직군은 세부 직무(IT_BACKEND)지만 대분류(IT)로 판단한다.
             assertThat(ids(mvc.get().uri(STUDIES).param("myJob", "true").cookie(memberCookie).exchange()))
@@ -156,8 +155,8 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("주제로 거른다")
         void topicFilter() {
-            study("개발", "SUWON_JANGAN", inHours(30), 4, List.of());
-            long language = study("어학", "SUWON_JANGAN", inHours(31), 4, List.of());
+            study("개발", "SEOUL", inHours(30), 4, List.of());
+            long language = study("어학", "SEOUL", inHours(31), 4, List.of());
             jdbc.update("UPDATE study SET topic_code = 'LANGUAGE' WHERE id = ?", language);
 
             assertThat(ids(mvc.get().uri(STUDIES).param("topicCode", "LANGUAGE").exchange())).containsExactly(language);
@@ -166,9 +165,9 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("최신순은 개설 순의 역순, 마감임박순은 시작이 빠른 순이고 커서로 끝까지 이어진다")
         void sortAndCursor() {
-            long a = study("A", "SUWON_JANGAN", inHours(50), 4, List.of());
-            long b = study("B", "SUWON_JANGAN", inHours(30), 4, List.of());
-            long c = study("C", "SUWON_JANGAN", inHours(40), 4, List.of());
+            long a = study("A", "SEOUL", inHours(50), 4, List.of());
+            long b = study("B", "SEOUL", inHours(30), 4, List.of());
+            long c = study("C", "SEOUL", inHours(40), 4, List.of());
 
             assertThat(allPages("latest")).containsExactly(c, b, a);
             assertThat(allPages("deadline")).containsExactly(b, c, a);
@@ -178,9 +177,9 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @DisplayName("시작 시각이 같으면 마감임박순은 ID 순으로 이어지고 빠지거나 겹치는 항목이 없다")
         void deadlineCursorWithTies() {
             Instant same = inHours(30);
-            long a = study("A", "SUWON_JANGAN", same, 4, List.of());
-            long b = study("B", "SUWON_JANGAN", same, 4, List.of());
-            long c = study("C", "SUWON_JANGAN", same, 4, List.of());
+            long a = study("A", "SEOUL", same, 4, List.of());
+            long b = study("B", "SEOUL", same, 4, List.of());
+            long c = study("C", "SEOUL", same, 4, List.of());
 
             assertThat(allPages("deadline")).containsExactly(a, b, c);
         }
@@ -188,11 +187,11 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("잘못된 필터·정렬·크기·커서는 400 VALIDATION_FAILED 다")
         void invalidParameters() {
-            study("A", "SUWON_JANGAN", inHours(30), 4, List.of());
-            study("B", "SUWON_JANGAN", inHours(31), 4, List.of());
+            study("A", "SEOUL", inHours(30), 4, List.of());
+            study("B", "SEOUL", inHours(31), 4, List.of());
             String cursor = nextCursor(mvc.get().uri(STUDIES).param("size", "1").exchange());
 
-            assertValidationFailed(mvc.get().uri(STUDIES).param("regionCode", "SEOUL").exchange(), "regionCode");
+            assertValidationFailed(mvc.get().uri(STUDIES).param("regionCode", "SUWON").exchange(), "regionCode");
             assertValidationFailed(mvc.get().uri(STUDIES).param("jobCode", "IT_BACKEND").exchange(), "jobCode");
             assertValidationFailed(mvc.get().uri(STUDIES).param("sort", "popular").exchange(), "sort");
             assertValidationFailed(mvc.get().uri(STUDIES).param("size", "51").exchange(), "size");
@@ -227,7 +226,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @DisplayName("비회원도 보고, 장소·체크인 시각·참여자(지표는 신규)·내 상태 NONE 을 받는다. 대기 인원은 없다")
         void anonymous() {
             Instant start = inHours(30);
-            long id = study("모각코", "SUWON_JANGAN", start, 4, List.of("IT"));
+            long id = study("모각코", "SEOUL", start, 4, List.of("IT"));
             join(id, memberId);
 
             MvcTestResult result = mvc.get().uri(STUDIES + "/" + id).exchange();
@@ -251,7 +250,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("주최자는 HOST 와 대기 인원을, 참여자는 MEMBER 를, 다른 회원은 NONE 을 받는다")
         void myStateByViewer() {
-            long id = study("모각코", "SUWON_JANGAN", inHours(30), 4, List.of());
+            long id = study("모각코", "SEOUL", inHours(30), 4, List.of());
             join(id, memberId);
 
             assertThat(mvc.get().uri(STUDIES + "/" + id).cookie(hostCookie)).bodyJson()
@@ -266,7 +265,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("주최자 혼자일 때만 일정을 고칠 수 있다고 알려 준다")
         void scheduleEditable() {
-            long id = study("모각코", "SUWON_JANGAN", inHours(30), 4, List.of());
+            long id = study("모각코", "SEOUL", inHours(30), 4, List.of());
 
             assertThat(mvc.get().uri(STUDIES + "/" + id)).bodyJson()
                     .extractingPath("$.scheduleEditable").isEqualTo(true);
@@ -278,7 +277,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("끝난 스터디도 주소로 열면 보이고 모집 중이 아니다")
         void endedStudyIsVisible() {
-            long id = study("끝남", "SUWON_JANGAN", inHours(30), 4, List.of());
+            long id = study("끝남", "SEOUL", inHours(30), 4, List.of());
             jdbc.update("UPDATE study SET status = 'ENDED' WHERE id = ?", id);
 
             assertThat(mvc.get().uri(STUDIES + "/" + id)).hasStatusOk().bodyJson()
@@ -288,7 +287,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("탈퇴한 주최자는 닉네임 없이 보인다")
         void withdrawnHost() {
-            long id = study("모각코", "SUWON_JANGAN", inHours(30), 4, List.of());
+            long id = study("모각코", "SEOUL", inHours(30), 4, List.of());
             jdbc.update("UPDATE user SET status = 'WITHDRAWN' WHERE id = ?", hostId);
 
             assertThat(mvc.get().uri(STUDIES + "/" + id)).bodyJson()
@@ -310,7 +309,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("참여자(주최자 포함)는 참여 순서대로 본다")
         void membersCanSee() {
-            long id = study("모각코", "SUWON_JANGAN", inHours(30), 4, List.of());
+            long id = study("모각코", "SEOUL", inHours(30), 4, List.of());
             join(id, memberId);
 
             assertThat(mvc.get().uri(STUDIES + "/" + id + "/members").cookie(memberCookie))
@@ -322,7 +321,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
         @Test
         @DisplayName("참여자가 아니면 403 FORBIDDEN, 비로그인은 401, 나간 참여자도 403 이다")
         void othersCannotSee() {
-            long id = study("모각코", "SUWON_JANGAN", inHours(30), 4, List.of());
+            long id = study("모각코", "SEOUL", inHours(30), 4, List.of());
             join(id, memberId);
             jdbc.update("UPDATE study_member SET status = 'LEFT' WHERE user_id = ?", memberId);
 
@@ -349,7 +348,7 @@ class StudyQueryIntegrationTest extends IntegrationTestSupport {
     }
 
     private void onboard(long userId, String nickname, String jobCode) {
-        jdbc.update("UPDATE user SET nickname = ?, job_code = ?, district_code = 'SUWON_JANGAN' WHERE id = ?",
+        jdbc.update("UPDATE user SET nickname = ?, job_code = ?, district_code = 'SEOUL' WHERE id = ?",
                 nickname, jobCode, userId);
     }
 

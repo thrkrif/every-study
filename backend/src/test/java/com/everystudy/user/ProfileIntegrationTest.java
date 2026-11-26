@@ -57,15 +57,15 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("닉네임·직군·지역을 저장하면 onboarded 가 true 가 되고, 다음 로그인은 홈으로 간다")
     void onboardingCompletes() {
-        MvcTestResult result = putProfile(access, "준비생", "IT_BACKEND", "SUWON_YEONGTONG");
+        MvcTestResult result = putProfile(access, "준비생", "IT_BACKEND", "BUSAN");
 
         assertThat(result).hasStatusOk().bodyJson().isLenientlyEqualTo("""
-                {"nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "SUWON_YEONGTONG", "onboarded": true}
+                {"nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "BUSAN", "onboarded": true}
                 """);
         assertThat(jdbc.queryForMap("SELECT nickname, job_code, district_code FROM user"))
                 .containsEntry("nickname", "준비생")
                 .containsEntry("job_code", "IT_BACKEND")
-                .containsEntry("district_code", "SUWON_YEONGTONG");
+                .containsEntry("district_code", "BUSAN");
         assertThat(mvc.get().uri(ME).cookie(access)).bodyJson().extractingPath("$.onboarded").isEqualTo(true);
 
         MockHttpServletResponse login = FakeSocialProvider.login(mvc, "kakao", kakaoUser(1001L, null));
@@ -75,7 +75,7 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("직군은 세부 직무 없이 대분류만 골라도 된다")
     void categoryOnlyJob() {
-        assertThat(putProfile(access, "준비생", "PUBLIC", "SUWON_JANGAN"))
+        assertThat(putProfile(access, "준비생", "PUBLIC", "SEOUL"))
                 .hasStatusOk().bodyJson().extractingPath("$.jobCode").isEqualTo("PUBLIC");
     }
 
@@ -83,10 +83,10 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
     @DisplayName("다른 회원이 쓰는 닉네임은 409 NICKNAME_TAKEN 이다 (영문 대소문자를 구분하지 않는다)")
     void duplicateNicknameIsRejected() {
         Cookie other = loginAccessCookie(2002L);
-        assertThat(putProfile(other, "StudyMate", "IT", "SUWON_JANGAN")).hasStatusOk();
+        assertThat(putProfile(other, "StudyMate", "IT", "SEOUL")).hasStatusOk();
 
-        MvcTestResult sameCase = putProfile(access, "StudyMate", "IT", "SUWON_PALDAL");
-        MvcTestResult otherCase = putProfile(access, "studymate", "IT", "SUWON_PALDAL");
+        MvcTestResult sameCase = putProfile(access, "StudyMate", "IT", "GYEONGGI");
+        MvcTestResult otherCase = putProfile(access, "studymate", "IT", "GYEONGGI");
 
         assertThat(sameCase).hasStatus(409).bodyJson().extractingPath("$.code").isEqualTo("NICKNAME_TAKEN");
         assertThat(otherCase).hasStatus(409).bodyJson().extractingPath("$.code").isEqualTo("NICKNAME_TAKEN");
@@ -96,9 +96,9 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
     @Test
     @DisplayName("내 닉네임을 그대로 두고 다른 항목만 바꿀 수 있다")
     void keepOwnNickname() {
-        putProfile(access, "준비생", "IT", "SUWON_JANGAN");
+        putProfile(access, "준비생", "IT", "SEOUL");
 
-        assertThat(putProfile(access, "준비생", "DESIGN", "SUWON_GWONSEON"))
+        assertThat(putProfile(access, "준비생", "DESIGN", "INCHEON"))
                 .hasStatusOk().bodyJson().extractingPath("$.jobCode").isEqualTo("DESIGN");
     }
 
@@ -119,7 +119,7 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
         assertThat(mvc.get().uri(ME)).hasStatus(401);
         assertThat(mvc.put().uri(PROFILE).cookie(access, csrf)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(body("준비생", "IT", "SUWON_JANGAN")))
+                .content(body("준비생", "IT", "SEOUL")))
                 .hasStatus(403).bodyJson().extractingPath("$.code").isEqualTo("CSRF_INVALID");
     }
 
@@ -130,7 +130,7 @@ class ProfileIntegrationTest extends IntegrationTestSupport {
 
         assertThat(mvc.get().uri(ME).cookie(access))
                 .hasStatus(401).bodyJson().extractingPath("$.code").isEqualTo("UNAUTHENTICATED");
-        assertThat(putProfile(access, "준비생", "IT", "SUWON_JANGAN")).hasStatus(401);
+        assertThat(putProfile(access, "준비생", "IT", "SEOUL")).hasStatus(401);
     }
 
     private Cookie loginAccessCookie(long kakaoId) {

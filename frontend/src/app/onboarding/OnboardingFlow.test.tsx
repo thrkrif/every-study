@@ -22,20 +22,8 @@ const META = {
     { code: "PUBLIC", name: "공무원·공공", children: [] },
   ],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [
-        {
-          code: "SUWON",
-          name: "수원시",
-          children: [
-            { code: "SUWON_JANGAN", name: "장안구", children: [] },
-            { code: "SUWON_PALDAL", name: "팔달구", children: [] },
-          ],
-        },
-      ],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {},
   checkin: {},
@@ -166,14 +154,14 @@ describe("OnboardingFlow", () => {
     const start = screen.getByRole("button", { name: "시작하기" });
     expect(start).toBeDisabled();
     expect(screen.getByText("활동 지역을 골라 주세요.")).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: "수원시 팔달구" }));
+    await user.click(screen.getByRole("radio", { name: "경기" }));
     await user.click(start);
 
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/"));
     expect(saved).toEqual({
       nickname: "준비생",
       jobCode: "IT_BACKEND",
-      districtCode: "SUWON_PALDAL",
+      districtCode: "GYEONGGI",
     });
   });
 
@@ -195,7 +183,7 @@ describe("OnboardingFlow", () => {
     await user.click(await screen.findByRole("radio", { name: "IT·개발" }));
     expect(screen.getByRole("radio", { name: "고르지 않음" })).toBeChecked();
     await user.click(screen.getByRole("button", { name: "다음" }));
-    await user.click(screen.getByRole("radio", { name: "수원시 장안구" }));
+    await user.click(screen.getByRole("radio", { name: "서울" }));
     await user.click(screen.getByRole("button", { name: "시작하기" }));
 
     await waitFor(() => expect(saved.jobCode).toBe("IT"));
@@ -233,7 +221,7 @@ describe("OnboardingFlow", () => {
     await user.click(screen.getByRole("button", { name: "다음" }));
     await user.click(await screen.findByRole("radio", { name: "공무원·공공" }));
     await user.click(screen.getByRole("button", { name: "다음" }));
-    await user.click(screen.getByRole("radio", { name: "수원시 장안구" }));
+    await user.click(screen.getByRole("radio", { name: "서울" }));
     await user.click(screen.getByRole("button", { name: "시작하기" }));
 
     expect(

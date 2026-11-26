@@ -7,7 +7,7 @@ import java.util.List;
  *
  * @param topics  스터디 주제
  * @param jobs    직군. 대분류마다 세부 직무를 {@code children} 으로 둔다
- * @param regions 지역. 시·도 → 시 → 구
+ * @param regions 지역. 전국 시·도 한 단계라 children 은 비어 있다
  */
 public record MetaOptions(List<Option> topics, List<Option> jobs, List<Option> regions, Study study, Checkin checkin) {
 

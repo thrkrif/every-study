@@ -30,20 +30,8 @@ const META = {
     { code: "PUBLIC", name: "공무원·공공", children: [] },
   ],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [
-        {
-          code: "SUWON",
-          name: "수원시",
-          children: [
-            { code: "SUWON_PALDAL", name: "팔달구", children: [] },
-            { code: "SUWON_JANGAN", name: "장안구", children: [] },
-          ],
-        },
-      ],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {
     capacityMin: 2,
@@ -61,7 +49,7 @@ const ME = {
   id: 1,
   nickname: "준비생",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   role: "USER",
   onboarded: true,
   joinedAt: "2026-11-17T00:00:00Z",
@@ -78,7 +66,7 @@ const CAFE: PlaceResult = {
 const OUTSIDE: PlaceResult = {
   id: "2",
   name: "기흥 카페",
-  address: "경기 용인시 기흥구 보정동 1",
+  address: "일본 도쿄도 신주쿠구 1",
   roadAddress: "",
   latitude: 37.3,
   longitude: 127.1,
@@ -186,7 +174,7 @@ describe("CreateStudyFlow", () => {
       title: "면접 스터디",
       description: "모의 면접을 서로 해 주고 피드백해요",
       topicCode: "JOB_PREP",
-      districtCode: "SUWON_PALDAL",
+      districtCode: "GYEONGGI",
       targetJobCodes: ["IT"],
       place: {
         name: "수원역 스터디카페",
@@ -274,7 +262,7 @@ describe("CreateStudyFlow", () => {
     ).toBeInTheDocument();
   });
 
-  it("지원하지 않는 지역의 장소는 고를 수 없다고 안내한다", async () => {
+  it("주소에서 지역을 찾지 못한 장소는 고를 수 없다고 안내한다", async () => {
     const user = userEvent.setup();
     renderFlow();
 
@@ -296,7 +284,7 @@ describe("CreateStudyFlow", () => {
 
     expect(
       screen.getAllByText(
-        "지금은 수원시 팔달구, 수원시 장안구 안의 장소만 고를 수 있어요.",
+        "주소에서 지역을 찾지 못했어요. 다른 장소를 골라 주세요.",
       ).length,
     ).toBeGreaterThan(0);
   });

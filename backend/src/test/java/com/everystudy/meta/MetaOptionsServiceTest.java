@@ -34,7 +34,7 @@ class MetaOptionsServiceTest {
     }
 
     @Test
-    @DisplayName("직군은 대분류 아래 세부 직무를, 지역은 시·도 → 시 → 구를 children 으로 담는다")
+    @DisplayName("직군은 대분류 아래 세부 직무를, 지역은 시·도 한 단계라 children 이 비어 있다")
     void codeTrees() {
         MetaOptions options = options(DEFAULT_STUDY, new AttendanceProperties(150, 10, 5, 48, 7, 3, 90, 30));
 
@@ -43,10 +43,9 @@ class MetaOptionsServiceTest {
         assertThat(it.children()).extracting(MetaOptions.Option::code).startsWith("IT_BACKEND", "IT_FRONTEND");
         assertThat(options.jobs()).extracting(MetaOptions.Option::code).doesNotContain("IT_BACKEND");
 
-        MetaOptions.Option suwon = options.regions().getFirst().children().getFirst();
-        assertThat(suwon.name()).isEqualTo("수원시");
-        assertThat(suwon.children()).extracting(MetaOptions.Option::name)
-                .containsExactly("장안구", "권선구", "팔달구", "영통구");
+        assertThat(options.regions()).hasSize(16);
+        assertThat(options.regions().getFirst()).isEqualTo(new MetaOptions.Option("SEOUL", "서울", List.of()));
+        assertThat(options.regions()).allSatisfy(region -> assertThat(region.children()).isEmpty());
         assertThat(options.topics()).extracting(MetaOptions.Option::code)
                 .containsExactly("JOB_PREP", "CERTIFICATE", "LANGUAGE", "CIVIL_SERVICE", "DEVELOPMENT", "ETC");
     }

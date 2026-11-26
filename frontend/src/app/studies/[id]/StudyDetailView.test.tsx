@@ -18,17 +18,8 @@ const META = {
   topics: [{ code: "JOB_PREP", name: "취업준비", children: [] }],
   jobs: [{ code: "IT", name: "IT·개발", children: [] }],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [
-        {
-          code: "SUWON",
-          name: "수원시",
-          children: [{ code: "SUWON_PALDAL", name: "팔달구", children: [] }],
-        },
-      ],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {
     capacityMin: 2,
@@ -56,7 +47,7 @@ const DETAIL = {
   title: "면접 스터디",
   description: "모의 면접을 서로 해 줘요",
   topicCode: "JOB_PREP",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   place: {
     name: "예시 장소 (팔달구)",
     address: "경기 수원시 팔달구",
@@ -197,7 +188,7 @@ describe("StudyDetailView", () => {
       id: 9,
       nickname: "나",
       jobCode: "IT",
-      districtCode: "SUWON_PALDAL",
+      districtCode: "GYEONGGI",
       role: "USER",
       onboarded: true,
       joinedAt: "2026-11-01T00:00:00Z",

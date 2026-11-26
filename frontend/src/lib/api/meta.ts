@@ -29,11 +29,11 @@ export function fetchMetaOptions(signal?: AbortSignal): Promise<MetaOptions> {
 
 export type District = {
   code: string;
-  /** 위 단계 이름을 붙인 표시 이름. 예: "수원시 장안구" */
+  /** 표시 이름. 예: "서울", "대전/세종" */
   label: string;
 };
 
-/** 지역 트리에서 맨 아래 단계(구)만 화면 순서대로 꺼낸다. 시·도 이름은 붙이지 않는다. */
+/** 지역 트리에서 맨 아래 단계만 화면 순서대로 꺼낸다. 지금 지역은 시·도 한 단계라 시·도 목록 그대로다. */
 export function districtsOf(regions: CodeOption[]): District[] {
   const result: District[] = [];
   const walk = (option: CodeOption, names: string[]) => {

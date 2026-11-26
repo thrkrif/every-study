@@ -28,7 +28,7 @@ public class MetaOptionsService {
         return new MetaOptions(
                 Arrays.stream(TopicCode.values()).map(t -> new MetaOptions.Option(t.name(), t.label(), List.of())).toList(),
                 JobCode.categories().stream().map(MetaOptionsService::job).toList(),
-                RegionCode.provinces().stream().map(MetaOptionsService::region).toList(),
+                Arrays.stream(RegionCode.values()).map(r -> new MetaOptions.Option(r.name(), r.label(), List.of())).toList(),
                 new MetaOptions.Study(study.capacityMin(), study.capacityMax(), study.openableDays(),
                         study.startMinuteUnit(), study.durationMinuteUnit(), study.durationMinMinutes(),
                         List.copyOf(study.minAttendanceRateOptions())),
@@ -39,8 +39,4 @@ public class MetaOptionsService {
         return new MetaOptions.Option(job.name(), job.label(), job.details().stream().map(MetaOptionsService::job).toList());
     }
 
-    private static MetaOptions.Option region(RegionCode region) {
-        return new MetaOptions.Option(region.name(), region.label(),
-                region.children().stream().map(MetaOptionsService::region).toList());
-    }
 }

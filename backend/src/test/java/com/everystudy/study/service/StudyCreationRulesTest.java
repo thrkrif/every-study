@@ -26,7 +26,7 @@ class StudyCreationRulesTest {
     private static final Instant NOW = Instant.parse("2026-11-11T01:00:00Z");
 
     private static CreateStudyCommand command(String startAt, int durationMin, int capacity, Integer rate) {
-        return new CreateStudyCommand("모각코", "같이 공부해요. 조용히 집중하는 모임입니다.", "DEVELOPMENT", "SUWON_JANGAN",
+        return new CreateStudyCommand("모각코", "같이 공부해요. 조용히 집중하는 모임입니다.", "DEVELOPMENT", "SEOUL",
                 Set.of(), new Study.Place("카페", "수원시 장안구", new BigDecimal("37.300000"), new BigDecimal("127.010000")),
                 Instant.parse(startAt), durationMin, capacity, new Study.EntryCriteria(rate, true));
     }

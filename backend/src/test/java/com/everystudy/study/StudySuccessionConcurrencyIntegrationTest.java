@@ -174,7 +174,7 @@ class StudySuccessionConcurrencyIntegrationTest extends IntegrationTestSupport {
     private long user(String nickname) {
         jdbc.update("""
                 INSERT INTO user (nickname, job_code, district_code, role, status, created_at)
-                VALUES (?, 'IT', 'SUWON_JANGAN', 'USER', 'ACTIVE', ?)
+                VALUES (?, 'IT', 'SEOUL', 'USER', 'ACTIVE', ?)
                 """, nickname, utc(now));
         return jdbc.queryForObject("SELECT MAX(id) FROM user", Long.class);
     }
@@ -186,7 +186,7 @@ class StudySuccessionConcurrencyIntegrationTest extends IntegrationTestSupport {
                 INSERT INTO study (host_id, kind, title, description, topic_code, district_code, place_name,
                     place_address, latitude, longitude, start_at, duration_min, session_date, capacity,
                     min_attendance_rate, allow_newcomer, status, created_at, updated_at)
-                VALUES (?, 'OFFLINE', '모각코', '', 'DEVELOPMENT', 'SUWON_JANGAN', '스터디 카페',
+                VALUES (?, 'OFFLINE', '모각코', '', 'DEVELOPMENT', 'SEOUL', '스터디 카페',
                     '경기 수원시 장안구', 37.300000, 127.010000, ?, 120, ?, ?, NULL, TRUE, 'ACTIVE', ?, ?)
                 """, hostId, utc(startAt), startAt.atZone(TimeProvider.KOREA).toLocalDate(), capacity,
                 utc(now), utc(now));

@@ -10,7 +10,7 @@ import jakarta.validation.constraints.Pattern;
  *
  * @param nickname     2~20자, 한글(완성형)·영문·숫자·밑줄. 앞뒤 공백은 잘라 낸다
  * @param jobCode      직군 대분류(필수) 또는 그 아래 세부 직무. 세부 직무를 고르면 그 코드를 보낸다
- * @param districtCode 활동 지역. 구 단위 코드
+ * @param districtCode 활동 지역. 시·도 코드 ({@code RegionCode})
  */
 record ProfileRequest(
         @NotBlank(message = "필수 값입니다")

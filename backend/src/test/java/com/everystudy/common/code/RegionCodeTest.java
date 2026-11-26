@@ -2,28 +2,18 @@ package com.everystudy.common.code;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.everystudy.common.code.RegionCode.Level;
+import java.util.Arrays;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 class RegionCodeTest {
 
     @Test
-    @DisplayName("시·도 → 시 → 구의 3단계다")
-    void levels() {
-        assertThat(RegionCode.GYEONGGI.level()).isEqualTo(Level.PROVINCE);
-        assertThat(RegionCode.SUWON.level()).isEqualTo(Level.CITY);
-        assertThat(RegionCode.SUWON_YEONGTONG.level()).isEqualTo(Level.DISTRICT);
-        assertThat(RegionCode.SUWON_YEONGTONG.parent()).isEqualTo(RegionCode.SUWON);
-    }
-
-    @Test
-    @DisplayName("수원시 4개 구로 시작한다 (PRD 1장)")
-    void startsWithFourSuwonDistricts() {
-        assertThat(RegionCode.provinces()).containsExactly(RegionCode.GYEONGGI);
-        assertThat(RegionCode.GYEONGGI.children()).containsExactly(RegionCode.SUWON);
-        assertThat(RegionCode.SUWON.children()).containsExactly(
-                RegionCode.SUWON_JANGAN, RegionCode.SUWON_GWONSEON, RegionCode.SUWON_PALDAL, RegionCode.SUWON_YEONGTONG);
+    @DisplayName("전국 시·도 16개를 한 단계로 둔다. 대전과 세종은 하나로 묶는다")
+    void provincesOfKorea() {
+        assertThat(Arrays.stream(RegionCode.values()).map(RegionCode::label)).containsExactly(
+                "서울", "경기", "인천", "강원", "대전/세종", "충남", "충북", "대구",
+                "경북", "부산", "울산", "경남", "광주", "전남", "전북", "제주");
     }
 
     @Test
@@ -33,11 +23,9 @@ class RegionCodeTest {
     }
 
     @Test
-    @DisplayName("어느 단계든 그 아래의 구 전부로 펼친다. 구는 자기 자신이다")
-    void districts() {
-        assertThat(RegionCode.GYEONGGI.districts()).hasSize(4);
-        assertThat(RegionCode.SUWON.districts()).containsExactly(
-                RegionCode.SUWON_JANGAN, RegionCode.SUWON_GWONSEON, RegionCode.SUWON_PALDAL, RegionCode.SUWON_YEONGTONG);
-        assertThat(RegionCode.SUWON_PALDAL.districts()).containsExactly(RegionCode.SUWON_PALDAL);
+    @DisplayName("코드 문자열로 찾는다. 없는 코드는 비어 있다")
+    void find() {
+        assertThat(RegionCode.find("DAEJEON_SEJONG")).contains(RegionCode.DAEJEON_SEJONG);
+        assertThat(RegionCode.find("SUWON")).isEmpty();
     }
 }

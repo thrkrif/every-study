@@ -85,7 +85,7 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
         CHAT_ROOMS_SEEN_BEFORE_FAILURE.set(-1);
         access = FakeSocialProvider.login(mvc, "kakao", kakaoUser(1001L, null)).getCookie("access_token");
         csrf = mvc.get().uri("/api/v1/me").cookie(access).exchange().getResponse().getCookie("XSRF-TOKEN");
-        jdbc.update("UPDATE user SET nickname = '주최자', job_code = 'IT', district_code = 'SUWON_JANGAN'");
+        jdbc.update("UPDATE user SET nickname = '주최자', job_code = 'IT', district_code = 'SEOUL'");
     }
 
     @AfterEach
@@ -199,7 +199,7 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
         MvcTestResult tooFar = create(body(kstAt(15, LocalTime.of(10, 0)), 60, "[]"));
         MvcTestResult crossesMidnight = create(body(kstAt(2, LocalTime.of(23, 0)), 70, "[]"));
         MvcTestResult badFormat = create(body(kstAt(2, LocalTime.of(10, 0)), 60, "[\"IT_BACKEND\", \"ANY\"]")
-                .replace("\"SUWON_JANGAN\"", "\"SUWON\"").replace("\"모각코\"", "\"가\""));
+                .replace("\"SEOUL\"", "\"SUWON\"").replace("\"모각코\"", "\"가\""));
 
         assertThat(tooFar).hasStatus(400).bodyJson().extractingPath("$.errors[*].field").asArray()
                 .containsExactly("startAt");
@@ -235,7 +235,7 @@ class StudyCreationIntegrationTest extends IntegrationTestSupport {
     private static String body(ZonedDateTime start, int durationMin, String targetJobCodes) {
         return """
                 {"title": "모각코", "description": "같이 공부해요. 조용히 집중하는 모임입니다.",
-                 "topicCode": "DEVELOPMENT", "districtCode": "SUWON_JANGAN", "targetJobCodes": %s,
+                 "topicCode": "DEVELOPMENT", "districtCode": "SEOUL", "targetJobCodes": %s,
                  "place": {"name": "스터디 카페", "address": "경기 수원시 장안구", "latitude": 37.3, "longitude": 127.0100004},
                  "startAt": "%s", "durationMin": %d, "capacity": 4,
                  "minAttendanceRate": 70, "allowNewcomer": true}

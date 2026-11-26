@@ -14,8 +14,11 @@ import {
 } from "./rules";
 
 const DISTRICTS = [
-  { code: "SUWON_JANGAN", label: "수원시 장안구" },
-  { code: "SUWON_PALDAL", label: "수원시 팔달구" },
+  { code: "SEOUL", label: "서울" },
+  { code: "GYEONGGI", label: "경기" },
+  { code: "GANGWON", label: "강원" },
+  { code: "DAEJEON_SEJONG", label: "대전/세종" },
+  { code: "CHUNGNAM", label: "충남" },
 ];
 
 describe("dateOptions", () => {
@@ -70,16 +73,36 @@ describe("시작 시각", () => {
 });
 
 describe("districtOfAddress", () => {
-  it("지번 주소에서 구를 찾는다", () => {
+  it("주소의 첫 낱말로 시·도를 찾는다", () => {
     expect(
       districtOfAddress("경기 수원시 팔달구 매산로1가 18", DISTRICTS),
-    ).toBe("SUWON_PALDAL");
+    ).toBe("GYEONGGI");
+    expect(districtOfAddress("서울 강남구 역삼동 1", DISTRICTS)).toBe("SEOUL");
   });
 
-  it("지원하지 않는 지역이면 찾지 않는다", () => {
+  it("긴 이름·정식 이름·묶인 지역도 찾는다", () => {
+    expect(districtOfAddress("서울특별시 중구 세종대로 110", DISTRICTS)).toBe(
+      "SEOUL",
+    );
+    expect(districtOfAddress("강원특별자치도 춘천시 중앙로 1", DISTRICTS)).toBe(
+      "GANGWON",
+    );
+    expect(districtOfAddress("세종특별자치시 한누리대로 2130", DISTRICTS)).toBe(
+      "DAEJEON_SEJONG",
+    );
+    expect(districtOfAddress("대전 서구 둔산동 1", DISTRICTS)).toBe(
+      "DAEJEON_SEJONG",
+    );
+    expect(districtOfAddress("충청남도 천안시 동남구 1", DISTRICTS)).toBe(
+      "CHUNGNAM",
+    );
+  });
+
+  it("어느 지역에도 맞지 않으면 찾지 않는다", () => {
     expect(
-      districtOfAddress("경기 용인시 기흥구 보정동 1", DISTRICTS),
+      districtOfAddress("일본 도쿄도 신주쿠구 1", DISTRICTS),
     ).toBeUndefined();
+    expect(districtOfAddress("", DISTRICTS)).toBeUndefined();
   });
 });
 

@@ -303,7 +303,7 @@ class CheckinCodeIntegrationTest extends IntegrationTestSupport {
     }
 
     private void onboard(long userId, String nickname) {
-        jdbc.update("UPDATE user SET nickname = ?, job_code = 'IT_BACKEND', district_code = 'SUWON_JANGAN' WHERE id = ?",
+        jdbc.update("UPDATE user SET nickname = ?, job_code = 'IT_BACKEND', district_code = 'SEOUL' WHERE id = ?",
                 nickname, userId);
     }
 
@@ -312,7 +312,7 @@ class CheckinCodeIntegrationTest extends IntegrationTestSupport {
                 INSERT INTO study (host_id, kind, title, description, topic_code, district_code, place_name,
                     place_address, latitude, longitude, start_at, duration_min, session_date, capacity,
                     min_attendance_rate, allow_newcomer, status, created_at, updated_at)
-                VALUES (?, 'OFFLINE', '모각코', '', 'DEVELOPMENT', 'SUWON_JANGAN', '스터디 카페',
+                VALUES (?, 'OFFLINE', '모각코', '', 'DEVELOPMENT', 'SEOUL', '스터디 카페',
                     '경기 수원시 장안구', 37.300000, 127.010000, ?, 120, ?, 4, NULL, TRUE, 'ACTIVE', ?, ?)
                 """, hostId, utc(startAt), startAt.atZone(TimeProvider.KOREA).toLocalDate(), utc(now), utc(now));
         long id = jdbc.queryForObject("SELECT MAX(id) FROM study", Long.class);

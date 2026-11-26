@@ -156,41 +156,9 @@ export function codeNames(options: readonly CodeOption[]): Map<string, string> {
   return names;
 }
 
-/** 구 코드가 속한 시 코드 ("내 지역" 바로가기, PRD 4.3). 못 찾으면 undefined */
-export function cityOf(
-  districtCode: string,
-  regions: readonly CodeOption[],
-): string | undefined {
-  const find = (
-    option: CodeOption,
-    parent: CodeOption | undefined,
-  ): string | undefined => {
-    if (option.code === districtCode) return parent?.code;
-    for (const child of option.children) {
-      const found = find(child, option);
-      if (found) return found;
-    }
-    return undefined;
-  };
-  for (const top of regions) {
-    const found = find(top, undefined);
-    if (found) return found;
-  }
-  return undefined;
-}
-
 export type RegionChoice = { code: string; label: string };
 
-/** 지역 필터 선택지: 시·도 아래의 시와 구를 화면 순서대로. 구는 "수원시 장안구"처럼 시 이름을 붙인다 */
+/** 지역 필터 선택지: 시·도를 화면 순서대로 */
 export function regionChoices(regions: readonly CodeOption[]): RegionChoice[] {
-  const choices: RegionChoice[] = [];
-  const walk = (option: CodeOption, names: string[]) => {
-    const label = [...names, option.name].join(" ");
-    choices.push({ code: option.code, label });
-    for (const child of option.children) walk(child, [...names, option.name]);
-  };
-  for (const top of regions) {
-    for (const child of top.children) walk(child, []);
-  }
-  return choices;
+  return regions.map((region) => ({ code: region.code, label: region.name }));
 }
