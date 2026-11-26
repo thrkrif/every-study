@@ -88,39 +88,41 @@ export function MyPageView() {
   const items = records.data?.pages.flatMap((page) => page.items) ?? [];
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{nicknameOf(me.nickname)}</h1>
-        {facts.length > 0 && (
-          <p className={styles.facts}>{facts.join(" · ")}</p>
+    <main className={styles.page} data-layout="split">
+      <div className={styles.summary}>
+        <header className={styles.header}>
+          <h1 className={styles.title}>{nicknameOf(me.nickname)}</h1>
+          {facts.length > 0 && (
+            <p className={styles.facts}>{facts.join(" · ")}</p>
+          )}
+        </header>
+
+        {profile.isPending && <p className={styles.note}>지표 불러오는 중…</p>}
+        {profile.isError && (
+          <div className={styles.empty} role="alert">
+            <p>지표를 불러오지 못했어요.</p>
+            <Button onClick={() => void profile.refetch()}>다시 시도</Button>
+          </div>
         )}
-      </header>
+        {profile.isSuccess && (
+          <ProfileMetrics
+            attendance={profile.data.attendance}
+            hostStats={profile.data.hostStats}
+          />
+        )}
 
-      {profile.isPending && <p className={styles.note}>지표 불러오는 중…</p>}
-      {profile.isError && (
-        <div className={styles.empty} role="alert">
-          <p>지표를 불러오지 못했어요.</p>
-          <Button onClick={() => void profile.refetch()}>다시 시도</Button>
-        </div>
-      )}
-      {profile.isSuccess && (
-        <ProfileMetrics
-          attendance={profile.data.attendance}
-          hostStats={profile.data.hostStats}
-        />
-      )}
-
-      <nav className={styles.links} aria-label="바로가기">
-        <Link href="/me/studies" className={styles.link}>
-          내 스터디
-        </Link>
-        <Link href="/notifications" className={styles.link}>
-          알림
-        </Link>
-        <Link href="/me/withdraw" className={styles.link}>
-          회원 탈퇴
-        </Link>
-      </nav>
+        <nav className={styles.links} aria-label="바로가기">
+          <Link href="/me/studies" className={styles.link}>
+            내 스터디
+          </Link>
+          <Link href="/notifications" className={styles.link}>
+            알림
+          </Link>
+          <Link href="/me/withdraw" className={styles.link}>
+            회원 탈퇴
+          </Link>
+        </nav>
+      </div>
 
       <section className={styles.section} aria-labelledby="records-heading">
         <h2 id="records-heading" className={styles.sectionTitle}>

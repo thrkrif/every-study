@@ -1,5 +1,5 @@
 .page {
-  max-width: var(--form-max-width);
+  max-width: var(--wide-max-width);
   margin: 0 auto;
   padding: var(--space-6) var(--page-gutter) var(--space-10);
   display: flex;
@@ -111,4 +111,13 @@
 .more {
   display: flex;
   justify-content: center;
+}
+
+/* PC: 카드를 두 열로 둔다 (DESIGN 6장 폭에 따른 배치) */
+@media (min-width: 1024px) {
+  .list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
 }

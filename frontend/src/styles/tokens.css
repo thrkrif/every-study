@@ -64,7 +64,10 @@
   --header-height: 56px;
   --page-gutter: var(--space-4);
   --content-max-width: 1120px;
+  /* 화면 성격별 본문 폭 (DESIGN 4장): 입력 480 · 읽기 720 · 두 열 960 · 목록/상세 1120 */
   --form-max-width: 480px;
+  --reading-max-width: 720px;
+  --wide-max-width: 960px;
 
   /* 그림자: 떠 있는 요소(토스트, 시트)에만 쓴다 */
   --shadow-float: 0 8px 24px rgb(31 41 55 / 16%);
