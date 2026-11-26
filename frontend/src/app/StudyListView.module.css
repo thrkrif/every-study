@@ -1,4 +1,4 @@
-/* 목록 배치 (DESIGN 6장 폭에 따른 배치): 휴대폰 한 열 → 태블릿 카드 2열 → PC 왼쪽 필터 열 + 카드 2열 */
+/* 목록 배치 (DESIGN 6장 폭에 따른 배치): 휴대폰 한 열(필터는 버튼으로 펼침) → 태블릿 필터 늘 펼침 + 카드 2열 → PC 왼쪽 필터 열 + 카드 2열 */
 .page {
   max-width: var(--content-max-width);
   margin: 0 auto;
@@ -87,13 +87,18 @@
   .list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-@media (min-width: 1024px) {
+  /* 태블릿부터는 칩 묶음을 펼쳐 둘 자리가 있어 "필터" 버튼을 두지 않는다 */
   .filterToggle {
     display: none;
   }
 
+  .filters {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
   .layout {
     flex-direction: row;
     align-items: flex-start;

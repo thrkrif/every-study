@@ -35,7 +35,7 @@ type ListViewProps = {
 
 /**
  * 스터디 목록 (PRD 4.3, DESIGN 6장). 비회원도 본다.
- * 휴대폰은 "필터" 버튼으로 조건을 펼치고, PC 는 왼쪽 열에 늘 펼쳐 둔다.
+ * 휴대폰은 "필터" 버튼으로 조건을 펼치고, 태블릿은 목록 위에, PC 는 왼쪽 열에 늘 펼쳐 둔다.
  * 조건이 바뀌면 쿼리 키가 바뀌어 첫 페이지부터 다시 부른다.
  */
 export function StudyListView({ now = () => new Date() }: ListViewProps) {

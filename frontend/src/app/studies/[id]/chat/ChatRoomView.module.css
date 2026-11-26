@@ -1,5 +1,5 @@
 .page {
-  max-width: var(--form-max-width);
+  max-width: var(--reading-max-width);
   margin: 0 auto;
   padding: var(--space-4) var(--page-gutter) var(--space-6);
   display: flex;
@@ -78,6 +78,13 @@
   display: flex;
   justify-content: flex-end;
   gap: var(--space-2);
+}
+
+/* 주요 버튼은 기본이 전체 폭이라 옆의 취소가 눌려 세로로 접힌다. 두 버튼을 같은 폭으로 나눈다 */
+.noticeActions > button {
+  flex: 1 1 0;
+  width: auto;
+  white-space: nowrap;
 }
 
 .unread {
