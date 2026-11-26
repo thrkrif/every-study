@@ -10,11 +10,8 @@ const META = {
   topics: [],
   jobs: [{ code: "IT", name: "IT·개발", children: [] }],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [{ code: "SUWON_PALDAL", name: "팔달구", children: [] }],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {},
   checkin: { radiusMeters: 150 },
@@ -24,7 +21,7 @@ const ME = {
   id: 7,
   nickname: "나",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   role: "USER",
   onboarded: true,
   joinedAt: "2026-11-01T00:00:00Z",
@@ -34,7 +31,7 @@ const PROFILE = {
   id: 7,
   nickname: "나",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   joinedAt: "2026-11-01T00:00:00Z",
   attendance: {
     attendanceRate: 90,

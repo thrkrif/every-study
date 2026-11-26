@@ -1,68 +1,45 @@
 package com.everystudy.common.code;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * 지역 (DATA-MODEL 1장 고정 목록, PRD 4.1·4.3). 시·도 → 시 → 구의 3단계다.
+ * 지역 (DATA-MODEL 1장 고정 목록, PRD 4.1·4.3). 전국의 시·도 한 단계다.
  *
  * <ul>
- *   <li>회원의 활동 지역과 스터디의 지역은 구({@link Level#DISTRICT})로 저장한다.</li>
- *   <li>탐색은 어느 단계로도 거를 수 있다. "내 지역"은 회원의 구가 속한 시다 (PRD 4.3).</li>
+ *   <li>회원의 활동 지역과 스터디의 지역은 이 코드 하나로 저장한다.</li>
+ *   <li>대전과 세종은 한 지역으로 묶는다. 생활권이 겹치고 세종만으로는 스터디가 적어서다.</li>
  * </ul>
  *
- * <p>서비스는 수원시 4개 구로 시작한다 (PRD 1장). 지역을 넓히면 여기에 추가한다.
+ * <p>선언 순서가 화면에 보일 순서다.
  */
 public enum RegionCode {
 
-    GYEONGGI(null, "경기"),
-    SUWON(GYEONGGI, "수원시"),
-    SUWON_JANGAN(SUWON, "장안구"),
-    SUWON_GWONSEON(SUWON, "권선구"),
-    SUWON_PALDAL(SUWON, "팔달구"),
-    SUWON_YEONGTONG(SUWON, "영통구");
+    SEOUL("서울"),
+    GYEONGGI("경기"),
+    INCHEON("인천"),
+    GANGWON("강원"),
+    DAEJEON_SEJONG("대전/세종"),
+    CHUNGNAM("충남"),
+    CHUNGBUK("충북"),
+    DAEGU("대구"),
+    GYEONGBUK("경북"),
+    BUSAN("부산"),
+    ULSAN("울산"),
+    GYEONGNAM("경남"),
+    GWANGJU("광주"),
+    JEONNAM("전남"),
+    JEONBUK("전북"),
+    JEJU("제주");
 
-    public enum Level { PROVINCE, CITY, DISTRICT }
-
-    private final RegionCode parent;
     private final String label;
 
-    RegionCode(RegionCode parent, String label) {
-        this.parent = parent;
+    RegionCode(String label) {
         this.label = label;
     }
 
     public static Optional<RegionCode> find(String code) {
         return Arrays.stream(values()).filter(region -> region.name().equals(code)).findFirst();
-    }
-
-    public static List<RegionCode> provinces() {
-        return Arrays.stream(values()).filter(region -> region.parent == null).toList();
-    }
-
-    public Level level() {
-        if (parent == null) {
-            return Level.PROVINCE;
-        }
-        return parent.parent == null ? Level.CITY : Level.DISTRICT;
-    }
-
-    /** 바로 아래 단계의 지역. */
-    public List<RegionCode> children() {
-        return Arrays.stream(values()).filter(region -> region.parent == this).toList();
-    }
-
-    /** 이 지역에 속한 구 전부. 구면 자기 자신 하나다. 목록의 지역 필터가 쓴다. */
-    public List<RegionCode> districts() {
-        if (level() == Level.DISTRICT) {
-            return List.of(this);
-        }
-        return children().stream().flatMap(child -> child.districts().stream()).toList();
-    }
-
-    public RegionCode parent() {
-        return parent;
     }
 
     public String label() {

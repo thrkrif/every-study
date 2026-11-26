@@ -12,7 +12,7 @@ const ME = {
   id: 9,
   nickname: "나",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   role: "USER",
   onboarded: true,
   joinedAt: "2026-11-01T00:00:00Z",

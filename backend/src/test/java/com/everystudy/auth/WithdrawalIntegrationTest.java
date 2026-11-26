@@ -68,7 +68,7 @@ class WithdrawalIntegrationTest extends IntegrationTestSupport {
         csrf = mvc.get().uri("/api/v1/me").cookie(access).exchange().getResponse().getCookie("XSRF-TOKEN");
         me = jdbc.queryForObject("SELECT user_id FROM social_account WHERE provider_user_id = ?", Long.class,
                 Long.toString(KAKAO_ID));
-        jdbc.update("UPDATE user SET nickname = '탈퇴자', job_code = 'IT_BACKEND', district_code = 'SUWON_JANGAN' "
+        jdbc.update("UPDATE user SET nickname = '탈퇴자', job_code = 'IT_BACKEND', district_code = 'SEOUL' "
                 + "WHERE id = ?", me);
         other = user("남은 사람");
     }
@@ -179,7 +179,7 @@ class WithdrawalIntegrationTest extends IntegrationTestSupport {
                 INSERT INTO study (host_id, kind, title, description, topic_code, district_code, place_name,
                     place_address, latitude, longitude, start_at, duration_min, session_date, capacity,
                     min_attendance_rate, allow_newcomer, status, created_at, updated_at)
-                VALUES (?, 'OFFLINE', '모각코', '', 'DEVELOPMENT', 'SUWON_JANGAN', '스터디 카페',
+                VALUES (?, 'OFFLINE', '모각코', '', 'DEVELOPMENT', 'SEOUL', '스터디 카페',
                     '경기 수원시 장안구', 37.300000, 127.010000, ?, 120, '2026-11-30', 4,
                     NULL, TRUE, 'ACTIVE', NOW(6), NOW(6))
                 """, hostId, utc(startAt));

@@ -23,7 +23,7 @@ class ProfileRequestTest {
     }
 
     private static ProfileRequest withNickname(String nickname) {
-        return new ProfileRequest(nickname, "IT", "SUWON_JANGAN");
+        return new ProfileRequest(nickname, "IT", "SEOUL");
     }
 
     @ParameterizedTest
@@ -53,17 +53,17 @@ class ProfileRequestTest {
     @Test
     @DisplayName("직군은 대분류와 세부 직무 모두 받고, 모르는 코드는 거절한다")
     void jobCode() {
-        assertThat(invalidFields(new ProfileRequest("준비생", "PUBLIC", "SUWON_JANGAN"))).isEmpty();
-        assertThat(invalidFields(new ProfileRequest("준비생", "IT_BACKEND", "SUWON_JANGAN"))).isEmpty();
-        assertThat(invalidFields(new ProfileRequest("준비생", "ANY", "SUWON_JANGAN"))).containsExactly("jobCode");
-        assertThat(invalidFields(new ProfileRequest("준비생", null, "SUWON_JANGAN"))).containsExactly("jobCode");
+        assertThat(invalidFields(new ProfileRequest("준비생", "PUBLIC", "SEOUL"))).isEmpty();
+        assertThat(invalidFields(new ProfileRequest("준비생", "IT_BACKEND", "SEOUL"))).isEmpty();
+        assertThat(invalidFields(new ProfileRequest("준비생", "ANY", "SEOUL"))).containsExactly("jobCode");
+        assertThat(invalidFields(new ProfileRequest("준비생", null, "SEOUL"))).containsExactly("jobCode");
     }
 
     @Test
-    @DisplayName("지역은 구 단위만 받는다 (시·도나 시는 거절)")
+    @DisplayName("지역은 시·도 코드만 받는다 (예전 구 코드는 거절)")
     void districtCode() {
-        assertThat(invalidFields(new ProfileRequest("준비생", "IT", "SUWON"))).containsExactly("districtCode");
-        assertThat(invalidFields(new ProfileRequest("준비생", "IT", "GYEONGGI"))).containsExactly("districtCode");
+        assertThat(invalidFields(new ProfileRequest("준비생", "IT", "GYEONGGI"))).isEmpty();
+        assertThat(invalidFields(new ProfileRequest("준비생", "IT", "SUWON_JANGAN"))).containsExactly("districtCode");
         assertThat(invalidFields(new ProfileRequest("준비생", "IT", "GANGNAM"))).containsExactly("districtCode");
         assertThat(invalidFields(new ProfileRequest("준비생", "IT", null))).containsExactly("districtCode");
     }

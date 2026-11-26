@@ -172,7 +172,7 @@ function CreateStudyForm({
         if (!place) return { place: "장소를 골라 주세요." };
         if (!district)
           return {
-            place: `지금은 ${districts.map((item) => item.label).join(", ")} 안의 장소만 고를 수 있어요.`,
+            place: "주소에서 지역을 찾지 못했어요. 다른 장소를 골라 주세요.",
           };
         return {};
       default:

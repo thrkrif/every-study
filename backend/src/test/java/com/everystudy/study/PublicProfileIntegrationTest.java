@@ -50,7 +50,7 @@ class PublicProfileIntegrationTest extends IntegrationTestSupport {
     void newcomerHasNoRate() {
         assertThat(mvc.get().uri("/api/v1/users/{id}", memberId).exchange()).hasStatusOk().bodyJson()
                 .isStrictlyEqualTo(String.format("""
-                        {"id": %d, "nickname": "참여자", "jobCode": "IT_BACKEND", "districtCode": "SUWON_JANGAN",
+                        {"id": %d, "nickname": "참여자", "jobCode": "IT_BACKEND", "districtCode": "SEOUL",
                          "joinedAt": "%s",
                          "attendance": {"attendanceRate": null, "windowCount": 0, "noShow": 0, "late": 0,
                                         "lateCancel": 0, "isNewcomer": true},
@@ -138,7 +138,7 @@ class PublicProfileIntegrationTest extends IntegrationTestSupport {
                 INSERT INTO study (host_id, kind, title, description, topic_code, district_code, place_name,
                     place_address, latitude, longitude, start_at, duration_min, session_date, capacity,
                     min_attendance_rate, allow_newcomer, status, created_at, updated_at)
-                VALUES (?, 'OFFLINE', '스터디', '같이 공부해요. 조용히 집중하는 모임입니다.', 'DEVELOPMENT', 'SUWON_JANGAN',
+                VALUES (?, 'OFFLINE', '스터디', '같이 공부해요. 조용히 집중하는 모임입니다.', 'DEVELOPMENT', 'SEOUL',
                     '스터디 카페', '경기 수원시 장안구', 37.300000, 127.010000, ?, 120, ?, 4, 70, TRUE, ?, ?, ?)
                 """, host, start, now.plus(Duration.ofHours(48)).atZone(TimeProvider.KOREA).toLocalDate(), status,
                 created, created);
@@ -168,7 +168,7 @@ class PublicProfileIntegrationTest extends IntegrationTestSupport {
     }
 
     private void onboard(long userId, String nickname, String jobCode) {
-        jdbc.update("UPDATE user SET nickname = ?, job_code = ?, district_code = 'SUWON_JANGAN' WHERE id = ?",
+        jdbc.update("UPDATE user SET nickname = ?, job_code = ?, district_code = 'SEOUL' WHERE id = ?",
                 nickname, jobCode, userId);
     }
 }

@@ -33,7 +33,7 @@ const ME = {
   id: 7,
   nickname: "주최자",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   role: "USER",
   onboarded: true,
   joinedAt: "2026-11-01T00:00:00Z",
@@ -53,7 +53,7 @@ const DETAIL = {
   title: "면접 스터디",
   description: "소개",
   topicCode: "JOB_PREP",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   place: {
     name: "예시 장소",
     address: "경기 수원시 팔달구",

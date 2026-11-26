@@ -12,17 +12,8 @@ const META = {
   topics: [],
   jobs: [],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [
-        {
-          code: "SUWON",
-          name: "수원시",
-          children: [{ code: "SUWON_PALDAL", name: "팔달구", children: [] }],
-        },
-      ],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {
     capacityMin: 2,
@@ -40,7 +31,7 @@ const ME = {
   id: 7,
   nickname: "나",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   role: "USER",
   onboarded: true,
   joinedAt: "2026-11-01T00:00:00Z",
@@ -50,7 +41,7 @@ const study = (id: number, over: Record<string, unknown> = {}) => ({
   id,
   title: `스터디 ${id}`,
   topicCode: "JOB_PREP",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   startAt: "2026-11-20T05:00:00Z",
   durationMin: 120,
   capacity: 4,
@@ -150,7 +141,7 @@ describe("MyStudiesView", () => {
       screen.getByText("참여", { selector: '[data-role="MEMBER"]' }),
     ).toBeInTheDocument();
     expect(screen.getByText("진행 중")).toBeInTheDocument();
-    expect(screen.getAllByText("수원시 팔달구").length).toBe(3);
+    expect(screen.getAllByText("경기").length).toBe(3);
     expect(screen.getAllByRole("link", { name: "관리" })[0]).toHaveAttribute(
       "href",
       "/studies/1/manage",

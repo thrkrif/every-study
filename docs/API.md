@@ -1,10 +1,10 @@
 ---
 status: draft
-version: "0.41"
+version: "0.42"
 based_on:
-  - docs/PRD.md@0.17
-  - docs/ARCHITECTURE.md@0.20
-  - docs/DATA-MODEL.md@0.35
+  - docs/PRD.md@0.18
+  - docs/ARCHITECTURE.md@0.21
+  - docs/DATA-MODEL.md@0.36
 covers:
   - backend/src/main/java/com/everystudy/auth/web/**
   - backend/src/main/java/com/everystudy/user/web/**
@@ -160,7 +160,7 @@ covers:
 
 **내 정보 응답** (`GET /me`, `PUT /me/profile`)
 ```json
-{ "id": 42, "nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "SUWON_YEONGTONG",
+{ "id": 42, "nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "GYEONGGI",
   "role": "USER", "onboarded": true, "joinedAt": "2026-11-17T05:00:00Z" }
 ```
 - 온보딩 전에는 `nickname`·`jobCode`·`districtCode`가 `null`이고 `onboarded: false`다. 셋을 모두 저장하면 `true`가 된다.
@@ -172,7 +172,7 @@ covers:
 |---|---|
 | `nickname` | 2~20자의 한글(완성형)·영문·숫자·밑줄(`_`). 앞뒤 공백은 서버가 잘라 낸다. 다른 회원이 쓰면 `409 NICKNAME_TAKEN` |
 | `jobCode` | 직군 대분류(필수), 또는 그 아래 세부 직무를 골랐으면 그 코드. `/meta/options`의 `jobs` 어느 단계의 코드든 된다 |
-| `districtCode` | 활동 지역. **구** 단위 코드만 (`/meta/options`의 `regions` 맨 아래 단계) |
+| `districtCode` | 활동 지역. **시·도** 코드 (`/meta/options`의 `regions`). 이름은 구 단위였던 때의 것이다 (DATA-MODEL 1장) |
 
 형식이 틀리면 `400 VALIDATION_FAILED`이고 `errors`에 필드가 담긴다.
 
@@ -196,7 +196,7 @@ covers:
 
 **공개 프로필 응답** (`GET /users/{id}`, 비회원도 가능)
 ```json
-{ "id": 42, "nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "SUWON_YEONGTONG",
+{ "id": 42, "nickname": "준비생", "jobCode": "IT_BACKEND", "districtCode": "GYEONGGI",
   "joinedAt": "2026-11-17T05:00:00Z",
   "attendance": { "attendanceRate": 92, "windowCount": 10, "noShow": 0, "late": 1, "lateCancel": 0, "isNewcomer": false },
   "hostStats": { "hostedCount": 7, "leftWithinWindowCount": 1, "showCountOnly": false } }
@@ -220,9 +220,8 @@ covers:
 { "topics":  [{ "code": "JOB_PREP", "name": "취업준비", "children": [] }],
   "jobs":    [{ "code": "IT", "name": "IT·개발",
                 "children": [{ "code": "IT_BACKEND", "name": "백엔드", "children": [] }] }],
-  "regions": [{ "code": "GYEONGGI", "name": "경기",
-                "children": [{ "code": "SUWON", "name": "수원시",
-                               "children": [{ "code": "SUWON_JANGAN", "name": "장안구", "children": [] }] }] }],
+  "regions": [{ "code": "SEOUL", "name": "서울", "children": [] },
+              { "code": "GYEONGGI", "name": "경기", "children": [] }],
   "study":   { "capacityMin": 2, "capacityMax": 6, "openableDays": 14,
                "startMinuteUnit": 10, "durationMinuteUnit": 10, "durationMinMinutes": 30,
                "minAttendanceRates": [50, 60, 70, 80, 90, 100] },
@@ -245,7 +244,7 @@ covers:
 | `title` | 2~40자. 앞뒤 공백은 잘라 낸다 |
 | `description` | 선택. 2000자 이하. 앞뒤 공백은 잘라 내고, 생략하거나 공백만 쓰면 빈 문자열로 저장한다 (PRD 4.2) |
 | `topicCode` | 주제 코드 |
-| `districtCode` | 구 단위 지역 코드 |
+| `districtCode` | 시·도 지역 코드. 화면은 고른 장소 주소의 첫 낱말(예: "경기", "서울특별시")로 정한다 |
 | `targetJobCodes` | 직군 **대분류** 코드 목록(세부 직무는 거절). 생략하거나 비우면 직군 무관. 고르면 참여 조건이다 (PRD 4.2·4.4) |
 | `place` | `name` 100자, `address` 200자 이하. 좌표는 소수점 6자리로 저장한다 |
 | `startAt` | 현재 이후. 시작 날짜(KST)가 오늘부터 개설 가능 일수 뒤까지(오늘이 11일이고 14일이면 25일까지). `startMinuteUnit`분 단위이고 초가 없다 |
@@ -260,7 +259,7 @@ covers:
 
 | 파라미터 | 뜻 |
 |---|---|
-| `regionCode` | 시·도·시·구 어느 단계든. 그 아래 구의 스터디. 생략하면 전체. "내 지역"은 클라이언트가 내 구의 시 코드로 부른다 |
+| `regionCode` | 시·도 코드. 그 지역의 스터디. 생략하면 전체. "내 지역"은 클라이언트가 내 활동 지역 코드로 부른다 |
 | `topicCode` | 주제 |
 | `jobCode` | 직군 **대분류**. 그 직군이 희망 직군에 명시된 스터디만(직군 무관 스터디는 빠진다) |
 | `myJob=true` | 내 직군이 신청할 수 있는 스터디만: 희망 직군이 없거나 내 대분류가 있음. 로그인 필요(아니면 `401`), 직군이 없으면 `403 ONBOARDING_REQUIRED` |
@@ -271,7 +270,7 @@ covers:
 잘못된 값은 `400 VALIDATION_FAILED`이고 `errors`에 파라미터 이름이 담긴다.
 
 ```json
-{ "items": [{ "id": 1, "title": "모각코", "topicCode": "DEVELOPMENT", "districtCode": "SUWON_YEONGTONG",
+{ "items": [{ "id": 1, "title": "모각코", "topicCode": "DEVELOPMENT", "districtCode": "GYEONGGI",
               "startAt": "2026-11-25T05:00:00Z", "durationMin": 120, "capacity": 4, "memberCount": 2,
               "recruiting": true, "targetJobCodes": ["IT"],
               "entryCriteria": { "minAttendanceRate": 70, "allowNewcomer": true },

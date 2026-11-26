@@ -1,9 +1,9 @@
 ---
 status: draft
-version: "0.35"
+version: "0.36"
 based_on:
-  - docs/PRD.md@0.17
-  - docs/ARCHITECTURE.md@0.20
+  - docs/PRD.md@0.18
+  - docs/ARCHITECTURE.md@0.21
 covers:
   - backend/src/main/java/com/everystudy/user/**
   - backend/src/main/java/com/everystudy/auth/**
@@ -30,7 +30,8 @@ covers:
 | 날짜 | KST 기준 날짜는 `DATE` (`session_date`). 설명은 해당 컬럼에 적는다 |
 | 열거형 | `VARCHAR`에 대문자 코드 저장 (MySQL `ENUM` 미사용: 값 추가가 마이그레이션이 되는 것을 피함). 허용 값은 코드의 enum과 `CHECK` 제약으로 맞춘다 |
 | 고정 목록 | 주제, 직군, 지역은 테이블이 아니라 **코드 값**이다. 원본은 백엔드 `common/code`의 enum이고, 목록 자체는 `GET /meta/options`로 내려준다 (API 4장). 값 추가는 코드 변경이다. 이미 저장된 코드는 지우거나 이름을 바꾸지 않는다 |
-| 계층 코드 | **직군**은 대분류 → 세부 직무 2단계(예: `IT` → `IT_BACKEND`), **지역**은 시·도 → 시 → 구 3단계(예: `GYEONGGI` → `SUWON` → `SUWON_YEONGTONG`). 컬럼에는 코드 하나만 저장하고, 상위 단계는 코드가 안다(상위 코드 컬럼을 따로 두지 않는다) |
+| 계층 코드 | **직군**은 대분류 → 세부 직무 2단계(예: `IT` → `IT_BACKEND`), **지역**은 전국 시·도 한 단계 16개다(예: `SEOUL`, `GYEONGGI`, `DAEJEON_SEJONG`. 대전과 세종은 하나). 컬럼에는 코드 하나만 저장하고, 상위 단계는 코드가 안다(상위 코드 컬럼을 따로 두지 않는다) |
+| 지역 단위 변경 (2026-11-26) | 지역은 처음에 시·도 → 시 → 구(수원 4개 구)였다. 출시 전에 시·도 한 단계로 바꾸면서 구 코드(`SUWON_*`)를 지웠고, 이미 저장된 값은 `V21` 마이그레이션이 `GYEONGGI`로 옮긴다. 컬럼 이름 `district_code`와 API 필드 `districtCode`는 바꾸지 않았다(값은 시·도 코드) |
 | 삭제 | 기본은 물리 삭제 없이 상태 컬럼을 바꾼다. 예외는 각 테이블에 적는다 |
 | 낙관적 잠금 | 쓰지 않는다. 멤버 구성은 `study` 행 비관적 락으로 직렬화한다 (ADR-0004) |
 | `created_at` / `updated_at` | 모든 테이블에 `created_at`. 수정이 있는 테이블만 `updated_at` |
@@ -58,7 +59,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | nickname | VARCHAR(20) NULL | 온보딩에서 정한다. 탈퇴 시 비운다 (화면은 "탈퇴한 사용자") |
 | email | VARCHAR(255) NULL | 이메일 알림용. 소셜 공급자가 확인한 이메일만 저장하고, 없으면 `NULL`. 탈퇴 시 삭제 |
 | job_code | VARCHAR(30) NULL | 내 직군. 대분류 코드, 또는 세부 직무를 골랐으면 그 코드 하나. 온보딩에서 정한다 (대분류는 필수, 세부는 선택. PRD 4.1) |
-| district_code | VARCHAR(20) NULL | 활동 지역. **구** 단위 코드. 온보딩에서 정한다 |
+| district_code | VARCHAR(20) NULL | 활동 지역. **시·도** 코드. 온보딩에서 정한다 |
 | role | VARCHAR(10) | `USER` / `ADMIN`. `ADMIN`은 설정 목록(`everystudy.admin.emails`, 환경변수 `ADMIN_EMAILS`)에 있는 이메일로 소셜 로그인할 때 올라간다 (PLAN D-10). 내리는 일은 운영 DB 에서 직접 한다 |
 | status | VARCHAR(12) | `ACTIVE` / `WITHDRAWN` |
 | created_at, withdrawn_at | DATETIME(6) | |
@@ -106,7 +107,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 | title | VARCHAR(60) | 입력은 2~40자 (API 4장). 컬럼은 여유를 둔다 |
 | description | TEXT | 소개는 선택이라 비우면 빈 문자열 (API 4장) |
 | topic_code | VARCHAR(30) | |
-| district_code | VARCHAR(20) | **구** 단위 코드. 탐색의 시·도·시 필터는 이 코드의 상위 단계로 거른다 |
+| district_code | VARCHAR(20) | **시·도** 코드. 개설 때 장소 주소로 정한다 |
 | place_name | VARCHAR(100) | 카카오맵에서 고른 장소명 |
 | place_address | VARCHAR(200) | |
 | latitude, longitude | DECIMAL(9,6) | 체크인 거리 계산 기준 |
@@ -125,7 +126,7 @@ user ── social_account, refresh_token, notification_setting, push_subscripti
 
 - "모집 중 / 마감"은 저장하지 않는다. `status='ACTIVE'`, 체크인 오픈 전, 현재 참여자 수 < `capacity`로 **계산**한다 (ARCHITECTURE 4.2).
 - 인덱스
-  - `(status, district_code, start_at)` 목록 탐색. 목록은 늘 `status = ACTIVE AND start_at > 현재`로 시작하고 지역은 구 코드 `IN`으로 거른다 (API 4장)
+  - `(status, district_code, start_at)` 목록 탐색. 목록은 늘 `status = ACTIVE AND start_at > 현재`로 시작하고 지역은 시·도 코드로 거른다 (API 4장)
   - `(host_id, status)` 주최 스터디 조회. 내 스터디 목록(`GET /me/studies`)은 `study_member (user_id, status)`에서 시작해 `study`로 조인한다
   - `(status, session_date)` 종료 처리 작업 (`ACTIVE`이고 `session_date`가 오늘(KST) 이전)
   - `(status, judged_at, start_at)` 출석 판정 작업

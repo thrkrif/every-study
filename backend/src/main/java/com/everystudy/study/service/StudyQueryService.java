@@ -1,7 +1,6 @@
 package com.everystudy.study.service;
 
 import com.everystudy.common.code.JobCode;
-import com.everystudy.common.code.RegionCode;
 import com.everystudy.common.error.BusinessException;
 import com.everystudy.common.error.CommonErrorCode;
 import com.everystudy.common.time.TimeProvider;
@@ -56,7 +55,7 @@ public class StudyQueryService {
     /**
      * 목록 조건. 형식(코드, 범위)은 웹 계층이 검사했다.
      *
-     * @param regionCode    시·도·시·구 어느 단계든. {@code null} 이면 전체
+     * @param regionCode    시·도 코드. {@code null} 이면 전체
      * @param jobCode       희망 직군에 이 대분류가 명시된 스터디만
      * @param myJob         내 직군이 신청할 수 있는 스터디만 (로그인 필요)
      * @param includeClosed 시작 전인 마감 스터디도 보여 준다
@@ -80,7 +79,7 @@ public class StudyQueryService {
     public StudyViews.Page search(SearchQuery query, Long viewerId) {
         Instant now = time.now();
         StudySearchCondition condition = new StudySearchCondition(
-                query.regionCode() == null ? Set.of() : districtsOf(query.regionCode()),
+                query.regionCode() == null ? Set.of() : Set.of(query.regionCode()),
                 query.topicCode(),
                 query.jobCode(),
                 query.myJob() ? myJobCategory(viewerId) : null,
@@ -168,12 +167,6 @@ public class StudyQueryService {
         }
         Map<Long, PublicUser> people = peopleOf(study, active);
         return memberViews(active, people, metrics.trustOf(people.keySet()));
-    }
-
-    private Set<String> districtsOf(String regionCode) {
-        Set<String> districts = new HashSet<>();
-        RegionCode.find(regionCode).orElseThrow().districts().forEach(district -> districts.add(district.name()));
-        return districts;
     }
 
     private String myJobCategory(Long viewerId) {

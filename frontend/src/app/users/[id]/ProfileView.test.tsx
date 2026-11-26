@@ -9,11 +9,8 @@ const META = {
   topics: [],
   jobs: [{ code: "IT", name: "IT·개발", children: [] }],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [{ code: "SUWON_PALDAL", name: "팔달구", children: [] }],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {},
   checkin: { radiusMeters: 150 },
@@ -23,7 +20,7 @@ const PROFILE = {
   id: 9,
   nickname: "준비생",
   jobCode: "IT",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   joinedAt: "2026-11-17T05:00:00Z",
   attendance: {
     attendanceRate: 92,
@@ -83,7 +80,7 @@ describe("ProfileView", () => {
     expect(
       await screen.findByRole("heading", { name: "준비생" }),
     ).toBeInTheDocument();
-    expect(await screen.findByText(/IT·개발 · 팔달구/)).toHaveTextContent(
+    expect(await screen.findByText(/IT·개발 · 경기/)).toHaveTextContent(
       "11월 17일 (화) 가입",
     );
     expect(

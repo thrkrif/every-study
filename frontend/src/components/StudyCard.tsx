@@ -17,7 +17,7 @@ type StudyCardProps = {
   now: Date;
   /** 코드 → 화면 이름 (지역·주제·직군) */
   names: ReadonlyMap<string, string>;
-  /** 구 코드 → "수원시 장안구" 같은 표시 이름 */
+  /** 지역 코드 → "서울" 같은 표시 이름 */
   districtLabel: (code: string) => string;
 };
 

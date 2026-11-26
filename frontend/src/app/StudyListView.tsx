@@ -15,7 +15,7 @@ import {
   type StudySort,
 } from "@/lib/api/studies";
 import { useMetaOptions, useSession } from "@/lib/session";
-import { cityOf, codeNames, regionChoices } from "@/lib/studyFormat";
+import { codeNames, regionChoices } from "@/lib/studyFormat";
 import styles from "./StudyListView.module.css";
 
 const ALL = "";
@@ -53,13 +53,11 @@ export function StudyListView({ now = () => new Date() }: ListViewProps) {
   const [sort, setSort] = useState<StudySort>("latest");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const myCity =
-    me?.districtCode && meta.data
-      ? cityOf(me.districtCode, meta.data.regions)
-      : undefined;
+  // "내 지역"은 회원의 활동 지역(시·도) 그대로다 (PRD 4.3)
+  const myRegion = me?.districtCode ?? undefined;
 
   const filters: StudyFilters = {
-    regionCode: region === MY_REGION ? myCity : region || undefined,
+    regionCode: region === MY_REGION ? myRegion : region || undefined,
     topicCode: topic || undefined,
     jobCode: job || undefined,
     // 내 직군 필터는 온보딩을 마친 회원만 쓸 수 있다 (API 4장)
@@ -155,7 +153,7 @@ export function StudyListView({ now = () => new Date() }: ListViewProps) {
                 legend="지역"
                 choices={[
                   { value: ALL, label: "전체" },
-                  ...(myCity ? [{ value: MY_REGION, label: "내 지역" }] : []),
+                  ...(myRegion ? [{ value: MY_REGION, label: "내 지역" }] : []),
                   ...regionChoices(meta.data.regions).map((choice) => ({
                     value: choice.code,
                     label: choice.label,

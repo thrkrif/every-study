@@ -53,7 +53,7 @@ class ModerationIntegrationTest extends IntegrationTestSupport {
         jdbc.update("INSERT INTO study (host_id, kind, title, description, topic_code, district_code, place_name, "
                 + "place_address, latitude, longitude, start_at, duration_min, session_date, capacity, "
                 + "min_attendance_rate, allow_newcomer, status, created_at, updated_at) VALUES (?, 'OFFLINE', '모각코', "
-                + "'', 'DEVELOPMENT', 'SUWON_JANGAN', '카페', '수원', 37.3, 127.01, '2026-11-30 03:00:00', 120, "
+                + "'', 'DEVELOPMENT', 'SEOUL', '카페', '수원', 37.3, 127.01, '2026-11-30 03:00:00', 120, "
                 + "'2026-11-30', 4, NULL, TRUE, 'ACTIVE', NOW(6), NOW(6))", adminId);
         long study = jdbc.queryForObject("SELECT MAX(id) FROM study", Long.class);
         jdbc.update("INSERT INTO chat_room (study_id, status, created_at) VALUES (?, 'OPEN', NOW(6))", study);

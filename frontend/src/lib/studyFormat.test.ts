@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  cityOf,
   entryCriteriaTexts,
   formatLongWhen,
   formatWhen,
@@ -17,20 +16,8 @@ import {
 const NOW = new Date("2026-11-18T01:00:00Z");
 
 const REGIONS = [
-  {
-    code: "GYEONGGI",
-    name: "경기",
-    children: [
-      {
-        code: "SUWON",
-        name: "수원시",
-        children: [
-          { code: "SUWON_JANGAN", name: "장안구", children: [] },
-          { code: "SUWON_PALDAL", name: "팔달구", children: [] },
-        ],
-      },
-    ],
-  },
+  { code: "SEOUL", name: "서울", children: [] },
+  { code: "DAEJEON_SEJONG", name: "대전/세종", children: [] },
 ];
 
 describe("스터디 표시 규칙", () => {
@@ -107,14 +94,11 @@ describe("스터디 표시 규칙", () => {
     );
   });
 
-  it("지역 선택지는 시와 구를 화면 순서대로 만들고, 내 구의 시를 찾는다", () => {
+  it("지역 선택지는 시·도를 화면 순서대로 만든다", () => {
     expect(regionChoices(REGIONS)).toEqual([
-      { code: "SUWON", label: "수원시" },
-      { code: "SUWON_JANGAN", label: "수원시 장안구" },
-      { code: "SUWON_PALDAL", label: "수원시 팔달구" },
+      { code: "SEOUL", label: "서울" },
+      { code: "DAEJEON_SEJONG", label: "대전/세종" },
     ]);
-    expect(cityOf("SUWON_PALDAL", REGIONS)).toBe("SUWON");
-    expect(cityOf("UNKNOWN", REGIONS)).toBeUndefined();
   });
 });
 

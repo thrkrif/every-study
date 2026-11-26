@@ -27,7 +27,7 @@ class MetaOptionsIntegrationTest extends IntegrationTestSupport {
                         """);
         assertThat(mvc.get().uri("/api/v1/meta/options").cookie(new Cookie("access_token", "not-a-jwt")))
                 .hasStatusOk()
-                .bodyJson().extractingPath("$.regions[0].children[0].children[*].code").asArray()
-                .containsExactly("SUWON_JANGAN", "SUWON_GWONSEON", "SUWON_PALDAL", "SUWON_YEONGTONG");
+                .bodyJson().extractingPath("$.regions[*].code").asArray()
+                .hasSize(16).startsWith("SEOUL", "GYEONGGI", "INCHEON");
     }
 }

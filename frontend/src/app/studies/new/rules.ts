@@ -84,17 +84,30 @@ export function formatDuration(minutes: number): string {
   return rest === 0 ? `${hours}시간` : `${hours}시간 ${rest}분`;
 }
 
+/** 주소가 정식 이름("충청남도")으로 올 때의 줄임 이름 */
+const FULL_PROVINCE_NAMES: Record<string, string> = {
+  충청남도: "충남",
+  충청북도: "충북",
+  경상남도: "경남",
+  경상북도: "경북",
+  전라남도: "전남",
+  전라북도: "전북",
+};
+
 /**
- * 장소 주소로 활동 지역(구)을 찾는다. 구 표시 이름(예: "수원시 팔달구")의 낱말이 모두 주소에 있으면 그 구다.
- * 지원하지 않는 지역의 장소면 undefined.
+ * 장소 주소로 활동 지역(시·도)을 찾는다. 주소의 첫 낱말이 지역 이름으로 시작하면 그 지역이다.
+ * "서울특별시", "강원특별자치도", "세종특별자치시"처럼 긴 이름도 앞부분으로 맞춘다. "대전/세종"은 둘 다 맞는다.
+ * 찾지 못하면 undefined.
  */
 export function districtOfAddress(
   address: string,
   districts: readonly District[],
 ): string | undefined {
-  const words = new Set(address.split(/\s+/));
+  const first = address.trim().split(/\s+/)[0] ?? "";
+  const word = FULL_PROVINCE_NAMES[first] ?? first;
+  if (!word) return undefined;
   return districts.find((district) =>
-    district.label.split(" ").every((word) => words.has(word)),
+    district.label.split("/").some((name) => word.startsWith(name)),
   )?.code;
 }
 

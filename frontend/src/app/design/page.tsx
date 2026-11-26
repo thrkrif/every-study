@@ -31,7 +31,7 @@ const TEXT_STYLES = [
   ["title", "면접 스터디 같이 준비해요"],
   ["heading", "참여자 3명"],
   ["body", "모의 면접을 서로 해 주고 피드백을 나눠요."],
-  ["label", "수원시 팔달구"],
+  ["label", "경기"],
   ["caption", "신청은 시작 10분 전까지"],
 ] as const;
 
@@ -56,7 +56,7 @@ export default function DesignPreviewPage() {
           <span className={styles.cardTitle}>
             백엔드 면접 질문 같이 풀어 봐요
           </span>
-          <span className={styles.meta}>수원시 팔달구 · 2시간</span>
+          <span className={styles.meta}>경기 · 2시간</span>
           <SeatRow capacity={6} memberCount={3} />
           <span className={styles.host}>
             <span>주최 공부하는곰</span>
@@ -81,7 +81,7 @@ export default function DesignPreviewPage() {
             11월 22일 토 오후 2:00
           </span>
           <span className={styles.cardTitle}>공무원 한국사 기출 회독</span>
-          <span className={styles.meta}>수원시 영통구 · 3시간</span>
+          <span className={styles.meta}>서울 · 3시간</span>
           <SeatRow capacity={4} memberCount={4} />
           <span className={styles.host}>
             <span>주최 새벽정리</span>
@@ -99,7 +99,7 @@ export default function DesignPreviewPage() {
           <p className={`${styles.detailTime} num`}>
             11월 20일 목요일 오전 10:00
           </p>
-          <p className={styles.meta}>수원시 팔달구 · 카페 2층 창가 자리</p>
+          <p className={styles.meta}>경기 · 카페 2층 창가 자리</p>
           <div className={styles.detailSeats}>
             <SeatRow capacity={6} memberCount={4} mySeatIndex={3} />
             <span className={`${styles.meta} num`}>신청 마감 오전 9:50</span>

@@ -6,7 +6,7 @@ import java.util.Set;
 /**
  * 목록 조회 조건. 값의 해석(지역 코드 펼치기, 커서 풀기)은 서비스가 끝낸 상태다.
  *
- * @param districtCodes       이 구들 중 하나. 비어 있으면 전체
+ * @param districtCodes       이 지역(시·도) 중 하나. 비어 있으면 전체
  * @param topicCode           {@code null} 이면 전체
  * @param targetJobCategory   희망 직군에 이 대분류가 명시된 스터디만. {@code null} 이면 전체
  * @param eligibleJobCategory 이 대분류의 회원이 신청할 수 있는 스터디만 (희망 직군 없음 또는 포함). {@code null} 이면 전체

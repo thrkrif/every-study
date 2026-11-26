@@ -2,7 +2,7 @@ import type { PlaceResult } from "./kakaoMap";
 
 /**
  * 개발 서버 전용 예시 장소. 카카오맵을 운영 전까지 켜지 않기로 해서(PLAN H-2),
- * 로컬에서 지도 없이도 스터디를 만들어 볼 수 있게 수원 4개 구마다 한 곳씩 둔다.
+ * 로컬에서 지도 없이도 스터디를 만들어 볼 수 있게 수원 안의 몇 곳을 둔다 (모두 경기 지역).
  * 좌표는 각 구청 근처의 근사값이고 실제 장소가 아니다. 운영 빌드에서는 쓰지 않는다.
  */
 export const DEV_SAMPLE_PLACES: readonly PlaceResult[] = [

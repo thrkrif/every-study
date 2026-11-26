@@ -15,17 +15,8 @@ const META = {
   ],
   jobs: [{ code: "IT", name: "IT·개발", children: [] }],
   regions: [
-    {
-      code: "GYEONGGI",
-      name: "경기",
-      children: [
-        {
-          code: "SUWON",
-          name: "수원시",
-          children: [{ code: "SUWON_PALDAL", name: "팔달구", children: [] }],
-        },
-      ],
-    },
+    { code: "SEOUL", name: "서울", children: [] },
+    { code: "GYEONGGI", name: "경기", children: [] },
   ],
   study: {
     capacityMin: 2,
@@ -43,7 +34,7 @@ const study = (id: number, title: string) => ({
   id,
   title,
   topicCode: "JOB_PREP",
-  districtCode: "SUWON_PALDAL",
+  districtCode: "GYEONGGI",
   startAt: "2026-11-18T05:00:00Z",
   durationMin: 120,
   capacity: 4,
