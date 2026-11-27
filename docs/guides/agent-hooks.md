@@ -26,7 +26,7 @@ covers:
 - CI 의 필수 상태 검사로는 **`CI 통과`** 하나만 지정한다 (건너뛴 job 은 통과, 실패는 실패).
 - `backend`·`frontend` job 은 **자기 영역이 바뀐 PR 에서만** 돈다. `changes` job 이 `tools/ci-changes.sh` 로 바뀐 경로를 보고 정한다: `backend/**` 는 백엔드, `frontend/**` 는 프론트, `.github/workflows/**` 나 감지 스크립트가 바뀌면 둘 다. 문서만 바꾼 PR 은 둘 다 건너뛴다. develop·main 으로의 push(병합 직후)에서는 전부 실행한다. 건너뛴 job 은 `CI 통과` 에서 통과로 센다.
 - 백엔드는 `test`(단위·슬라이스) → `integrationTest`(Testcontainers) → `build` 순서로 따로 실행한다.
-- 문서 검사: `bash tools/docs-check.sh` (머리말·`based_on` 버전·링크·API 화면 열(요구사항 추적), 자세한 내용은 [docs/README.md](../README.md)). CI 는 오류로, pre-commit(②)은 경고로만 처리한다. `--base <참조>`를 주면 `covers` 검사(바뀐 코드를 설명하는 문서가 함께 바뀌었는지)도 한다. CI 는 PR 의 대상 브랜치를, pre-commit 은 `origin/develop` 을 기준으로 쓰고, 문서를 고칠 내용이 없는 PR 은 커밋 메시지의 `Docs-Unchanged: <사유>` 줄로 건너뛴다.
+- 문서 검사: `bash tools/docs-check.sh` (머리말·`based_on` 버전·링크·API 화면 열과 PLAN 프론트 작업의 쓰임새 짝(요구사항 추적), 자세한 내용은 [docs/README.md](../README.md)). CI 는 오류로, pre-commit(②)은 경고로만 처리한다. `--base <참조>`를 주면 `covers` 검사(바뀐 코드를 설명하는 문서가 함께 바뀌었는지)도 한다. CI 는 PR 의 대상 브랜치를, pre-commit 은 `origin/develop` 을 기준으로 쓰고, 문서를 고칠 내용이 없는 PR 은 커밋 메시지의 `Docs-Unchanged: <사유>` 줄로 건너뛴다.
 - 마이그레이션 검사: `bash tools/flyway-check.sh` (Flyway 파일명 형식, 번호 중복·누락). CI `migrations` job 에서만 실행한다.
 - 테스트: `bash tools/tests/git-policy.sh` (②), `bash tools/hooks-src/tests/run.sh` (①), `bash tools/tests/docs-check.sh` (문서 검사), `bash tools/tests/flyway-check.sh` (마이그레이션 검사), `bash tools/tests/ci-changes.sh` (CI 경로 감지).
 

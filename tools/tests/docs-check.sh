@@ -170,6 +170,43 @@ d="$(fresh)"; screens "$d" '| `GET /x` | 회원 | 1 | 설명 |'
 printf -- '---\nstatus: confirmed\nversion: "0.3"\n---\n\n# PRD\n' > "$d/docs/PRD.md"
 expect 1 "PRD 에 화면 목록이 없음" --root "$d"
 d="$(fresh)"; expect 0 "API.md 가 없으면 건너뜀" --root "$d"
+d="$(fresh)"; screens "$d" '| `PUT /me/profile` | 회원 | 2(온보딩), 10(수정) | 쓰임새 표기 |'
+expect 0 "번호(쓰임새) 표기" --root "$d"
+d="$(fresh)"; screens "$d" '| `PUT /me/profile` | 회원 | 10( | 괄호가 닫히지 않음 |'
+expect 1 "화면 항목 형식" --root "$d"; expect_msg "형식 메시지" "형식이 틀림" --root "$d"
+d="$(fresh)"; screens "$d" '| `PUT /me/profile` | 회원 | 14(수정) | 없는 번호 |'
+expect 1 "쓰임새 붙은 없는 번호" --root "$d"
+
+echo "== ⑨ 쓰임새 추적 (API 화면 열 ↔ PLAN [프론트] 작업)"
+# 화면 열이 있는 API 와 PLAN 을 만든다: <디렉토리> <PLAN 작업 줄들>
+usage() {
+  screens "$1" '| `PUT /api/v1/me/profile` | 회원 | 2(온보딩), 10(수정) | 온보딩·수정 |
+| `GET /api/v1/me/studies?role=host\|member` | 회원 | 10 | 쿼리는 비교에서 뺀다 |
+| `GET /api/v1/me` | 회원 | 공통 | 짝 불필요 |
+| `GET /api/v1/x` | 운영자 | 없음: API 로만 | 짝 불필요 |'
+  printf -- '---\nstatus: draft\n---\n\n# PLAN\n\n%s\n' "$2" > "$1/docs/PLAN.md"
+}
+d="$(fresh)"; usage "$d" '- [x] T-007 [프론트] 온보딩
+  - 쓰임새: `PUT /me/profile` 2(온보딩)
+- [ ] T-036 [프론트] 마이페이지
+  - 쓰임새: `PUT /api/v1/me/profile` 10(수정) · `GET /me/studies` 10'
+expect 0 "모든 쓰임새를 맡음 (/api/v1 생략·포함 모두)" --root "$d"
+d="$(fresh)"; usage "$d" '- [x] T-007 [프론트] 온보딩
+  - 쓰임새: `PUT /me/profile` 2(온보딩) · `GET /me/studies` 10'
+expect 1 "수정 쓰임새를 맡은 작업 없음 (T-072 사례)" --root "$d"
+expect_msg "맡지 않음 메시지" "맡은 \[프론트\] 작업이 없는 쓰임새: \"PUT /me/profile 10(수정)\"" --root "$d"
+d="$(fresh)"; usage "$d" '- [x] T-007 [프론트] 온보딩
+  - 쓰임새: `PUT /me/profile` 2(온보딩), 10(수정) · `GET /me/studies` 10 · `GET /nope` 3'
+expect 1 "API 에 없는 엔드포인트" --root "$d"; expect_msg "없는 엔드포인트 메시지" "API 표에 없는 엔드포인트" --root "$d"
+d="$(fresh)"; usage "$d" '- [x] T-007 [프론트] 온보딩
+  - 쓰임새: `PUT /me/profile` 2, 10(수정) · `GET /me/studies` 10'
+expect 1 "API 와 다르게 적은 화면 항목" --root "$d"; expect_msg "다른 항목 메시지" "API 화면 열에 없는 쓰임새" --root "$d"
+d="$(fresh)"; usage "$d" '- [x] T-006 내 정보 API
+  - 쓰임새: `PUT /me/profile` 2(온보딩), 10(수정) · `GET /me/studies` 10'
+expect 1 "백엔드 작업의 쓰임새 줄" --root "$d"; expect_msg "프론트 전용 메시지" "\[프론트\] 작업에만" --root "$d"
+d="$(fresh)"; usage "$d" '- [x] T-007 [프론트] 온보딩
+  - 쓰임새: PUT /me/profile 2(온보딩)'
+expect 1 "백틱 없는 쓰임새" --root "$d"
 
 echo
 echo "통과 $pass · 실패 $fail"
