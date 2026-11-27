@@ -91,7 +91,12 @@ export function MyPageView() {
     <main className={styles.page} data-layout="split">
       <div className={styles.summary}>
         <header className={styles.header}>
-          <h1 className={styles.title}>{nicknameOf(me.nickname)}</h1>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>{nicknameOf(me.nickname)}</h1>
+            <Link href="/me/edit" className={styles.editLink}>
+              정보 수정
+            </Link>
+          </div>
           {facts.length > 0 && (
             <p className={styles.facts}>{facts.join(" · ")}</p>
           )}

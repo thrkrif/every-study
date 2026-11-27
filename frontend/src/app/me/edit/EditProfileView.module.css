@@ -1,0 +1,48 @@
+/* 입력 화면 (DESIGN 4장 폭, 6장 입력 화면): 480px 열, 태블릿·PC 는 가운데 카드 */
+.page {
+  max-width: var(--form-max-width);
+  margin: 0 auto;
+  padding: var(--space-6) var(--page-gutter) var(--space-10);
+}
+
+@media (min-width: 768px) {
+  .page {
+    margin: var(--space-10) auto;
+    padding: var(--space-8);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface);
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-title-size);
+  line-height: var(--text-title-line);
+  font-weight: var(--text-title-weight);
+}
+
+.note {
+  color: var(--color-ink-sub);
+}
+
+.fieldError,
+.failure {
+  color: var(--color-bad);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actions > * {
+  flex: 1 1 0;
+  width: auto;
+  white-space: nowrap;
+}

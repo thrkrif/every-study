@@ -2,7 +2,7 @@
 status: draft
 version: "0.42"
 based_on:
-  - docs/PRD.md@0.18
+  - docs/PRD.md@0.19
   - docs/ARCHITECTURE.md@0.21
   - docs/DATA-MODEL.md@0.36
 covers:
