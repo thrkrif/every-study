@@ -2,7 +2,7 @@
 status: draft
 version: "0.36"
 based_on:
-  - docs/PRD.md@0.19
+  - docs/PRD.md@0.20
   - docs/ARCHITECTURE.md@0.21
 covers:
   - backend/src/main/java/com/everystudy/user/**

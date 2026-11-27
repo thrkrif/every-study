@@ -1,8 +1,8 @@
 ---
 status: draft
-version: "0.42"
+version: "0.43"
 based_on:
-  - docs/PRD.md@0.19
+  - docs/PRD.md@0.20
   - docs/ARCHITECTURE.md@0.21
   - docs/DATA-MODEL.md@0.36
 covers:
@@ -32,6 +32,11 @@ covers:
 | 페이징 | 목록은 **커서 방식**: `?cursor=<opaque>&size=20` → `{ "items": [...], "nextCursor": "..."|null }`. 채팅은 `before=<messageId>` |
 | 식별자 | JSON에서도 숫자 `id`. 서버는 소유·권한을 항상 다시 검사한다 |
 | 버전 | 호환이 깨지는 변경만 `/v2`. 필드 추가는 같은 버전에서 허용 |
+
+### 화면 열 (요구사항 추적)
+엔드포인트 표마다 **화면** 열을 둔다. 그 API를 쓰는 [PRD 5장](PRD.md) 화면 번호를 쉼표로 적고, 쓰임새가 여럿이면 쓰임새마다 화면을 적는다(예: `PUT /me/profile`은 온보딩 2, 정보 수정 10). 모든 화면이 쓰는 인증·메타 API는 `공통`, 화면이 쓰지 않는 API는 `없음: <이유>`로 적는다. `bash tools/docs-check.sh`가 열이 있는지와 값이 PRD 5장에 있는 번호인지 검사한다.
+
+- **PRD에 없는 쓰임새는 적지 않는다.** 짝지을 화면이 없다면 이 문서가 PRD에 없는 기능을 더하려는 것이다. PRD를 먼저 고치거나 [PLAN](PLAN.md) 7장에 X로 등록해 결정을 받는다 ([docs/README](README.md) 3장 규칙 6). 프로필 "수정"이 PRD 없이 이 문서에만 들어가 화면이 빠졌던 일(PLAN T-073)을 되풀이하지 않기 위해서다.
 
 ### 권한 표기
 `공개` 비회원 가능 · `회원` 로그인 · `참여자` 해당 스터디 `ACTIVE` 멤버 · `주최자` 해당 스터디 현재 주최자 · `운영자` `role=ADMIN` · `쿠키` 액세스 토큰 없이 리프레시 쿠키로 동작(2장).
@@ -85,12 +90,12 @@ covers:
 
 ## 2. 인증
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `GET /oauth2/authorization/kakao`, `/google` | 공개 | 소셜 로그인 시작 (리다이렉트) |
-| `GET /login/oauth2/code/{provider}` | 공개 | 콜백. 쿠키 발급 후 프론트로 리다이렉트. 신규 사용자는 온보딩 화면으로 |
-| `POST /api/v1/auth/refresh` | 쿠키 | 리프레시 회전. 새 토큰 쿠키 한 쌍 발급, `204` |
-| `POST /api/v1/auth/logout` | 쿠키 | 리프레시 토큰 폐기, 쿠키 삭제. `204` |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `GET /oauth2/authorization/kakao`, `/google` | 공개 | 1 | 소셜 로그인 시작 (리다이렉트) |
+| `GET /login/oauth2/code/{provider}` | 공개 | 1 | 콜백. 쿠키 발급 후 프론트로 리다이렉트. 신규 사용자는 온보딩 화면으로 |
+| `POST /api/v1/auth/refresh` | 쿠키 | 공통 | 리프레시 회전. 새 토큰 쿠키 한 쌍 발급, `204` |
+| `POST /api/v1/auth/logout` | 쿠키 | 공통 | 리프레시 토큰 폐기, 쿠키 삭제. `204` |
 
 **소셜 로그인 흐름** (화면은 `fetch`가 아니라 페이지 이동으로 시작한다)
 
@@ -146,17 +151,17 @@ covers:
 
 ## 3. 내 정보
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `GET /api/v1/me` | 회원 | 프로필, `onboarded` 여부. 이용 제한 현황은 제재 작업(PLAN T-035a)에서 더한다 |
-| `PUT /api/v1/me/profile` | 회원 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
-| `DELETE /api/v1/me` | 회원 | 탈퇴 (PRD 4.1). 진행 중 스터디에 나가기 규칙을 먼저 적용하고(참여 취소·주최자 승계·파투, 대기 삭제) 개인정보 삭제·미발송 알림 취소·토큰 폐기를 한 트랜잭션으로 처리한다. `204`, 로그인 쿠키를 지우고 새 CSRF 토큰을 받게 한다. 이미 탈퇴했어도 `204`(멱등). 이미 시작한 스터디의 참여자는 그대로 두고 출석 판정에 맡긴다. 이미 발급된 액세스 토큰은 만료(최대 15분)까지 일부 API 에서 통과할 수 있고 `GET /me`는 `401`이다 |
-| `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
-| `GET /api/v1/me/attendance?cursor&size` | 회원 | 지난 출석 기록. 스터디마다 **현재 판정** 하나씩, 최근에 쌓인 판정부터(커서, `size` 1~50 기본 20). 응답 `{ items: [{ eventId, studyId, studyTitle, type, occurredAt, appealable, appealDueAt, appealId }], nextCursor }`. `type`은 현재 판정(DATA-MODEL 5장). `appealable`은 이의 대상 판정이고 아직 내지 않았고 기한 안일 때만 `true`, `appealDueAt`은 이의 대상 판정에만 값이 있고 `appealId`는 이미 낸 이의가 있을 때만 값이 있다. `eventId`가 이의 신청 경로(5장)의 값이다 |
-| `GET /api/v1/me/notifications` | 회원 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
-| `GET/PUT /api/v1/me/notification-settings` | 회원 | 채널별 on/off. 응답 `{ "push": true, "email": true }`(저장된 값이 없으면 둘 다 `true`). `PUT`은 보낸 채널만 바꾸고(`null`·생략은 유지) 바뀐 전체 설정을 돌려준다. 꺼진 채널은 발송 시점에 건너뛴다(알림 센터에는 남음) |
-| `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 웹 푸시 구독 등록·해지 |
-| `GET /api/v1/users/{id}` | 공개 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1). 응답은 아래 **공개 프로필 응답** |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `GET /api/v1/me` | 회원 | 공통 | 프로필, `onboarded` 여부. 이용 제한 현황은 제재 작업(PLAN T-035a)에서 더한다 |
+| `PUT /api/v1/me/profile` | 회원 | 2, 10 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
+| `DELETE /api/v1/me` | 회원 | 10 | 탈퇴 (PRD 4.1). 진행 중 스터디에 나가기 규칙을 먼저 적용하고(참여 취소·주최자 승계·파투, 대기 삭제) 개인정보 삭제·미발송 알림 취소·토큰 폐기를 한 트랜잭션으로 처리한다. `204`, 로그인 쿠키를 지우고 새 CSRF 토큰을 받게 한다. 이미 탈퇴했어도 `204`(멱등). 이미 시작한 스터디의 참여자는 그대로 두고 출석 판정에 맡긴다. 이미 발급된 액세스 토큰은 만료(최대 15분)까지 일부 API 에서 통과할 수 있고 `GET /me`는 `401`이다 |
+| `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 6 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
+| `GET /api/v1/me/attendance?cursor&size` | 회원 | 10 | 지난 출석 기록. 스터디마다 **현재 판정** 하나씩, 최근에 쌓인 판정부터(커서, `size` 1~50 기본 20). 응답 `{ items: [{ eventId, studyId, studyTitle, type, occurredAt, appealable, appealDueAt, appealId }], nextCursor }`. `type`은 현재 판정(DATA-MODEL 5장). `appealable`은 이의 대상 판정이고 아직 내지 않았고 기한 안일 때만 `true`, `appealDueAt`은 이의 대상 판정에만 값이 있고 `appealId`는 이미 낸 이의가 있을 때만 값이 있다. `eventId`가 이의 신청 경로(5장)의 값이다 |
+| `GET /api/v1/me/notifications` | 회원 | 12 | 알림 센터 (커서). `POST /{id}/read`, `POST /read-all` (아래) |
+| `GET/PUT /api/v1/me/notification-settings` | 회원 | 12 | 채널별 on/off. 응답 `{ "push": true, "email": true }`(저장된 값이 없으면 둘 다 `true`). `PUT`은 보낸 채널만 바꾸고(`null`·생략은 유지) 바뀐 전체 설정을 돌려준다. 꺼진 채널은 발송 시점에 건너뛴다(알림 센터에는 남음) |
+| `PUT /api/v1/me/push-subscription` · `DELETE` | 회원 | 12 | 웹 푸시 구독 등록·해지 |
+| `GET /api/v1/users/{id}` | 공개 | 10, 14 | 공개 프로필: 닉네임, 직군, 지역, 출석 지표, 주최 지표, 가입일 (PRD 4.1). 응답은 아래 **공개 프로필 응답** |
 
 **내 정보 응답** (`GET /me`, `PUT /me/profile`)
 ```json
@@ -206,14 +211,14 @@ covers:
 
 ## 4. 스터디
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `GET /api/v1/meta/options` | 공개 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정). 아래 응답 |
-| `GET /api/v1/studies` | 공개 | 목록. 기본은 모집 중만. 아래 "목록 조회" |
-| `POST /api/v1/studies` | 회원 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 개설 제한·이용 정지 중이면 `403 USER_RESTRICTED`(`until` 포함, 온보딩 검사 다음·입력 검증 앞) |
-| `GET /api/v1/studies/{id}` | 공개 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함. 종료·파투된 스터디도 주소로 열면 보인다. 없으면 `404 NOT_FOUND` |
-| `PATCH /api/v1/studies/{id}` | 주최자 | 본문 `{ title?, description?, startAt?, durationMin?, place? }`, 보낸 항목만 바꾸고 고친 **상세**를 `200`으로 돌려준다(`scheduleEditable`로 클라이언트가 입력란을 잠근다). 제목·소개는 진행 중이면 언제든 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없고 시작 전일 때만** 수정 가능하고, 아니면 `409 SCHEDULE_LOCKED`(같이 보낸 제목·소개도 바뀌지 않는다). 일정은 개설과 같은 규칙으로 검사해(바꾸지 않은 항목은 지금 값과 합쳐서) 어긋나면 `400 VALIDATION_FAILED`. 주최자(`host_id`이고 `ACTIVE`)가 아니면 `403`, 종료·파투면 `409 STUDY_CLOSED` |
-| `PUT /api/v1/studies/{id}/capacity` | 주최자 | `{ "capacity": 5 }`. 증액·감소하고 고친 **상세**를 `200`으로 돌려준다. 범위(`capacityMin`~`capacityMax`) 밖이면 `400 VALIDATION_FAILED`, 현재 `ACTIVE` 참여자 수(주최자 포함) 미만이면 `409 CAPACITY_BELOW_MEMBERS`. 정원이 찼던 스터디에서 자리가 생기게 늘리면 자격이 남은 대기자에게 알림(PLAN X-20). 권한·종료 처리는 PATCH와 같다 |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `GET /api/v1/meta/options` | 공개 | 공통 | 주제·직군·지역 코드 목록, 정원 범위, 개설 가능 일수, 체크인 반경 등 **클라이언트가 알아야 할 설정값** (원본은 PRD/설정). 아래 응답 |
+| `GET /api/v1/studies` | 공개 | 3 | 목록. 기본은 모집 중만. 아래 "목록 조회" |
+| `POST /api/v1/studies` | 회원 | 5 | 개설. 채팅방을 함께 만든다. `201`과 `Location`, 본문 `{ "id": 1 }`. 온보딩 전이면 `403 ONBOARDING_REQUIRED`, 개설 제한·이용 정지 중이면 `403 USER_RESTRICTED`(`until` 포함, 온보딩 검사 다음·입력 검증 앞) |
+| `GET /api/v1/studies/{id}` | 공개 | 4 | 상세. 참여자 닉네임·지표 포함(비회원도 열람). 로그인 시 내 상태(`myState`) 포함. 종료·파투된 스터디도 주소로 열면 보인다. 없으면 `404 NOT_FOUND` |
+| `PATCH /api/v1/studies/{id}` | 주최자 | 6 | 본문 `{ title?, description?, startAt?, durationMin?, place? }`, 보낸 항목만 바꾸고 고친 **상세**를 `200`으로 돌려준다(`scheduleEditable`로 클라이언트가 입력란을 잠근다). 제목·소개는 진행 중이면 언제든 수정 가능. **일정·장소(`startAt`, `durationMin`, `place`)는 주최자 외 `ACTIVE` 참여자가 없고 시작 전일 때만** 수정 가능하고, 아니면 `409 SCHEDULE_LOCKED`(같이 보낸 제목·소개도 바뀌지 않는다). 일정은 개설과 같은 규칙으로 검사해(바꾸지 않은 항목은 지금 값과 합쳐서) 어긋나면 `400 VALIDATION_FAILED`. 주최자(`host_id`이고 `ACTIVE`)가 아니면 `403`, 종료·파투면 `409 STUDY_CLOSED` |
+| `PUT /api/v1/studies/{id}/capacity` | 주최자 | 6 | `{ "capacity": 5 }`. 증액·감소하고 고친 **상세**를 `200`으로 돌려준다. 범위(`capacityMin`~`capacityMax`) 밖이면 `400 VALIDATION_FAILED`, 현재 `ACTIVE` 참여자 수(주최자 포함) 미만이면 `409 CAPACITY_BELOW_MEMBERS`. 정원이 찼던 스터디에서 자리가 생기게 늘리면 자격이 남은 대기자에게 알림(PLAN X-20). 권한·종료 처리는 PATCH와 같다 |
 
 **메타 옵션 응답** (`GET /meta/options`)
 ```json
@@ -304,25 +309,26 @@ covers:
 
 ### 참여·대기
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `POST /api/v1/studies/{id}/members` | 회원 | 참여 신청 → 즉시 확정 `201`, 본문 없음(결과는 상세의 `myState`). 오류 `STUDY_NOT_RECRUITING`, `STUDY_FULL`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4). 그 밖에 온보딩 전이면 `403 ONBOARDING_REQUIRED`(검증보다 먼저, PLAN X-19), 스터디가 없으면 `404 NOT_FOUND`, 락 대기 초과면 `409 LOCK_TIMEOUT`(재시도) |
-| `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 나가기 = 참여 취소 → `200 { cancelType }`(`EARLY`/`LATE`). 오류 `FORBIDDEN`(참여 중이 아님), `SESSION_STARTED`(참여자: 시작 후·종료·파투, 주최자: 종료·파투), `NOT_FOUND`, `LOCK_TIMEOUT`. **주최자가 호출하면 주최 포기**로 `200 { outcome }`을 돌려주고 `cancelType`은 없다: 시작 전 남은 참여자가 있으면 `TRANSFERRED`(무작위 1명 승계, 시작 3시간 이내면 감점 PRD 4.13B), 주최자만 남았으면 `CANCELLED`(파투, 감점 없음), 시작 후면 `LEFT_AFTER_START`(승계 없음, PLAN X-13) |
-| `GET /api/v1/studies/{id}/members` | 참여자 | 참여자 목록과 지표(상세의 `members`와 같은 형식). 그 스터디의 `ACTIVE` 참여자(주최자 포함)가 아니면 `403 FORBIDDEN` |
-| `POST /api/v1/studies/{id}/waiting` | 회원 | 대기 등록 → `201`, 본문 없음. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_RECRUITING`, `ALREADY_JOINED`, `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`(참여 신청과 같은 자격 검사, PRD 4.14), `ALREADY_WAITING` (이 순서로 검사). 그 밖에 `ONBOARDING_REQUIRED`, `NOT_FOUND`, `LOCK_TIMEOUT` |
-| `DELETE /api/v1/studies/{id}/waiting/me` | 회원 | 대기 취소 → `204`. 대기 중이 아니어도 `204`(멱등) |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `POST /api/v1/studies/{id}/members` | 회원 | 4 | 참여 신청 → 즉시 확정 `201`, 본문 없음(결과는 상세의 `myState`). 오류 `STUDY_NOT_RECRUITING`, `STUDY_FULL`, `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`, `ALREADY_JOINED` (검증 순서는 PRD 4.4). 그 밖에 온보딩 전이면 `403 ONBOARDING_REQUIRED`(검증보다 먼저, PLAN X-19), 스터디가 없으면 `404 NOT_FOUND`, 락 대기 초과면 `409 LOCK_TIMEOUT`(재시도) |
+| `DELETE /api/v1/studies/{id}/members/me` | 참여자 | 4 | 나가기 = 참여 취소 → `200 { cancelType }`(`EARLY`/`LATE`). 오류 `FORBIDDEN`(참여 중이 아님), `SESSION_STARTED`(참여자: 시작 후·종료·파투, 주최자: 종료·파투), `NOT_FOUND`, `LOCK_TIMEOUT`. **주최자가 호출하면 주최 포기**로 `200 { outcome }`을 돌려주고 `cancelType`은 없다: 시작 전 남은 참여자가 있으면 `TRANSFERRED`(무작위 1명 승계, 시작 3시간 이내면 감점 PRD 4.13B), 주최자만 남았으면 `CANCELLED`(파투, 감점 없음), 시작 후면 `LEFT_AFTER_START`(승계 없음, PLAN X-13) |
+| `GET /api/v1/studies/{id}/leave-preview` | 참여자 | 4 | 나가기 확인용 사전 조회 (아래) |
+| `GET /api/v1/studies/{id}/members` | 참여자 | 없음: 화면은 상세(`GET /studies/{id}`)의 `members`를 쓴다 | 참여자 목록과 지표(상세의 `members`와 같은 형식). 그 스터디의 `ACTIVE` 참여자(주최자 포함)가 아니면 `403 FORBIDDEN` |
+| `POST /api/v1/studies/{id}/waiting` | 회원 | 4 | 대기 등록 → `201`, 본문 없음. 정원이 차 있을 때만 가능하다. 오류 `STUDY_NOT_RECRUITING`, `ALREADY_JOINED`, `STUDY_NOT_FULL`(여유 있음 → 신청 안내), `USER_RESTRICTED`, `ENTRY_CRITERIA_NOT_MET`, `JOB_NOT_ALLOWED`(참여 신청과 같은 자격 검사, PRD 4.14), `ALREADY_WAITING` (이 순서로 검사). 그 밖에 `ONBOARDING_REQUIRED`, `NOT_FOUND`, `LOCK_TIMEOUT` |
+| `DELETE /api/v1/studies/{id}/waiting/me` | 회원 | 4 | 대기 취소 → `204`. 대기 중이 아니어도 `204`(멱등) |
 
 - 나가기 확인용 사전 조회: `GET /api/v1/studies/{id}/leave-preview` → `{ cancelType, hostOutcome, penaltyApplies }`(주최자는 `hostOutcome`(`TRANSFERRED`/`CANCELLED`/`LEFT_AFTER_START`)만, 참여자는 `cancelType`만 담기고 없는 쪽은 생략한다. 주최자의 `penaltyApplies`는 주최자 감점이 붙는지다. 비참여자는 `403`, 참여자의 시작 후·종료·파투와 주최자의 종료·파투는 `409 SESSION_STARTED`). 클라이언트가 "직전 취소는 기록에 반영됩니다" 같은 안내를 띄우는 데 쓴다.
 - 모집 마감 토글 API는 **없다** (PRD 4.14). 강퇴 API도 없다 (PRD 7장).
 
 ## 5. 출석
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `POST /api/v1/studies/{id}/checkins` | 참여자 | 위치 체크인. 본문 `{ "latitude", "longitude", "accuracyM" }`. 판정은 서버. 성공 시 `{ "result": "ATTENDED"\|"LATE", "distanceM": 42 }`. 이미 했으면 같은 결과를 `200`으로 반환(멱등) |
-| `POST /api/v1/studies/{id}/checkins/code` | 참여자 | 코드 체크인 `{ "code": "123456" }`. 위치 거부·GPS 실패 시의 유일한 대체 수단. 성공 시 `{ "result": "ATTENDED"\|"LATE" }`(`distanceM` 없음), 이미 했으면 같은 결과를 `200`으로 반환(멱등) |
-| `PUT /api/v1/studies/{id}/checkin-code` | 주최자 | 일회용 코드 발급(재발급, 이전 코드는 무효). 주최자 체크인 후에만, 아니면 `HOST_NOT_CHECKED_IN`. 응답 `{ "code": "123456", "expiresAt": "..." }` |
-| `GET /api/v1/studies/{id}/attendance` | 참여자 | 체크인 현황. 참여자는 자기 것, 주최자는 전원의 **체크인 여부만** 본다 (노쇼 확정 권한 없음, PRD 4.6) |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `POST /api/v1/studies/{id}/checkins` | 참여자 | 7 | 위치 체크인. 본문 `{ "latitude", "longitude", "accuracyM" }`. 판정은 서버. 성공 시 `{ "result": "ATTENDED"\|"LATE", "distanceM": 42 }`. 이미 했으면 같은 결과를 `200`으로 반환(멱등) |
+| `POST /api/v1/studies/{id}/checkins/code` | 참여자 | 7 | 코드 체크인 `{ "code": "123456" }`. 위치 거부·GPS 실패 시의 유일한 대체 수단. 성공 시 `{ "result": "ATTENDED"\|"LATE" }`(`distanceM` 없음), 이미 했으면 같은 결과를 `200`으로 반환(멱등) |
+| `PUT /api/v1/studies/{id}/checkin-code` | 주최자 | 7 | 일회용 코드 발급(재발급, 이전 코드는 무효). 주최자 체크인 후에만, 아니면 `HOST_NOT_CHECKED_IN`. 응답 `{ "code": "123456", "expiresAt": "..." }` |
+| `GET /api/v1/studies/{id}/attendance` | 참여자 | 7 | 체크인 현황. 참여자는 자기 것, 주최자는 전원의 **체크인 여부만** 본다 (노쇼 확정 권한 없음, PRD 4.6) |
 
 - 위치 체크인 검사 순서(PLAN X-27): 스터디 없음 `404` → 참여자가 아님 `403` → 이미 체크인했으면 처음 결과 `200` → 종료·파투 `409 STUDY_CLOSED` → 시간창 `422 CHECKIN_WINDOW_CLOSED` → 반경 `422 CHECKIN_OUT_OF_RANGE`. `accuracyM`은 필수이며 저장만 하고 판정에 쓰지 않는다. 락 대기 시간이 지나면 `LOCK_TIMEOUT`.
 - 코드 체크인·발급 검사 순서(PLAN X-28): 스터디 없음 `404` → (발급은 주최자가 아님, 체크인은 참여자가 아님) `403` → (체크인만) 이미 체크인했으면 처음 결과 `200` → 종료·파투 `409 STUDY_CLOSED` → 시간창 `422 CHECKIN_WINDOW_CLOSED` → 주최자 미체크인 `422 HOST_NOT_CHECKED_IN` → (체크인만) 코드 오류·만료·발급 전·시도 초과 `422 CHECKIN_CODE_INVALID`. 코드는 6자리 숫자이고 체크인 마감 시각까지 유효하다. 한 사람이 한 스터디에서 5번 틀리면 그 뒤로는 맞는 코드도 `CHECKIN_CODE_INVALID`다. `code`가 6자리 숫자가 아니면 `400 VALIDATION_FAILED`이고 실패 횟수에 세지 않는다. 주최자 화면은 코드를 다시 불러오는 API가 없으므로 `PUT`을 다시 부르면 새 코드가 된다.
@@ -332,12 +338,12 @@ covers:
 
 ### 이의 신청 (PRD 4.9)
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `POST /api/v1/attendance-events/{eventId}/appeals` | 본인 | `{ "reason": "..." }`(공백 제외 1~500자). 판정당 1회, 기한 후 `409 APPEAL_CLOSED`. 성공 `201`과 이의 응답 |
-| `GET /api/v1/me/appeals?cursor&size` | 회원 | 내 이의 내역, 최근 신청부터(커서). 응답 `{ items: [이의], nextCursor }` |
-| `GET /api/v1/studies/{id}/appeals` | 주최자 | 그 스터디에 들어온 이의, 최근 신청부터(커서 없이 전부). 응답 `[{ id, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt }]`. 신청자는 닉네임만 보이고(탈퇴했으면 `null`) 주최자가 아니면 `403`, 없는 스터디는 `404`. 주최자가 1차 의견을 쓸 이의를 찾는 경로다 (T-037) |
-| `PUT /api/v1/appeals/{id}/host-opinion` | 주최자 | 1차 의견 `{ "opinion": "..." }`(공백 제외 1~500자). 결정 전에는 다시 보내면 덮어쓴다(멱등), 결정된 이의는 `409 APPEAL_CLOSED`. 응답은 이의 |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `POST /api/v1/attendance-events/{eventId}/appeals` | 본인 | 10 | `{ "reason": "..." }`(공백 제외 1~500자). 판정당 1회, 기한 후 `409 APPEAL_CLOSED`. 성공 `201`과 이의 응답 |
+| `GET /api/v1/me/appeals?cursor&size` | 회원 | 11 | 내 이의 내역, 최근 신청부터(커서). 응답 `{ items: [이의], nextCursor }` |
+| `GET /api/v1/studies/{id}/appeals` | 주최자 | 11 | 그 스터디에 들어온 이의, 최근 신청부터(커서 없이 전부). 응답 `[{ id, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt }]`. 신청자는 닉네임만 보이고(탈퇴했으면 `null`) 주최자가 아니면 `403`, 없는 스터디는 `404`. 주최자가 1차 의견을 쓸 이의를 찾는 경로다 (T-037) |
+| `PUT /api/v1/appeals/{id}/host-opinion` | 주최자 | 11 | 1차 의견 `{ "opinion": "..." }`(공백 제외 1~500자). 결정 전에는 다시 보내면 덮어쓴다(멱등), 결정된 이의는 `409 APPEAL_CLOSED`. 응답은 이의 |
 
 - **이의 응답**: `{ id, attendanceEventId, studyId, studyTitle, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`. `status`는 `OPEN`/`ACCEPTED`/`REJECTED`, `verdictType`은 이의를 낸 판정 종류(`NO_SHOW_CANDIDATE`·`LATE`).
 - **이의 대상**: 노쇼 후보(`NO_SHOW_CANDIDATE`)와 지각(`LATE`) 판정만. 기한은 판정이 쌓인 시각부터 PRD 4.9의 기간이다 (DATA-MODEL 5장).
@@ -350,12 +356,12 @@ covers:
 
 REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-0005).
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `GET /api/v1/studies/{id}/chat` | 참여자 | 방 상태(`OPEN`/`CLOSED`), 공지, 내 읽지 않음 수 |
-| `GET /api/v1/studies/{id}/chat/messages?before=&size=` | 참여자 | 이전 대화 (커서). 차단한 사용자 메시지는 숨김 처리 표시 |
-| `PUT /api/v1/studies/{id}/chat/notice` | 주최자 | 공지 고정·수정 |
-| `PUT /api/v1/studies/{id}/chat/read` | 참여자 | `{ "lastReadMessageId": 123 }` |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `GET /api/v1/studies/{id}/chat` | 참여자 | 8 | 방 상태(`OPEN`/`CLOSED`), 공지, 내 읽지 않음 수 |
+| `GET /api/v1/studies/{id}/chat/messages?before=&size=` | 참여자 | 8 | 이전 대화 (커서). 차단한 사용자 메시지는 숨김 처리 표시 |
+| `PUT /api/v1/studies/{id}/chat/notice` | 주최자 | 8 | 공지 고정·수정 |
+| `PUT /api/v1/studies/{id}/chat/read` | 참여자 | 8 | `{ "lastReadMessageId": 123 }` |
 
 - **방 상태** 응답: `{ status, notice: { content, updatedAt } | null, unreadCount }`. 참여자(`ACTIVE`)만 쓴다: 스터디 없음 `404`, 참여자 아님·나간 사람 `403`. 닫힌 방도 상태는 준다(`status: "CLOSED"`).
 - **이전 대화**: `before`(메시지 id, 1 이상, 없으면 맨 끝)보다 앞선 메시지를 **최근 것부터** `size`(1~100, 기본 30)건. 응답 `{ items: [{ id, kind, senderId, senderNickname, content, hidden, deleted, createdAt }], nextCursor }`이고 `nextCursor`는 다음 요청의 `before`로 넘길 문자열(더 없으면 `null`). `kind`는 `TEXT`/`SYSTEM`(시스템 메시지는 `senderId`가 `null`). 내가 차단한 사람의 메시지는 `hidden: true`, 운영자가 지운 메시지는 `deleted: true`이고 둘 다 `content`가 `null`이다. 닫힌 방은 `409 CHAT_CLOSED`.
@@ -382,21 +388,21 @@ REST는 이력 조회와 부가 기능, 실시간 송수신은 STOMP이다 (ADR-
 
 ## 7. 신고·차단·운영자
 
-| 메서드 경로 | 권한 | 설명 |
-|---|---|---|
-| `POST /api/v1/reports` | 회원 | `{ "targetType": "STUDY\|USER\|MESSAGE", "targetId", "reason", "detail" }`. `reason`은 `SPAM_AD`·`ABUSE`·`INAPPROPRIATE_RECRUIT`·`HARASSMENT`·`FRAUD`·`OTHER`(그 밖은 `400`, `OTHER`는 `detail` 필수, `detail` 500자 이하). `201`과 `{ "id" }`. 없는 대상·시스템/지워진 메시지 `404`, 내 메시지·자기 자신 `400`, 그 방 참여자가 아닌 메시지 신고 `403`, 같은 대상에 열린 신고가 있으면 `409 ALREADY_REPORTED` |
-| `PUT /api/v1/blocks/{userId}` · `DELETE` | 회원 | 사용자 차단·해제 |
-| `GET /api/v1/admin/reports?status=open&cursor=&size=20` | 운영자 | 신고 큐, 최근 신고부터. `status`는 `open`(기본)·`dismissed`·`resolved`·`all`(그 밖은 `400`). 항목 `{ id, reporterId, reporterNickname, targetType, targetId, targetSummary(스터디 제목·닉네임·메시지 앞 100자, 대상이 없으면 null), reason, detail, status, handledBy, handleNote, createdAt, handledAt }`, 응답 `{ items, nextCursor }` |
-| `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 반려 또는 처리 완료 `{ "note": "..." }`(`note` 필수 300자 이하). `200`과 처리된 신고, 없으면 `404`, 이미 처리됐으면 `409 REPORT_ALREADY_HANDLED`. 감사 로그 `REPORT_DISMISS`·`REPORT_RESOLVE`. 처리 완료는 표시일 뿐 실제 조치는 아래 API로 따로 한다 |
-| `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 강제 종료 = 파투(`cancel_reason=OPERATOR`) `{ "note": "..." }`(`note` 필수 200자 이하, 감사 로그 `STUDY_FORCE_END`). `204`. 참여자 지표 영향 없음(체크인 마감 뒤 판정 작업이 `VOIDED`를 남김). 대기 행 삭제, 참여자·대기자에게 `STUDY_CANCELLED` 알림, 채팅방 폐쇄. 이미 강제 종료됐으면 `204`(멱등), 정상 종료·주최자 포기 파투면 `409 STUDY_CLOSED`, 없으면 `404` |
-| `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 메시지 삭제 `{ "note": "..." }`(`note` 필수 200자 이하). 내용을 비우고 지운 시각만 남긴다(이전 대화 조회는 `deleted: true`, 내용 없음). `204`, 이미 지웠으면 `204`(멱등), 없는 메시지·시스템 메시지는 `404`. 감사 로그 `MESSAGE_DELETE`(내용 없음) |
-| `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 이용 정지 부여 `{ "days": 7, "note": "..." }`(1~365일, `note` 필수). `200`과 제재 `{ id, userId, kind, source, reason, startsAt, endsAt, revokedAt, createdBy, reviewRequired, active }`, 없는 회원 `404`. 대상에게 `SANCTION_APPLIED` 알림. 해제 `DELETE`는 `{ "note" }` 본문, `204`(멱등), 그 회원의 제재가 아니면 `404`. 감사 로그 `SANCTION_GRANT`·`SANCTION_REVOKE` |
-| `GET /api/v1/admin/appeals?status=open&cursor=&size=20` | 운영자 | 이의 목록, 최근 신청부터. `status`는 `open`(기본)·`accepted`·`rejected`·`all`(그 밖은 `400`). 항목 `{ id, studyId, studyTitle, userId, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`, 응답 `{ items, nextCursor }` |
-| `POST /api/v1/admin/appeals/{id}/decision` | 운영자 | 이의 최종 결정 `{ "accept": true, "note": "..." }`(`note` 필수, 150자 이하, 신청자 알림에 실린다). `200`과 결정된 이의. 인정: 판정 무효화(지각이면 출석 정정)와 지표 재계산, 근거를 잃은 자동 제재 해제. 기각: 노쇼 후보는 즉시 확정과 제재 판정. 이미 결정된 이의는 `409 APPEAL_CLOSED` |
-| `POST /api/v1/admin/attendance-events/{eventId}/corrections` | 운영자 | 개별 출석 정정 `{ "result": "ATTENDED" \| "CLEARED", "note": "..." }`(`note` 필수 200자 이하). `ATTENDED`는 출석으로 집계, `CLEARED`는 판정 무효화. 대상은 현재 판정이 `NO_SHOW_CANDIDATE`·`LATE`·`NO_SHOW`인 이벤트이며 이미 정정됐거나 열린 이의가 있으면 `409 CORRECTION_NOT_ALLOWED`, 없으면 `404`. 응답 `{ eventId, studyId, userId, verdict }`. 지표 재계산과 근거를 잃은 자동 제재 해제, 감사 로그 `ATTENDANCE_CORRECT` |
-| `GET /api/v1/admin/sanctions?userId=&activeOnly=false&reviewRequired=false&cursor=&size=20` | 운영자 | 제재 조회(자동·수동), 최근 것부터 커서. `userId`로 회원을, `activeOnly`로 지금 유효한 것만, `reviewRequired`로 운영자 검토 대상(주최자 합계가 검토 단계)만 거른다. 응답 `{ items, nextCursor }` |
-| `DELETE /api/v1/admin/sanctions/{id}` | 운영자 | 자동·수동 제재 해제 `{ "note" }`. `204`(멱등), 없으면 `404`. 해제하면 바로 신청·개설을 다시 할 수 있다 |
-| `GET /api/v1/admin/audit-logs?cursor=&size=50&action=&targetType=` | 운영자 | 감사 로그. 최근 것부터 커서(`size` 1~100). `action`은 알려진 행위 이름만(아니면 `400`), `targetType`은 그대로 비교한다. 응답 `{ "items": [ { id, actorId(시스템이면 null), action, targetType, targetId, detail, createdAt } ], "nextCursor": null }` |
+| 메서드 경로 | 권한 | 화면 | 설명 |
+|---|---|---|---|
+| `POST /api/v1/reports` | 회원 | 4, 8, 14 | `{ "targetType": "STUDY\|USER\|MESSAGE", "targetId", "reason", "detail" }`. `reason`은 `SPAM_AD`·`ABUSE`·`INAPPROPRIATE_RECRUIT`·`HARASSMENT`·`FRAUD`·`OTHER`(그 밖은 `400`, `OTHER`는 `detail` 필수, `detail` 500자 이하). `201`과 `{ "id" }`. 없는 대상·시스템/지워진 메시지 `404`, 내 메시지·자기 자신 `400`, 그 방 참여자가 아닌 메시지 신고 `403`, 같은 대상에 열린 신고가 있으면 `409 ALREADY_REPORTED` |
+| `PUT /api/v1/blocks/{userId}` · `DELETE` | 회원 | 8 | 사용자 차단·해제 |
+| `GET /api/v1/admin/reports?status=open&cursor=&size=20` | 운영자 | 13 | 신고 큐, 최근 신고부터. `status`는 `open`(기본)·`dismissed`·`resolved`·`all`(그 밖은 `400`). 항목 `{ id, reporterId, reporterNickname, targetType, targetId, targetSummary(스터디 제목·닉네임·메시지 앞 100자, 대상이 없으면 null), reason, detail, status, handledBy, handleNote, createdAt, handledAt }`, 응답 `{ items, nextCursor }` |
+| `POST /api/v1/admin/reports/{id}/dismiss` · `/resolve` | 운영자 | 13 | 반려 또는 처리 완료 `{ "note": "..." }`(`note` 필수 300자 이하). `200`과 처리된 신고, 없으면 `404`, 이미 처리됐으면 `409 REPORT_ALREADY_HANDLED`. 감사 로그 `REPORT_DISMISS`·`REPORT_RESOLVE`. 처리 완료는 표시일 뿐 실제 조치는 아래 API로 따로 한다 |
+| `POST /api/v1/admin/studies/{id}/force-end` | 운영자 | 13 | 강제 종료 = 파투(`cancel_reason=OPERATOR`) `{ "note": "..." }`(`note` 필수 200자 이하, 감사 로그 `STUDY_FORCE_END`). `204`. 참여자 지표 영향 없음(체크인 마감 뒤 판정 작업이 `VOIDED`를 남김). 대기 행 삭제, 참여자·대기자에게 `STUDY_CANCELLED` 알림, 채팅방 폐쇄. 이미 강제 종료됐으면 `204`(멱등), 정상 종료·주최자 포기 파투면 `409 STUDY_CLOSED`, 없으면 `404` |
+| `DELETE /api/v1/admin/chat-messages/{id}` | 운영자 | 13 | 메시지 삭제 `{ "note": "..." }`(`note` 필수 200자 이하). 내용을 비우고 지운 시각만 남긴다(이전 대화 조회는 `deleted: true`, 내용 없음). `204`, 이미 지웠으면 `204`(멱등), 없는 메시지·시스템 메시지는 `404`. 감사 로그 `MESSAGE_DELETE`(내용 없음) |
+| `POST /api/v1/admin/users/{id}/suspensions` · `DELETE .../{sid}` | 운영자 | 13 | 이용 정지 부여 `{ "days": 7, "note": "..." }`(1~365일, `note` 필수). `200`과 제재 `{ id, userId, kind, source, reason, startsAt, endsAt, revokedAt, createdBy, reviewRequired, active }`, 없는 회원 `404`. 대상에게 `SANCTION_APPLIED` 알림. 해제 `DELETE`는 `{ "note" }` 본문, `204`(멱등), 그 회원의 제재가 아니면 `404`. 감사 로그 `SANCTION_GRANT`·`SANCTION_REVOKE` |
+| `GET /api/v1/admin/appeals?status=open&cursor=&size=20` | 운영자 | 13 | 이의 목록, 최근 신청부터. `status`는 `open`(기본)·`accepted`·`rejected`·`all`(그 밖은 `400`). 항목 `{ id, studyId, studyTitle, userId, applicantNickname, verdictType, reason, hostOpinion, status, dueAt, createdAt, decidedAt }`, 응답 `{ items, nextCursor }` |
+| `POST /api/v1/admin/appeals/{id}/decision` | 운영자 | 13 | 이의 최종 결정 `{ "accept": true, "note": "..." }`(`note` 필수, 150자 이하, 신청자 알림에 실린다). `200`과 결정된 이의. 인정: 판정 무효화(지각이면 출석 정정)와 지표 재계산, 근거를 잃은 자동 제재 해제. 기각: 노쇼 후보는 즉시 확정과 제재 판정. 이미 결정된 이의는 `409 APPEAL_CLOSED` |
+| `POST /api/v1/admin/attendance-events/{eventId}/corrections` | 운영자 | 13 | 개별 출석 정정 `{ "result": "ATTENDED" \| "CLEARED", "note": "..." }`(`note` 필수 200자 이하). `ATTENDED`는 출석으로 집계, `CLEARED`는 판정 무효화. 대상은 현재 판정이 `NO_SHOW_CANDIDATE`·`LATE`·`NO_SHOW`인 이벤트이며 이미 정정됐거나 열린 이의가 있으면 `409 CORRECTION_NOT_ALLOWED`, 없으면 `404`. 응답 `{ eventId, studyId, userId, verdict }`. 지표 재계산과 근거를 잃은 자동 제재 해제, 감사 로그 `ATTENDANCE_CORRECT` |
+| `GET /api/v1/admin/sanctions?userId=&activeOnly=false&reviewRequired=false&cursor=&size=20` | 운영자 | 13 | 제재 조회(자동·수동), 최근 것부터 커서. `userId`로 회원을, `activeOnly`로 지금 유효한 것만, `reviewRequired`로 운영자 검토 대상(주최자 합계가 검토 단계)만 거른다. 응답 `{ items, nextCursor }` |
+| `DELETE /api/v1/admin/sanctions/{id}` | 운영자 | 13 | 자동·수동 제재 해제 `{ "note" }`. `204`(멱등), 없으면 `404`. 해제하면 바로 신청·개설을 다시 할 수 있다 |
+| `GET /api/v1/admin/audit-logs?cursor=&size=50&action=&targetType=` | 운영자 | 없음: 화면을 둘지 미정 (PLAN X-31) | 감사 로그. 최근 것부터 커서(`size` 1~100). `action`은 알려진 행위 이름만(아니면 `400`), `targetType`은 그대로 비교한다. 응답 `{ "items": [ { id, actorId(시스템이면 null), action, targetType, targetId, detail, createdAt } ], "nextCursor": null }` |
 
 - 모든 운영자 쓰기 API는 `audit_log`에 기록한다. 응답 코드는 `204` 또는 변경된 리소스.
 - 운영자 API는 일반 API와 **경로 접두사(`/admin`)로 분리**하고 `role=ADMIN`을 필수로 검사한다. 비회원은 `401`, 일반 회원은 `403`이다. 역할은 액세스 토큰에 들어 있어(ADR-0002) 운영자 지정·해제는 토큰이 갱신될 때(최대 15분) 반영된다.

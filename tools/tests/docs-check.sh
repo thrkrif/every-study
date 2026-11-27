@@ -147,6 +147,30 @@ expect 2 "--base 에 값이 없음" --base
 repo; expect 2 "--base 에 없는 참조" --root "$d" --base nope
 d="$(fresh)"; expect 2 "git 저장소가 아닌데 --base" --root "$d" --base develop
 
+echo "== ⑧ 화면 추적 (API 화면 열)"
+# PRD 5장 화면 목록과 API 엔드포인트 표를 만든다: <디렉토리> <API 표 본문 행들>
+screens() {
+  printf -- '---\nstatus: confirmed\nversion: "0.3"\n---\n\n# PRD\n\n## 5. 화면 목록\n\n1. 로그인\n2. 온보딩\n10. 마이페이지\n\n## 6. 다음\n\n1. 화면 아님\n' > "$1/docs/PRD.md"
+  printf -- '---\nstatus: draft\n---\n\n# API\n\n| 메서드 경로 | 권한 | 화면 | 설명 |\n|---|---|---|---|\n%s\n\n본문\n' "$2" > "$1/docs/API.md"
+}
+d="$(fresh)"; screens "$d" '| `PUT /me/profile` | 회원 | 2, 10 | 온보딩·수정 |
+| `GET /me` | 회원 | 공통 | 내 정보 |
+| `GET /a\|b` | 운영자 | 없음: API 로만 조회 | 셀 안의 \| 는 구분자가 아님 |'
+expect 0 "번호·공통·없음: 이유" --root "$d"
+d="$(fresh)"; screens "$d" '| `GET /x` | 회원 | 14 | PRD 에 없는 화면 |'
+expect 1 "PRD 5장에 없는 번호" --root "$d"; expect_msg "없는 번호 메시지" "PRD 5장에 없는 화면" --root "$d"
+d="$(fresh)"; screens "$d" '| `GET /x` | 회원 |  | 빈 칸 |'
+expect 1 "빈 화면 칸" --root "$d"; expect_msg "빈 칸 메시지" "비었음" --root "$d"
+d="$(fresh)"; screens "$d" '| `GET /x` | 회원 | 없음: | 이유 없음 |'
+expect 1 "이유 없는 없음" --root "$d"
+d="$(fresh)"; screens "$d" '| `GET /x` | 회원 | 1 | 설명 |'
+printf '\n| 메서드 경로 | 권한 | 설명 |\n|---|---|---|\n| `GET /y` | 회원 | 화면 열 없음 |\n' >> "$d/docs/API.md"
+expect 1 "화면 열이 없는 표" --root "$d"; expect_msg "열 없음 메시지" "\"화면\" 열이 없음" --root "$d"
+d="$(fresh)"; screens "$d" '| `GET /x` | 회원 | 1 | 설명 |'
+printf -- '---\nstatus: confirmed\nversion: "0.3"\n---\n\n# PRD\n' > "$d/docs/PRD.md"
+expect 1 "PRD 에 화면 목록이 없음" --root "$d"
+d="$(fresh)"; expect 0 "API.md 가 없으면 건너뜀" --root "$d"
+
 echo
 echo "통과 $pass · 실패 $fail"
 [ "$fail" = 0 ]
