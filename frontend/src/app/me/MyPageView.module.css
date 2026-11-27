@@ -20,6 +20,25 @@
   overflow-wrap: anywhere;
 }
 
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.editLink {
+  flex: none;
+  color: var(--color-primary);
+  font-size: var(--text-label-size);
+  line-height: var(--text-label-line);
+}
+
+.editLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .facts,
 .note {
   color: var(--color-ink-sub);
