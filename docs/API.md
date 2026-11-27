@@ -1,6 +1,6 @@
 ---
 status: draft
-version: "0.43"
+version: "0.44"
 based_on:
   - docs/PRD.md@0.20
   - docs/ARCHITECTURE.md@0.21
@@ -34,7 +34,9 @@ covers:
 | 버전 | 호환이 깨지는 변경만 `/v2`. 필드 추가는 같은 버전에서 허용 |
 
 ### 화면 열 (요구사항 추적)
-엔드포인트 표마다 **화면** 열을 둔다. 그 API를 쓰는 [PRD 5장](PRD.md) 화면 번호를 쉼표로 적고, 쓰임새가 여럿이면 쓰임새마다 화면을 적는다(예: `PUT /me/profile`은 온보딩 2, 정보 수정 10). 모든 화면이 쓰는 인증·메타 API는 `공통`, 화면이 쓰지 않는 API는 `없음: <이유>`로 적는다. `bash tools/docs-check.sh`가 열이 있는지와 값이 PRD 5장에 있는 번호인지 검사한다.
+엔드포인트 표마다 **화면** 열을 둔다. 그 API를 쓰는 [PRD 5장](PRD.md) 화면 번호를 쉼표로 적고, 쓰임새가 여럿이면 쓰임새마다 화면을 적는다(예: `PUT /me/profile`은 온보딩 2, 정보 수정 10). 한 화면 안에서 쓰임새를 구분해야 하거나 쓰임새를 밝혀 두고 싶으면 `번호(쓰임새)`로 적는다(예: `2(온보딩), 10(수정)`). 쓰임새 이름에는 쉼표를 쓰지 않는다. 모든 화면이 쓰는 인증·메타 API는 `공통`, 화면이 쓰지 않는 API는 `없음: <이유>`로 적는다. `bash tools/docs-check.sh`가 열이 있는지와 값이 PRD 5장에 있는 번호인지 검사한다(6번).
+
+- **화면 항목마다 그것을 만드는 프론트 작업이 있어야 한다.** 이 열의 (엔드포인트, 화면 항목) 쌍 하나하나를 [PLAN](PLAN.md) `[프론트]` 작업의 "쓰임새" 줄이 맡는다. 맡은 작업이 없는 쌍, PLAN이 적었는데 이 열에 없는 쌍을 docs-check 7번이 실패로 잡는다. 그래서 이 열에 화면을 하나 더 적으면 그 화면을 만들 작업도 PLAN에 함께 생겨야 한다. 백엔드 작업의 "선행" 연결은 순서만 정해서, 한 엔드포인트의 두 번째 쓰임새가 어느 프론트 작업에도 없이 지나갔기 때문이다(PLAN T-074).
 
 - **PRD에 없는 쓰임새는 적지 않는다.** 짝지을 화면이 없다면 이 문서가 PRD에 없는 기능을 더하려는 것이다. PRD를 먼저 고치거나 [PLAN](PLAN.md) 7장에 X로 등록해 결정을 받는다 ([docs/README](README.md) 3장 규칙 6). 프로필 "수정"이 PRD 없이 이 문서에만 들어가 화면이 빠졌던 일(PLAN T-073)을 되풀이하지 않기 위해서다.
 
@@ -154,7 +156,7 @@ covers:
 | 메서드 경로 | 권한 | 화면 | 설명 |
 |---|---|---|---|
 | `GET /api/v1/me` | 회원 | 공통 | 프로필, `onboarded` 여부. 이용 제한 현황은 제재 작업(PLAN T-035a)에서 더한다 |
-| `PUT /api/v1/me/profile` | 회원 | 2, 10 | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
+| `PUT /api/v1/me/profile` | 회원 | 2(온보딩), 10(수정) | 온보딩·수정: `nickname`, `jobCode`, `districtCode`. 바뀐 내 정보를 돌려준다 |
 | `DELETE /api/v1/me` | 회원 | 10 | 탈퇴 (PRD 4.1). 진행 중 스터디에 나가기 규칙을 먼저 적용하고(참여 취소·주최자 승계·파투, 대기 삭제) 개인정보 삭제·미발송 알림 취소·토큰 폐기를 한 트랜잭션으로 처리한다. `204`, 로그인 쿠키를 지우고 새 CSRF 토큰을 받게 한다. 이미 탈퇴했어도 `204`(멱등). 이미 시작한 스터디의 참여자는 그대로 두고 출석 판정에 맡긴다. 이미 발급된 액세스 토큰은 만료(최대 15분)까지 일부 API 에서 통과할 수 있고 `GET /me`는 `401`이다 |
 | `GET /api/v1/me/studies?role=host\|member&state=upcoming\|past&cursor&size` | 회원 | 6 | 내 스터디 (마이페이지). 내가 `ACTIVE` 참여자인 스터디만 나온다(나간 스터디·대기 중인 스터디 제외). `role` 생략 시 주최·참여 모두, `host`는 지금 내가 주최자인 것, `member`는 주최자가 아닌 참여. `state` 기본 `upcoming`: 진행 중(`ACTIVE`)은 시작이 빠른 순, `past`: 종료·파투(`ENDED`/`CANCELLED`)는 최근 것부터. `cursor`·`size`(1~50, 기본 20)는 목록과 같고 다른 `state`의 커서는 `400`. 응답 `{ items: [{ id, title, topicCode, districtCode, startAt, durationMin, capacity, memberCount, status, role }], nextCursor }` (`role`은 `HOST`/`MEMBER`). 잘못된 `role`·`state`·`size`는 `400 VALIDATION_FAILED` |
 | `GET /api/v1/me/attendance?cursor&size` | 회원 | 10 | 지난 출석 기록. 스터디마다 **현재 판정** 하나씩, 최근에 쌓인 판정부터(커서, `size` 1~50 기본 20). 응답 `{ items: [{ eventId, studyId, studyTitle, type, occurredAt, appealable, appealDueAt, appealId }], nextCursor }`. `type`은 현재 판정(DATA-MODEL 5장). `appealable`은 이의 대상 판정이고 아직 내지 않았고 기한 안일 때만 `true`, `appealDueAt`은 이의 대상 판정에만 값이 있고 `appealId`는 이미 낸 이의가 있을 때만 값이 있다. `eventId`가 이의 신청 경로(5장)의 값이다 |

@@ -215,6 +215,7 @@ fi
 # 하위 문서(API)가 상위 문서(PRD)에 없는 기능을 조용히 더하는 것을 막는다 (PLAN T-073).
 # 엔드포인트 표("| 메서드 경로 |" 로 시작하는 머리 행)마다 "화면" 열이 있어야 하고, 값은 다음 중 하나다.
 #   - PRD "## 5. 화면 목록" 에 있는 번호들 (쉼표로 구분. 예: 2, 10)
+#     같은 화면에서 쓰임새가 둘 이상이거나 구분해 두고 싶으면 번호(쓰임새)로 적는다. 예: 2(온보딩), 10(수정)
 #   - 공통 (모든 화면이 쓰는 인증·메타 등)
 #   - 없음: <이유> (화면이 쓰지 않는 API. 이유를 반드시 적는다)
 PRD_DOC="$ROOT/docs/PRD.md"; API_DOC="$ROOT/docs/API.md"
@@ -249,13 +250,83 @@ if [ -f "$PRD_DOC" ] && [ -f "$API_DOC" ]; then
         if (v ~ /^없음: *[^ ]/) next
         if (v == "" ) { printf "%d\t화면 칸이 비었음\n", NR; next }
         k = split(v, nums, /, */)
-        for (i = 1; i <= k; i++)
-          if (!(nums[i] in ok)) printf "%d\tPRD 5장에 없는 화면: \"%s\"\n", NR, nums[i]
+        for (i = 1; i <= k; i++) {
+          x = trim(nums[i])
+          if (x !~ /^[0-9]+([(][^()]+[)])?$/) { printf "%d\t화면 항목 형식이 틀림: \"%s\" (번호 또는 번호(쓰임새))\n", NR, x; continue }
+          sub(/[(].*$/, "", x)
+          if (!(x in ok)) printf "%d\tPRD 5장에 없는 화면: \"%s\"\n", NR, x
+        }
         next
       }
       { intable = 0 }
     ' "$API_DOC")
   fi
+fi
+
+# ── 7. 쓰임새 추적: API 의 (엔드포인트, 화면) 쌍마다 그것을 화면으로 만드는 [프론트] 작업이 있는가 ──
+# PLAN 의 "선행" 은 순서만 정하고, 백엔드가 만든 기능을 어느 프론트 작업이 받는지는 정하지 않는다.
+# 그래서 한 엔드포인트의 두 번째 쓰임새(PUT /me/profile 의 수정)가 어느 작업에도 없이 지나갔다 (PLAN T-074).
+# [프론트] 작업의 "  - 쓰임새:" 줄에 `메서드 경로` 화면항목 을 " · " 로 이어 적는다.
+#   예: - 쓰임새: `PUT /me/profile` 10(수정) · `GET /users/{id}` 10, 14
+# 경로의 /api/v1 과 ?쿼리 는 비교할 때 뺀다. 화면 항목은 API 화면 열에 적힌 그대로 써야 한다.
+# '공통' · '없음: …' 행은 짝지을 필요가 없다.
+PLAN_DOC="$ROOT/docs/PLAN.md"
+if [ -f "$API_DOC" ] && [ -f "$PLAN_DOC" ]; then
+  while IFS=$'\t' read -r doc line msg; do
+    [ -n "$doc" ] && report "$doc" "쓰임새 추적 ${line}행: $msg" \
+      "API 화면 열의 (엔드포인트, 화면 항목)마다 그것을 만드는 [프론트] 작업의 '쓰임새' 줄에 적으세요. 맡을 작업이 없으면 PLAN 에 작업을 추가하세요."
+  done < <(LC_ALL=C awk '
+    function trim(x) { gsub(/^[ \t]+|[ \t]+$/, "", x); return x }
+    function norm(x) { sub(/\/api\/v1/, "", x); sub(/[?].*$/, "", x); return trim(x) }
+    FNR == 1 { file++ }
+    file == 1 {
+      row = $0; gsub(/\\\|/, "\001", row)
+      if (index($0, "| 메서드 경로 |") == 1) {
+        intable = 1; col = 0
+        m = split(row, h, "|")
+        for (i = 2; i < m; i++) if (trim(h[i]) == "화면") col = i
+        next
+      }
+      if (intable && $0 ~ /^[|][ :|-]+[|][ \t]*$/) next
+      if (intable && substr($0, 1, 1) == "|") {
+        if (!col) next
+        m = split(row, c, "|")
+        if (!match(c[2], /`[^`]+`/)) next
+        k = norm(substr(c[2], RSTART + 1, RLENGTH - 2)); known[k] = 1
+        v = trim(c[col])
+        if (v == "" || v == "공통" || v ~ /^없음:/) next
+        n = split(v, it, /, */)
+        for (i = 1; i <= n; i++) { q = k SUBSEP trim(it[i]); if (!(q in need)) { need[q] = FNR; order[++cnt] = q } }
+        next
+      }
+      intable = 0; next
+    }
+    /^- \[.\] T-/ { fe = index($0, "[프론트]") > 0; next }
+    /^  - 쓰임새:/ {
+      if (!fe) { printf "PLAN.md\t%d\t쓰임새 줄은 [프론트] 작업에만 둔다\n", FNR; next }
+      rest = $0; sub(/^  - 쓰임새:[ ]*/, "", rest)
+      n = split(rest, parts, / · /)
+      for (i = 1; i <= n; i++) {
+        p = trim(parts[i])
+        if (!match(p, /^`[^`]+`/)) { printf "PLAN.md\t%d\t형식이 틀림: \"%s\" (`메서드 경로` 화면항목)\n", FNR, p; continue }
+        k = norm(substr(p, 2, RLENGTH - 2)); items = trim(substr(p, RLENGTH + 1))
+        if (!(k in known)) { printf "PLAN.md\t%d\tAPI 표에 없는 엔드포인트: \"%s\"\n", FNR, k; continue }
+        if (items == "") { printf "PLAN.md\t%d\t화면 항목이 없음: \"%s\"\n", FNR, k; continue }
+        m = split(items, it, /, */)
+        for (j = 1; j <= m; j++) {
+          q = k SUBSEP trim(it[j])
+          if (q in need) got[q] = 1
+          else printf "PLAN.md\t%d\tAPI 화면 열에 없는 쓰임새: \"%s %s\"\n", FNR, k, trim(it[j])
+        }
+      }
+    }
+    END {
+      for (i = 1; i <= cnt; i++) if (!(order[i] in got)) {
+        split(order[i], z, SUBSEP)
+        printf "API.md\t%d\t맡은 [프론트] 작업이 없는 쓰임새: \"%s %s\"\n", need[order[i]], z[1], z[2]
+      }
+    }
+  ' "$API_DOC" "$PLAN_DOC")
 fi
 
 if [ "$ERR" -gt 0 ]; then
